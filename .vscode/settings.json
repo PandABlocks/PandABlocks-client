@@ -9,5 +9,6 @@
     "python.formatting.provider": "black",
     "python.jediEnabled": false,
     "restructuredtext.confPath": "${workspaceFolder}/docs",
-    "python.languageServer": "Microsoft"
+    "python.languageServer": "Pylance",
+    "python.pythonPath": "/scratch/tmc43/pipenv/PandABlocks-client-0xhNhEPE/bin/python"
 }

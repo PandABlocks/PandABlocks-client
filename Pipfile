@@ -5,19 +5,23 @@ verify_ssl = true
 
 [dev-packages]
 pytest-cov = "*"
-pytest-black = "*"
-pytest-flake8 = "*"
-flake8-isort = "*"
 pytest-mypy = "*"
+pytest-flake8 = "*"
+pytest-black = "*"
+flake8-isort = "*"
 sphinx-rtd-theme = "*"
-doc8 = "*"
+pytest-asyncio = "*"
+# Pinning black stops us having to allow pre-releases globally
+black = "==19.10b0"
+# Without these lines lockfile isn't usable on multiple Python versions and platforms
+mypy = "*"
+atomicwrites = "*"
 
 [packages]
+# All other package requirements from setup.cfg
+pandablocks = {editable = true,path = "."}
 
 [scripts]
 # Put coverage here so we don't interfere with debugging in the IDE
 tests = "python -m pytest --cov-fail-under=90 --cov=pandablocks --cov-report term"
 docs = "sphinx-build -E -b html docs build/html"
-
-[pipenv]
-allow_prereleases = true
