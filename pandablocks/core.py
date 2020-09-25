@@ -22,7 +22,6 @@ class Buffer:
 
     def __iadd__(self, byteslike: bytes):
         """Add some data from the server"""
-        assert byteslike, "Stream closed"
         self._buf += byteslike
         return self
 
@@ -176,6 +175,9 @@ class EndData:
     reason: EndReason
 
 
+Data = Union[StartData, FrameData, EndData]
+
+
 class DataConnection:
     def __init__(self):
         self._buf = Buffer()
@@ -242,13 +244,11 @@ class DataConnection:
         return FrameData(np.frombuffer(packet, self._rec_dtype))
 
     def _handle_data_end(self):
-        samples, reason = self._buf.read_line().split()
+        samples, reason = self._buf.read_line().split(maxsplit=1)
         self._next_handler = self._handle_header_start
         return EndData(samples=int(samples), reason=EndReason(reason.decode()))
 
-    def receive_data(
-        self, data: bytes
-    ) -> Iterator[Union[StartData, FrameData, EndData]]:
+    def receive_data(self, data: bytes) -> Iterator[Data]:
         """Tell the connection that you have received some bytes off the network,
         which are parsed into high level data structures yielded back"""
         assert self._next_handler, "Connect not called"

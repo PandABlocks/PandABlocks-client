@@ -20,6 +20,7 @@ atomicwrites = "*"
 [packages]
 # All other package requirements from setup.cfg
 pandablocks = {editable = true,path = "."}
+h5py = "*"
 
 [scripts]
 # Put coverage here so we don't interfere with debugging in the IDE
