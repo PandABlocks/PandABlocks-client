@@ -23,13 +23,13 @@ class AsyncioClient:
                 queue = self._ctrl_queues.pop(command)
                 queue.put_nowait(response)
 
-    async def data(self, frame_timeout=None) -> AsyncGenerator[Data, None]:
+    async def data(self, frame_timeout: int = None) -> AsyncGenerator[Data, None]:
         reader, writer = await asyncio.open_connection(self._host, 8889)
         try:
             connection = DataConnection()
             writer.write(connection.connect())
             await writer.drain()
-            while not writer.is_closing():
+            while True:
                 bytes = await asyncio.wait_for(reader.read(4096), frame_timeout)
                 for data in connection.receive_data(bytes):
                     yield data

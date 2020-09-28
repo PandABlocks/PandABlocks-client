@@ -76,7 +76,7 @@ async def write_hdf_files(host: str, scheme: str, num: int):
     counter = 0
     writer.start()
     async for data in conn.data():
-        writer.queue.put(data)
+        writer.queue.put(data, block=False)
         if type(data) == EndData:
             counter += 1
             if counter == num:
