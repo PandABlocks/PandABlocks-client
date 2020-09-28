@@ -1,14 +1,30 @@
 import asyncio
 import logging
 from argparse import ArgumentParser
+from typing import Callable
 
 from pandablocks import __version__
 
 
 def hdf(args):
-    from .hdf import write_hdf_files
+    """Write an HDF file for each PCAP acquisition"""
+    from pandablocks.hdf import write_hdf_files
 
     asyncio.run(write_hdf_files(args.host, args.scheme, args.num))
+
+
+def control(args):
+    """Open an interactive control console"""
+    from pandablocks.control import control
+
+    control(args.host, args.readline)
+
+
+def subparser_with_host(subparsers, func: Callable):
+    sub = subparsers.add_parser(func.__name__, help=func.__doc__)
+    sub.add_argument("host", type=str, help="IP address for PandA to connect to")
+    sub.set_defaults(func=func)
+    return sub
 
 
 def main(args=None):
@@ -16,20 +32,24 @@ def main(args=None):
     parser = ArgumentParser()
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers()
-    # Add a command for writing HDF files
-    sub = subparsers.add_parser(
-        "hdf", help="Write an HDF file for each PCAP acquisition"
-    )
-    sub.add_argument("host", type=str, help="IP address for PandA to connect to")
+    # hdf subcommand
+    sub = subparser_with_host(subparsers, hdf)
     sub.add_argument(
         "scheme",
         type=str,
         help="Filenaming scheme for HDF files, with %%d for scan number",
     )
     sub.add_argument(
-        "--num", type=int, help="Number of collections to capture", default=1
+        "--num", type=int, help="Number of collections to capture, default 1", default=1
     )
-    sub.set_defaults(func=hdf)
-    # Parse args
+    # control subcommand
+    sub = subparser_with_host(subparsers, control)
+    sub.add_argument(
+        "--no-readline",
+        action="store_false",
+        dest="readline",
+        help="Disable readline history and completion",
+    )
+    # Parse args and run
     args = parser.parse_args(args)
     args.func(args)

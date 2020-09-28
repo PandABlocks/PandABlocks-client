@@ -14,13 +14,12 @@ class Get(Command[Lines]):
     """
 
     field: str
-    strip_ok: bool = True
 
     def lines(self) -> Lines:
         return f"{self.field}?".encode()
 
     def response(self, lines: Lines) -> Lines:
-        if not isinstance(lines, list) and self.strip_ok:
+        if not isinstance(lines, list):
             # We got OK =value
             self.ok_if(lines.startswith(b"OK ="), lines)
             return lines[4:]

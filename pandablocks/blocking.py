@@ -1,5 +1,5 @@
 import socket
-from typing import Iterator
+from typing import Any, Iterator, List, Tuple, Union, overload
 
 from .core import Command, ControlConnection, Data, DataConnection, T
 
@@ -22,15 +22,31 @@ class BlockingClient:
         s.shutdown(socket.SHUT_WR)
         s.close()
 
-    def send(self, command: Command[T]) -> T:
-        bytes = self._ctrl_connection.send(command)
-        self._ctrl_socket.sendall(bytes)
-        bytes = self._ctrl_socket.recv(4096)
-        responses = list(self._ctrl_connection.receive_data(bytes))
-        assert len(responses) == 1, f"Expected one response, got {responses}"
-        c, response = responses[0]
-        assert c == command, f"Got command {c}"
-        return response
+    @overload
+    def send(self, commands: Command[T]) -> T:
+        ...
+
+    @overload
+    def send(self, commands: List[Command]) -> List:
+        ...
+
+    def send(self, commands: Union[Command[T], List[Command]]):
+        if isinstance(commands, Command):
+            commands = [commands]
+        for command in commands:
+            bytes = self._ctrl_connection.send(command)
+            self._ctrl_socket.sendall(bytes)
+        responses: List[Tuple[Command, Any]] = []
+        while len(responses) < len(commands):
+            bytes = self._ctrl_socket.recv(4096)
+            responses += list(self._ctrl_connection.receive_data(bytes))
+        assert all(
+            c == r[0] for c, r in zip(commands, responses)
+        ), f"Mismatched {commands} and {responses}"
+        if len(responses) == 1:
+            return responses[0][1]
+        else:
+            return [r[1] for r in responses]
 
     def data(self, frame_timeout: int = None) -> Iterator[Data]:
         s = self._make_socket(8889)

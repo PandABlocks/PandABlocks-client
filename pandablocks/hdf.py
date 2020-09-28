@@ -82,5 +82,4 @@ async def write_hdf_files(host: str, scheme: str, num: int):
             if counter == num:
                 break
     writer.stop()
-    await conn.close()
     writer.join()
