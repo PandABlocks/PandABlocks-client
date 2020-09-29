@@ -7,7 +7,9 @@ from typing import Deque, List
 import numpy as np
 import pytest
 
-from pandablocks.core import DataField, EndData, EndReason, FrameData, StartData
+from pandablocks.asyncio import AsyncioClient
+from pandablocks.blocking import BlockingClient
+from pandablocks.core import Buffer, DataField, EndData, EndReason, FrameData, StartData
 
 
 @pytest.fixture
@@ -188,11 +190,22 @@ class DummyServer:
     async def handle_ctrl(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
-        response = await reader.read(4096)
-        if response:
-            self.received += response.decode().splitlines()
-            writer.write((self.send.popleft() + "\n").encode())
-            await writer.drain()
+        buf = Buffer()
+        is_multiline = False
+        while True:
+            received = await reader.read(4096)
+            if not received:
+                break
+            buf += received
+            for line in buf:
+                self.received.append(line.decode())
+                if line.endswith(b"<"):
+                    is_multiline = True
+                if not is_multiline or not line:
+                    is_multiline = False
+                    to_send = self.send.popleft() + "\n"
+                    writer.write(to_send.encode())
+                    await writer.drain()
 
     async def handle_data(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -237,3 +250,18 @@ def dummy_server_in_thread():
     asyncio.run_coroutine_threadsafe(server.close(), loop).result()
     loop.call_soon_threadsafe(loop.stop())
     t.join()
+
+
+@pytest.fixture
+def blocking_client():
+    client = BlockingClient("localhost")
+    yield client
+    client.close()
+
+
+@pytest.fixture
+async def asyncio_client():
+    client = AsyncioClient("localhost")
+    await client.connect()
+    yield client
+    await client.close()

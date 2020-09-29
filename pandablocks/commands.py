@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from .core import Command, Lines
 
@@ -51,11 +51,51 @@ class Put(Command[None]):
         self.ok_if(lines == b"OK", lines)
 
 
-class GetBlocksData(Command):
+class GetBlockNumbers(Command[Dict[str, int]]):
     """Get the descriptions and field lists of the requested Blocks
     E.g.
-        GetBlocksData() -> BlocksData()
+        GetBlockNumbers() -> {"PCAP": 1, "LUT": 8, ...}
     """
+
+    def lines(self) -> Lines:
+        return b"*BLOCKS?"
+
+    def response(self, lines: Lines) -> Dict[str, int]:
+        blocks = {}
+        assert isinstance(lines, list), f"Expected list of Blocks, got {lines!r}"
+        for line in lines:
+            block, num = line.split()
+            blocks[block.decode()] = int(num)
+        return {block: num for block, num in sorted(blocks.items())}
+
+
+@dataclass
+class FieldType:
+    type: str
+    subtype: Optional[str] = None
+
+
+@dataclass
+class GetFields(Command[Dict[str, FieldType]]):
+    """Get the fields of a block
+    E.g.
+        GetFields("LUT") -> {"INPA": FieldType("bit_mux"), ...}
+    """
+
+    block: str
+
+    def lines(self) -> Lines:
+        return f"{self.block}.*?".encode()
+
+    def response(self, lines: Lines) -> Dict[str, FieldType]:
+        unsorted: Dict[int, Tuple[str, FieldType]] = {}
+        assert isinstance(lines, list), f"Expected list of Fields, got {lines!r}"
+        for line in lines:
+            name, index, type_subtype = line.decode().split(maxsplit=2)
+            unsorted[int(index)] = (name, FieldType(*type_subtype.split()))
+        # Dict keeps insertion order, so insert in the order the server said
+        fields = {name: field for _, (name, field) in sorted(unsorted.items())}
+        return fields
 
 
 class GetPcapBitsLabels(Command):

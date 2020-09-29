@@ -19,7 +19,7 @@ class MockInput:
         self._commands = deque(commands)
 
     def __call__(self, prompt):
-        assert prompt == "> "
+        assert prompt == cli.PANDA_FACE_PROMPT
         try:
             return self._commands.popleft()
         except IndexError:
@@ -27,10 +27,10 @@ class MockInput:
 
 
 def test_interactive_simple(dummy_server_in_thread, capsys):
-    mock_input = MockInput("PCAP.ACTIVE?")
-    dummy_server_in_thread.send.append("OK =0")
+    mock_input = MockInput("PCAP.ACTIVE?", "SEQ1.TABLE?")
+    dummy_server_in_thread.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
     with patch("pandablocks.control.input", side_effect=mock_input):
         cli.main(["control", "localhost", "--no-readline"])
     captured = capsys.readouterr()
-    assert captured.out == "OK =0\n\n"
+    assert captured.out == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"
     assert captured.err == ""

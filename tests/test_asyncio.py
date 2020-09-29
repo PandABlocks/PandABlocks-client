@@ -1,21 +1,17 @@
+import asyncio
+
 import pytest
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Get
 
 
-@pytest.fixture
-async def asyncio_client():
-    client = AsyncioClient("localhost")
-    await client.connect()
-    yield client
-    await client.close()
-
-
 @pytest.mark.asyncio
 async def test_asyncio_get(dummy_server_async, asyncio_client: AsyncioClient):
     dummy_server_async.send.append("OK =something")
-    response = await asyncio_client.send(Get("PCAP.ACTIVE"))
+    response = await asyncio.wait_for(
+        asyncio_client.send(Get("PCAP.ACTIVE")), timeout=1
+    )
     assert response == b"something"
     assert dummy_server_async.received == ["PCAP.ACTIVE?"]
 

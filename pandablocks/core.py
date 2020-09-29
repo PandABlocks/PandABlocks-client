@@ -1,4 +1,5 @@
 import struct
+import sys
 import xml.etree.ElementTree as ET
 from collections import deque
 from dataclasses import dataclass
@@ -180,6 +181,8 @@ Data = Union[StartData, FrameData, EndData]
 
 class DataConnection:
     def __init__(self):
+        # TODO: could support big endian, but are there any systems out there?
+        assert sys.byteorder == "little", "PandA sends data little endian"
         self._buf = Buffer()
         self._header = ""
         self._next_handler: Callable = None

@@ -5,6 +5,9 @@ from typing import Callable
 
 from pandablocks import __version__
 
+# Panda face with a space after for use as a prompt
+PANDA_FACE_PROMPT = "\U0001F43C "
+
 
 def hdf(args):
     """Write an HDF file for each PCAP acquisition"""
@@ -17,7 +20,7 @@ def control(args):
     """Open an interactive control console"""
     from pandablocks.control import control
 
-    control(args.host, args.readline)
+    control(args.host, args.prompt, args.readline)
 
 
 def subparser_with_host(subparsers, func: Callable):
@@ -44,6 +47,11 @@ def main(args=None):
     )
     # control subcommand
     sub = subparser_with_host(subparsers, control)
+    sub.add_argument(
+        "--prompt",
+        default=PANDA_FACE_PROMPT,
+        help="Prompt character, default is a panda face",
+    )
     sub.add_argument(
         "--no-readline",
         action="store_false",

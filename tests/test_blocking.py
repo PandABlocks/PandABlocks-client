@@ -1,14 +1,5 @@
-import pytest
-
 from pandablocks.blocking import BlockingClient
 from pandablocks.commands import Get
-
-
-@pytest.fixture
-def blocking_client():
-    client = BlockingClient("localhost")
-    yield client
-    client.close()
 
 
 def test_blocking_get(dummy_server_in_thread, blocking_client: BlockingClient):

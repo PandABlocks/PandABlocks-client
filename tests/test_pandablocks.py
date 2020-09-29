@@ -1,6 +1,6 @@
 import pytest
 
-from pandablocks.commands import Get, Put
+from pandablocks.commands import FieldType, Get, GetBlockNumbers, GetFields, Put
 from pandablocks.core import ControlConnection, DataConnection
 
 
@@ -34,6 +34,32 @@ def test_connect_put_multi_line():
     cmd = Put("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
     assert conn.send(cmd) == b"SEQ1.TABLE<\n1048576\n0\n1000\n1000\n\n"
     assert list(conn.receive_data(b"OK\n")) == [(cmd, None)]
+
+
+def test_get_block_numbers():
+    conn = ControlConnection()
+    cmd = GetBlockNumbers()
+    assert conn.send(cmd) == b"*BLOCKS?\n"
+    events = list(conn.receive_data(b"!PCAP 1\n!LUT 8\n.\n"))
+    assert events == [(cmd, {"PCAP": 1, "LUT": 8})]
+    assert list(events[0][1]) == ["LUT", "PCAP"]
+
+
+def test_get_fields():
+    conn = ControlConnection()
+    cmd = GetFields("LUT")
+    assert conn.send(cmd) == b"LUT.*?\n"
+    events = list(conn.receive_data(b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n"))
+    assert events == [
+        (
+            cmd,
+            dict(
+                INPA=FieldType(type="bit_mux"),
+                TYPEA=FieldType(type="param", subtype="enum"),
+            ),
+        )
+    ]
+    assert list(events[0][1]) == ["INPA", "TYPEA"]
 
 
 def test_slow_data_collection(slow_dump, slow_dump_expected):

@@ -1,5 +1,5 @@
 import socket
-from typing import Any, Iterator, List, Tuple, Union, overload
+from typing import Any, Iterable, Iterator, List, Tuple, Union, overload
 
 from .core import Command, ControlConnection, Data, DataConnection, T
 
@@ -23,16 +23,19 @@ class BlockingClient:
         s.close()
 
     @overload
-    def send(self, commands: Command[T]) -> T:
+    def send(self, commands: Command[T], timeout: int = None) -> T:
         ...
 
     @overload
-    def send(self, commands: List[Command]) -> List:
+    def send(self, commands: Iterable[Command], timeout: int = None) -> List:
         ...
 
-    def send(self, commands: Union[Command[T], List[Command]]):
+    def send(self, commands: Union[Command[T], Iterable[Command]], timeout: int = None):
+        self._ctrl_socket.settimeout(timeout)
         if isinstance(commands, Command):
             commands = [commands]
+        else:
+            commands = list(commands)
         for command in commands:
             bytes = self._ctrl_connection.send(command)
             self._ctrl_socket.sendall(bytes)
