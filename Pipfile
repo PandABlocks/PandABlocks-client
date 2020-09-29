@@ -9,6 +9,7 @@ pytest-mypy = "*"
 pytest-flake8 = "*"
 pytest-black = "*"
 flake8-isort = "*"
+isort = ">5.0"
 sphinx-rtd-theme = "*"
 pytest-asyncio = "*"
 # Pinning black stops us having to allow pre-releases globally
