@@ -4,7 +4,18 @@ import xml.etree.ElementTree as ET
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Deque, Generic, Iterator, List, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -36,7 +47,7 @@ class Buffer:
 
     def read_bytes(self, num: int) -> bytes:
         if num > len(self._buf):
-            raise StopIteration
+            raise StopIteration()
         else:
             return self._extract_frame(num)
 
@@ -88,11 +99,11 @@ class ControlConnection:
         self._lines: List[bytes] = []
         self._commands: Deque[Command] = deque()
 
-    def receive_data(self, data: bytes) -> Iterator[Tuple[Command, Any]]:
-        """Tell the connection that you have received some bytes off the network,
-        which are parsed into high level responses and yielded back with the
+    def receive_bytes(self, received: bytes) -> Iterator[Tuple[Command, Any]]:
+        """Tell the connection that you have received some bytes off the network.
+        Parse these into high level responses which are yielded back with the
         command that triggered this response"""
-        self._buf += data
+        self._buf += received
         is_multiline = bool(self._lines)
         for line in self._buf:
             if not is_multiline:
@@ -134,17 +145,17 @@ class DataField:
     name: str
     type: np.dtype
     capture: str
-    scale: float
-    offset: float
-    units: str
+    scale: float = 1.0
+    offset: float = 0.0
+    units: str = ""
 
 
 @dataclass
 class StartData:
     fields: List[DataField]
     missed: int
-    process: str
-    format: str
+    process: str  # Raw or Scaled
+    format: str  # Framed
     sample_bytes: int
 
 
@@ -178,6 +189,9 @@ class EndData:
 
 Data = Union[StartData, FrameData, EndData]
 
+# The name of the samples field used for averaging unscaled fields
+SAMPLES_FIELD = "PCAP.SAMPLES.Value"
+
 
 class DataConnection:
     def __init__(self):
@@ -186,7 +200,9 @@ class DataConnection:
         self._buf = Buffer()
         self._header = ""
         self._next_handler: Callable = None
-        self._rec_dtype = None
+        self._raw_dtype = None
+        self._scaled_dtype = None
+        self._partial_data = bytearray()
 
     def _handle_header_start(self):
         line = self._buf.read_line()
@@ -212,16 +228,25 @@ class DataConnection:
                         units=str(field.get("units", "")),
                     )
                 )
-            self._rec_dtype = np.dtype(
+            data = root.find("data")
+            sample_bytes = int(data.get("sample_bytes"))
+            if sample_bytes - sum(f.type.itemsize for f in fields) == 4:
+                # In raw mode with panda-server < 2.1 samples wasn't
+                # put in if not specifically requested, but was still
+                # sent
+                name, capture = SAMPLES_FIELD.rsplit(".", maxsplit=1)
+                fields.insert(
+                    0, DataField(name, np.dtype("uint32"), capture),
+                )
+            self._raw_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]
             )
-            data = root.find("data")
             return StartData(
                 fields=fields,
                 missed=int(data.get("missed")),
                 process=str(data.get("process")),
                 format=str(data.get("format")),
-                sample_bytes=int(data.get("sample_bytes")),
+                sample_bytes=sample_bytes,
             )
 
     def _handle_data_start(self):
@@ -234,6 +259,7 @@ class DataConnection:
             self._next_handler = self._handle_data_frame
         elif bytes == b"END ":
             self._next_handler = self._handle_data_end
+            return self.flush()
         else:
             raise ValueError(f"Bad data '{bytes}'")
 
@@ -242,33 +268,46 @@ class DataConnection:
         length = struct.unpack("<I", self._buf.peek_bytes(4))[0]
         # length = len("BIN " + 4_bytes_encoded_length + data)
         # we already read "BIN ", so read the rest
-        packet = self._buf.read_bytes(length - 4)[4:]
+        self._partial_data += self._buf.read_bytes(length - 4)[4:]
         self._next_handler = self._handle_data_start
-        return FrameData(np.frombuffer(packet, self._rec_dtype))
 
     def _handle_data_end(self):
         samples, reason = self._buf.read_line().split(maxsplit=1)
         self._next_handler = self._handle_header_start
         return EndData(samples=int(samples), reason=EndReason(reason.decode()))
 
-    def receive_data(self, data: bytes) -> Iterator[Data]:
-        """Tell the connection that you have received some bytes off the network,
-        which are parsed into high level data structures yielded back"""
+    def receive_bytes(self, received: bytes) -> Iterator[Data]:
+        """Tell the connection that you have received some bytes off the network.
+        Parse these into Data structures and yield them back. Do not yield partial
+        data frames"""
         assert self._next_handler, "Connect not called"
-        self._buf += data
+        self._buf += received
         while True:
             # Each of these handlers should call read at most once, so that
             # if we don't have enough data we don't lose partial data
             try:
                 ret = self._next_handler()
             except StopIteration:
-                return
+                break
             else:
                 if ret:
                     yield ret
 
-    def connect(self) -> bytes:
+    def flush(self) -> Optional[FrameData]:
+        """Flush any partial data frame"""
+        # Some partial data left to return
+        if self._partial_data:
+            data = np.frombuffer(self._partial_data, self._raw_dtype)
+            self._partial_data = bytearray()
+            return FrameData(data)
+        else:
+            return None
+
+    def connect(self, scaled: bool) -> bytes:
         """Return the bytes that need to be sent on connection"""
         assert not self._next_handler, "Can't connect while midway through collection"
         self._next_handler = self._handle_header_start
-        return b"XML FRAMED SCALED\n"
+        if scaled:
+            return b"XML FRAMED SCALED\n"
+        else:
+            return b"XML FRAMED RAW\n"

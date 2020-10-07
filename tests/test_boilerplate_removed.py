@@ -1,8 +1,9 @@
+"""
+This file checks that all the example boilerplate text has been removed
+"""
 import os
 
 import pytest
-
-"""This file checks that all the example boilerplate text has been removed"""
 
 
 @pytest.fixture

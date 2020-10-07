@@ -42,7 +42,7 @@ class BlockingClient:
         responses: List[Tuple[Command, Any]] = []
         while len(responses) < len(commands):
             bytes = self._ctrl_socket.recv(4096)
-            responses += list(self._ctrl_connection.receive_data(bytes))
+            responses += list(self._ctrl_connection.receive_bytes(bytes))
         assert all(
             c == r[0] for c, r in zip(commands, responses)
         ), f"Mismatched {commands} and {responses}"
@@ -51,15 +51,18 @@ class BlockingClient:
         else:
             return [r[1] for r in responses]
 
-    def data(self, frame_timeout: int = None) -> Iterator[Data]:
+    def data(self, scaled: bool = True, frame_timeout: int = None) -> Iterator[Data]:
         s = self._make_socket(8889)
         s.settimeout(frame_timeout)  # close enough
         try:
             connection = DataConnection()
-            s.sendall(connection.connect())
+            s.sendall(connection.connect(scaled))
             while True:
                 bytes = s.recv(4096)
-                for data in connection.receive_data(bytes):
+                for data in connection.receive_bytes(bytes):
                     yield data
+                fd = connection.flush()
+                if fd:
+                    yield fd
         finally:
             self.close(s)

@@ -1,8 +1,9 @@
 import asyncio
 import threading
 from collections import deque
+from io import BufferedReader
 from pathlib import Path
-from typing import Deque, List
+from typing import Deque, Iterator, List
 
 import numpy as np
 import pytest
@@ -12,16 +13,32 @@ from pandablocks.blocking import BlockingClient
 from pandablocks.core import Buffer, DataField, EndData, EndReason, FrameData, StartData
 
 
-@pytest.fixture
-def fast_dump():
-    with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
-        yield f.read()
+def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
+    data = f.read(size)
+    while data:
+        yield data
+        data = f.read(size)
 
 
 @pytest.fixture
 def slow_dump():
     with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
-        yield f.read()
+        # Simulate small chunked read
+        yield chunked_read(f, 50)
+
+
+@pytest.fixture
+def fast_dump():
+    with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
+        # Simulate larger chunked read
+        yield chunked_read(f, 500)
+
+
+@pytest.fixture
+def raw_dump():
+    with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
+        # Simulate largest chunked read
+        yield chunked_read(f, 200000)
 
 
 DUMP_FIELDS = [
@@ -212,8 +229,10 @@ class DummyServer:
     ):
         # oneshot data writer
         await reader.read(4096)
-        writer.write(self.data)
-        await writer.drain()
+        for data in self.data:
+            await asyncio.sleep(0.1)
+            writer.write(data)
+            await writer.drain()
 
     async def open(self):
         self._ctrl_server = await asyncio.start_server(
