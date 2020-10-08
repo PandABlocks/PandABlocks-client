@@ -95,15 +95,15 @@ class BlockCompleter:
         if len(split) == 1:
             # No dot, text is a partial block name
             for block in self._blocks:
-                if text_matches(text, block):
+                if block.startswith(text):
                     for bn in self._with_suffixes(block, numbers=not prefix):
-                        if text_matches(text, bn):
+                        if bn.startswith(text):
                             matches.append(prefix + bn)
         else:
             bn = split[0]
             for field in self._fields[bn.rstrip(digits)]:
                 bnf = f"{bn}.{field}"
-                if text_matches(text, bnf):
+                if bnf.startswith(text):
                     matches.append(prefix + bnf)
         return matches
 

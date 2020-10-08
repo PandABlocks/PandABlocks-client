@@ -1,11 +1,12 @@
-pandablocks
-===========================
+PandABlocks Python Client
+=========================
 
-Write some introductory paragraphs here. They should describe:
+A Python client to control and data ports of the PandABlocks TCP server. Library
+features a `Sans-IO <what_is_sans_io>` core with both asyncio and blocking
+wrappers. Command line tool features an interactive console, load/save control,
+and HDF5 writing.
 
-- What the module does
-- How it does it
-- Why you should use it
+
 
 If you have a diagram or screenshot, you can include it here.
 

@@ -41,7 +41,7 @@ class MockInput:
         self._commands = deque(commands)
 
     def __call__(self, prompt):
-        assert prompt == cli.PANDA_FACE_PROMPT
+        assert prompt == cli.PROMPT
         try:
             return self._commands.popleft()
         except IndexError:

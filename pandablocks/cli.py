@@ -5,15 +5,18 @@ from typing import Callable
 
 from pandablocks import __version__
 
-# Panda face with a space after for use as a prompt
-PANDA_FACE_PROMPT = "\U0001F43C "
+# Default prompt
+PROMPT = "< "
 
 
 def hdf(args):
     """Write an HDF file for each PCAP acquisition"""
     from pandablocks.hdf import write_hdf_files
 
-    asyncio.run(write_hdf_files(args.host, args.scheme, args.num))
+    # Don't use asyncio.run to workaround Python3.7 bug
+    # https://bugs.python.org/issue38013
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(write_hdf_files(args.host, args.scheme, args.num))
 
 
 def control(args):
@@ -31,7 +34,7 @@ def subparser_with_host(subparsers, func: Callable):
 
 
 def main(args=None):
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
     parser = ArgumentParser()
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers()
@@ -48,9 +51,7 @@ def main(args=None):
     # control subcommand
     sub = subparser_with_host(subparsers, control)
     sub.add_argument(
-        "--prompt",
-        default=PANDA_FACE_PROMPT,
-        help="Prompt character, default is a panda face",
+        "--prompt", default=PROMPT, help="Prompt character, default is a panda face",
     )
     sub.add_argument(
         "--no-readline",

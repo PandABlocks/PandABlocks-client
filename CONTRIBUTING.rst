@@ -2,21 +2,21 @@ Contributing
 ============
 
 Contributions and issues are most welcome! All issues and pull requests are
-handled through github on the `dls_controls repository`_. Also, please check for
-any existing issues before filing a new one. If you have a great idea but it
-involves big changes, please file a ticket before making a pull request! We
-want to make sure you don't spend your time coding something that might not fit
-the scope of the project.
+handled through github on the `PandABlocks-client repository`_. Also, please
+check for any existing issues before filing a new one. If you have a great idea
+but it involves big changes, please file a ticket before making a pull request!
+We want to make sure you don't spend your time coding something that might not
+fit the scope of the project.
 
-.. _dls_controls repository: https://github.com/dls-controls/pandablocks/issues
+.. _PandABlocks-client repository: https://github.com/PandABlocks/PandABlocks-client/issues
 
 Running the tests
 -----------------
 
-To get the source source code and run the unit tests, run::
+To get the source code and run the unit tests, run::
 
-    $ git clone git://github.com/dls-controls/pandablocks.git
-    $ cd pandablocks
+    $ git clone git@github.com:PandABlocks/PandABlocks-client.git
+    $ cd PandABlocks-client
     $ pipenv install --dev
     $ pipenv run tests
 
