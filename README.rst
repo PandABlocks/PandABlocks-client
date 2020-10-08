@@ -5,7 +5,9 @@ PandABlocks Python Client
 
 A Python client to control and data ports of the PandABlocks TCP server.
 
-Library features a Sans-IO core with both asyncio and blocking wrappers::
+Library features a Sans-IO core with both asyncio and blocking wrappers:
+
+.. code:: python
 
     from pandablocks.blocking import BlockingClient
     from pandablocks.commands import Get
@@ -20,7 +22,9 @@ Library features a Sans-IO core with both asyncio and blocking wrappers::
     client.close()
 
 Command line tool features an interactive console, load/save control, and HDF5
-writing::
+writing:
+
+.. code:: python
 
     $ pandablocks control <panda-hostname>
     < PCAP.     # Hit TAB key...
