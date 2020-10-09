@@ -9,6 +9,7 @@ install:
   - pip install coveralls
   # Skip lock as it contains hashes from the subset installed on DLS PyPI
   - pipenv install --skip-lock --dev
+  - pipenv graph
   - ls -al ${VIRTUAL_ENV}/lib/python${TRAVIS_PYTHON_VERSION}/site-packages
   - ls -al ${VIRTUAL_ENV}/bin
   - python setup.py bdist_wheel
