@@ -2,7 +2,7 @@ import socket
 from typing import Any, Iterable, Iterator, List, Tuple, Union, overload
 
 from .commands import Command, T
-from .connection import ControlConnection, DataConnection
+from .connections import ControlConnection, DataConnection
 from .responses import Data
 
 

@@ -3,11 +3,21 @@ from collections import deque
 from typing import AsyncGenerator, Deque, Dict, Optional
 
 from .commands import Command, T
-from .connection import ControlConnection, DataConnection
+from .connections import ControlConnection, DataConnection
 from .responses import Data
 
 
 class AsyncioClient:
+    """Asyncio implementation of a PandABlocks client. Usage is::
+
+        client = AsyncioClient("hostname-or-ip")
+        await client.connect()
+        response = await client.send(command)
+        for data in client.data():
+            handle(data)
+        await client.close()
+    """
+
     def __init__(self, host: str):
         self._host = host
         self._ctrl_connection = ControlConnection()
@@ -16,6 +26,7 @@ class AsyncioClient:
         self._ctrl_queues: Dict[int, asyncio.Queue] = {}
 
     async def connect(self):
+        """Connect to the control port, and be ready to handle commands"""
         reader, self._ctrl_writer = await asyncio.open_connection(self._host, 8888)
         self._ctrl_task = asyncio.create_task(self._ctrl_read_forever(reader))
 
@@ -27,12 +38,14 @@ class AsyncioClient:
                 queue.put_nowait(response)
 
     async def close(self):
+        """Close control connection and wait for completion"""
         assert self._ctrl_writer and self._ctrl_task, "Not connected yet"
         self._ctrl_task.cancel()
         self._ctrl_writer.close()
         await self._ctrl_writer.wait_closed()
 
     async def send(self, command: Command[T]) -> T:
+        """Send a command to the PandA, returning its response"""
         assert self._ctrl_writer, "Not connected yet"
         queue: asyncio.Queue[T] = asyncio.Queue()
         # Need to use the id as non-frozen dataclasses don't hash

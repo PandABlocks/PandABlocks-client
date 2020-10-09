@@ -3,7 +3,7 @@ from typing import Iterator
 import pytest
 
 from pandablocks.commands import FieldType, Get, GetBlockNumbers, GetFields, Put
-from pandablocks.connection import ControlConnection, DataConnection
+from pandablocks.connections import ControlConnection, DataConnection
 from pandablocks.responses import Data
 
 

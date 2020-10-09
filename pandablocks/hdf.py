@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 from .asyncio import AsyncioClient
-from .connection import SAMPLES_FIELD
+from .connections import SAMPLES_FIELD
 from .responses import DataField, EndData, FrameData, StartData
 
 

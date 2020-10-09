@@ -10,7 +10,7 @@ import pytest
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.blocking import BlockingClient
-from pandablocks.connection import Buffer
+from pandablocks.connections import Buffer
 from pandablocks.responses import DataField, EndData, EndReason, FrameData, StartData
 
 
