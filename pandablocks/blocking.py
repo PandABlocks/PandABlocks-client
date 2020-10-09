@@ -1,7 +1,9 @@
 import socket
 from typing import Any, Iterable, Iterator, List, Tuple, Union, overload
 
-from .core import Command, ControlConnection, Data, DataConnection, T
+from .commands import Command, T
+from .connection import ControlConnection, DataConnection
+from .responses import Data
 
 
 class BlockingClient:
@@ -57,7 +59,8 @@ class BlockingClient:
         try:
             connection = DataConnection()
             s.sendall(connection.connect(scaled))
-            while True:
+            # bool(True) instead of True so IDE sees finally block is reachable
+            while bool(True):
                 bytes = s.recv(4096)
                 for data in connection.receive_bytes(bytes):
                     yield data

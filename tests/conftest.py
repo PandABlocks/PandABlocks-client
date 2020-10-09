@@ -10,7 +10,8 @@ import pytest
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.blocking import BlockingClient
-from pandablocks.core import Buffer, DataField, EndData, EndReason, FrameData, StartData
+from pandablocks.connection import Buffer
+from pandablocks.responses import DataField, EndData, EndReason, FrameData, StartData
 
 
 def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:

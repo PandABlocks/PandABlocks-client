@@ -7,7 +7,8 @@ import h5py
 import numpy as np
 
 from .asyncio import AsyncioClient
-from .core import SAMPLES_FIELD, DataField, EndData, FrameData, StartData
+from .connection import SAMPLES_FIELD
+from .responses import DataField, EndData, FrameData, StartData
 
 
 class Pipeline(threading.Thread):

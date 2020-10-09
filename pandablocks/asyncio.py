@@ -2,7 +2,9 @@ import asyncio
 from collections import deque
 from typing import AsyncGenerator, Deque, Dict, Optional
 
-from .core import Command, ControlConnection, Data, DataConnection, T
+from .commands import Command, T
+from .connection import ControlConnection, DataConnection
+from .responses import Data
 
 
 class AsyncioClient:
@@ -11,7 +13,7 @@ class AsyncioClient:
         self._ctrl_connection = ControlConnection()
         self._ctrl_writer: Optional[asyncio.StreamWriter] = None
         self._ctrl_task: Optional[asyncio.Task] = None
-        self._ctrl_queues: Dict[Command, asyncio.Queue] = {}
+        self._ctrl_queues: Dict[int, asyncio.Queue] = {}
 
     async def connect(self):
         reader, self._ctrl_writer = await asyncio.open_connection(self._host, 8888)
@@ -21,7 +23,7 @@ class AsyncioClient:
         while True:
             bytes = await reader.read(4096)
             for command, response in self._ctrl_connection.receive_bytes(bytes):
-                queue = self._ctrl_queues.pop(command)
+                queue = self._ctrl_queues.pop(id(command))
                 queue.put_nowait(response)
 
     async def close(self):
@@ -33,7 +35,8 @@ class AsyncioClient:
     async def send(self, command: Command[T]) -> T:
         assert self._ctrl_writer, "Not connected yet"
         queue: asyncio.Queue[T] = asyncio.Queue()
-        self._ctrl_queues[command] = queue
+        # Need to use the id as non-frozen dataclasses don't hash
+        self._ctrl_queues[id(command)] = queue
         bytes = self._ctrl_connection.send(command)
         self._ctrl_writer.write(bytes)
         await self._ctrl_writer.drain()
@@ -75,7 +78,8 @@ class AsyncioClient:
         try:
             writer.write(connection.connect(scaled))
             await writer.drain()
-            while True:
+            # bool(True) instead of True so IDE sees finally block is reachable
+            while bool(True):
                 bytes = await asyncio.wait_for(reader.read(4096), frame_timeout)
                 for d in connection.receive_bytes(bytes):
                     data.append(d)

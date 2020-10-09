@@ -1,10 +1,29 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Generic, List, Tuple, TypeVar, Union
 
-from .core import Command, Lines
+from .responses import FieldType
+
+T = TypeVar("T")
+# One or more lines to send
+Lines = Union[bytes, List[bytes]]
 
 
-@dataclass(frozen=True)
+class Command(Generic[T]):
+    def lines(self) -> Lines:
+        """Return lines that should be sent, with no newlines in them"""
+        raise NotImplementedError(self)
+
+    def response(self, lines: Lines) -> T:
+        """Create a response from the lines received from the PandA"""
+        raise NotImplementedError(self)
+
+    def ok_if(self, ok, lines: Lines):
+        """If not ok then raise a suitable error message"""
+        if not ok:
+            raise ValueError("Bad response to command {self}: '{lines}'")
+
+
+@dataclass
 class Get(Command[Lines]):
     """Get the value of a field, or star command.
     E.g.
@@ -27,7 +46,7 @@ class Get(Command[Lines]):
             return lines
 
 
-@dataclass(frozen=True)
+@dataclass
 class Put(Command[None]):
     """Put the value of a field.
     E.g.
@@ -67,12 +86,6 @@ class GetBlockNumbers(Command[Dict[str, int]]):
             block, num = line.split()
             blocks[block.decode()] = int(num)
         return {block: num for block, num in sorted(blocks.items())}
-
-
-@dataclass
-class FieldType:
-    type: str
-    subtype: Optional[str] = None
 
 
 @dataclass

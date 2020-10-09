@@ -3,7 +3,8 @@ from typing import Iterator
 import pytest
 
 from pandablocks.commands import FieldType, Get, GetBlockNumbers, GetFields, Put
-from pandablocks.core import ControlConnection, Data, DataConnection
+from pandablocks.connection import ControlConnection, DataConnection
+from pandablocks.responses import Data
 
 
 def test_connection_gets_split_value():

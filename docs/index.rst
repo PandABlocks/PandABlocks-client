@@ -6,6 +6,9 @@ features a `Sans-IO <what_is_sans_io>` core with both asyncio and blocking
 wrappers. Command line tool features an interactive console, load/save control,
 and HDF5 writing.
 
+How the documentation is structured
+-----------------------------------
+
 
 
 If you have a diagram or screenshot, you can include it here.

@@ -2,22 +2,15 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 from collections import deque
-from dataclasses import dataclass
-from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Deque,
-    Generic,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Deque, Iterator, List, Optional, Tuple
 
 import numpy as np
+
+from .commands import Command
+from .responses import Data, DataField, EndData, EndReason, FrameData, StartData
+
+# The name of the samples field used for averaging unscaled fields
+SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 
 class Buffer:
@@ -71,26 +64,6 @@ class Buffer:
         return self.read_line()
 
 
-T = TypeVar("T")
-# One or more lines to send
-Lines = Union[bytes, List[bytes]]
-
-
-class Command(Generic[T]):
-    def lines(self) -> Lines:
-        """Return lines that should be sent, with no newlines in them"""
-        raise NotImplementedError(self)
-
-    def response(self, lines: Lines) -> T:
-        """Create a response from the lines received from the PandA"""
-        raise NotImplementedError(self)
-
-    def ok_if(self, ok, lines: Lines):
-        """If not ok then raise a suitable error message"""
-        if not ok:
-            raise ValueError("Bad response to command {self}: '{lines}'")
-
-
 class ControlConnection:
     """An Event based interface like h11"""
 
@@ -138,59 +111,6 @@ class ControlConnection:
         if isinstance(lines, list):
             lines = b"\n".join(lines)
         return lines + b"\n"
-
-
-@dataclass
-class DataField:
-    name: str
-    type: np.dtype
-    capture: str
-    scale: float = 1.0
-    offset: float = 0.0
-    units: str = ""
-
-
-@dataclass
-class StartData:
-    fields: List[DataField]
-    missed: int
-    process: str  # Raw or Scaled
-    format: str  # Framed
-    sample_bytes: int
-
-
-@dataclass
-class FrameData:
-    data: np.ndarray
-
-
-class EndReason(Enum):
-    # Experiment completed without intervention.
-    OK = "Ok"
-    # Experiment manually completed by *PCAP.DISARM= command.
-    DISARMED = "Disarmed"
-    # Client disconnect detected.
-    EARLY_DISCONNECT = "Early disconnect"
-    # Client not taking data quickly or network congestion, internal buffer overflow.
-    DATA_OVERRUN = "Data overrun"
-    # Triggers too fast for configured data capture.
-    FRAMING_ERROR = "Framing error"
-    # Probable CPU overload on PandA, should not occur.
-    DRIVER_DATA_OVERRUN = "Driver data overrun"
-    # Data capture too fast for memory bandwidth.
-    DMA_DATA_ERROR = "DMA data error"
-
-
-@dataclass
-class EndData:
-    samples: int
-    reason: EndReason
-
-
-Data = Union[StartData, FrameData, EndData]
-
-# The name of the samples field used for averaging unscaled fields
-SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 
 class DataConnection:

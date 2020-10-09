@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from string import digits
 from typing import Dict, List, Optional
 
-from pandablocks.blocking import BlockingClient
-from pandablocks.commands import FieldType, GetBlockNumbers, GetFields
-from pandablocks.core import Command, Lines
+from .blocking import BlockingClient
+from .commands import Command, FieldType, GetBlockNumbers, GetFields, Lines
 
 
 # Checks whether the server will interpret cmd as a table command: search for
