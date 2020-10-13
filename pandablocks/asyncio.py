@@ -8,14 +8,15 @@ from .responses import Data
 
 
 class AsyncioClient:
-    """Asyncio implementation of a PandABlocks client. Usage is::
+    """Asyncio implementation of a PandABlocks client.
+    For example::
 
         client = AsyncioClient("hostname-or-ip")
-        await client.connect()
-        response = await client.send(command)
+        await client.connect_control()
+        resp1, resp2 = asyncio.gather(client.send(cmd1), client.send(cmd2))
         for data in client.data():
             handle(data)
-        await client.close()
+        await client.close_control()
     """
 
     def __init__(self, host: str):
@@ -25,8 +26,9 @@ class AsyncioClient:
         self._ctrl_task: Optional[asyncio.Task] = None
         self._ctrl_queues: Dict[int, asyncio.Queue] = {}
 
-    async def connect(self):
-        """Connect to the control port, and be ready to handle commands"""
+    async def connect_control(self):
+        """Connect to the control port, and be ready to handle commands. Not needed
+        if only the data connection is needed"""
         reader, self._ctrl_writer = await asyncio.open_connection(self._host, 8888)
         self._ctrl_task = asyncio.create_task(self._ctrl_read_forever(reader))
 
@@ -37,16 +39,21 @@ class AsyncioClient:
                 queue = self._ctrl_queues.pop(id(command))
                 queue.put_nowait(response)
 
-    async def close(self):
+    async def close_control(self):
         """Close control connection and wait for completion"""
-        assert self._ctrl_writer and self._ctrl_task, "Not connected yet"
+        assert self._ctrl_writer and self._ctrl_task, "Control port not connected yet"
         self._ctrl_task.cancel()
         self._ctrl_writer.close()
         await self._ctrl_writer.wait_closed()
 
     async def send(self, command: Command[T]) -> T:
-        """Send a command to the PandA, returning its response"""
-        assert self._ctrl_writer, "Not connected yet"
+        """Send a command to control port of the PandA, returning its response.
+        Requires `connect_control` to have been called first.
+
+        Args:
+            command: The command to send
+        """
+        assert self._ctrl_writer, "Control port not connected yet"
         queue: asyncio.Queue[T] = asyncio.Queue()
         # Need to use the id as non-frozen dataclasses don't hash
         self._ctrl_queues[id(command)] = queue
@@ -69,15 +76,15 @@ class AsyncioClient:
             flush_period: How often to flush partial data frames, None is on every
                 chunk of data from the server
             frame_timeout: If no data is received for this amount of time, raise
-                TimeoutError
+                `asyncio.TimeoutError`
         """
         connection = DataConnection()
         reader, writer = await asyncio.open_connection(self._host, 8889)
 
-        data: Deque[Optional[Data]] = deque()
+        data: Deque[Data] = deque()
 
         async def queue_flushed_data():
-            data.append(connection.flush())
+            data.extend(connection.flush())
 
         async def periodic_flush():
             if flush_period:
@@ -98,11 +105,9 @@ class AsyncioClient:
                     data.append(d)
                 if flush_period is None:
                     # No flush task, do it here
-                    data.append(connection.flush())
+                    data.extend(connection.flush())
                 while data:
-                    yd = data.popleft()
-                    if yd:
-                        yield yd
+                    yield data.popleft()
         finally:
             flush_task.cancel()
             writer.close()

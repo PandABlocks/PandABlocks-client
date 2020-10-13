@@ -7,6 +7,17 @@ from .responses import Data
 
 
 class BlockingClient:
+    """Blocking implementation of a PandABlocks client.
+    For example::
+
+        # Control port is connected during this call
+        client = BlockingClient("hostname-or-ip")
+        resp1, resp2 = client.send([cmd1, cmd2])
+        for data in client.data():
+            handle(data)
+        client.close_control()
+    """
+
     def __init__(self, host: str):
         self._host = host
         self._ctrl_socket = self._make_socket(8888)
@@ -18,7 +29,8 @@ class BlockingClient:
         s.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
         return s
 
-    def close(self, s: socket.socket = None):
+    def close_control(self, s: socket.socket = None):
+        """Close control connection and wait for completion"""
         if s is None:
             s = self._ctrl_socket
         s.shutdown(socket.SHUT_WR)
@@ -33,6 +45,13 @@ class BlockingClient:
         ...
 
     def send(self, commands: Union[Command[T], Iterable[Command]], timeout: int = None):
+        """Send a command to control port of the PandA, returning its response.
+
+        Args:
+            commands: If single `Command`, return its response. If a list of commands
+                return a list of reponses
+            timeout: If no reponse in this time, raise `socket.timeout`
+        """
         self._ctrl_socket.settimeout(timeout)
         if isinstance(commands, Command):
             commands = [commands]
@@ -54,6 +73,13 @@ class BlockingClient:
             return [r[1] for r in responses]
 
     def data(self, scaled: bool = True, frame_timeout: int = None) -> Iterator[Data]:
+        """Connect to data port and yield data frames
+
+        Args:
+            scaled: Whether to scale and average data frames, reduces throughput
+            frame_timeout: If no data is received for this amount of time, raise
+                `socket.timeout`
+        """
         s = self._make_socket(8889)
         s.settimeout(frame_timeout)  # close enough
         try:
@@ -62,10 +88,7 @@ class BlockingClient:
             # bool(True) instead of True so IDE sees finally block is reachable
             while bool(True):
                 bytes = s.recv(4096)
-                for data in connection.receive_bytes(bytes):
-                    yield data
-                fd = connection.flush()
-                if fd:
-                    yield fd
+                yield from connection.receive_bytes(bytes)
+                yield from connection.flush()
         finally:
-            self.close(s)
+            self.close_control(s)

@@ -70,9 +70,7 @@ def get_data(it: Iterator[bytes]) -> Iterator[Data]:
     assert conn.connect(scaled=True) == b"XML FRAMED SCALED\n"
     for received in it:
         yield from conn.receive_bytes(received)
-        fd = conn.flush()
-        if fd:
-            yield fd
+        yield from conn.flush()
 
 
 def test_slow_data_collection(slow_dump, slow_dump_expected):

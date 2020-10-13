@@ -169,4 +169,4 @@ def control(host: str, prompt: str, readline=True):
         # End with a newline
         print()
     finally:
-        client.close()
+        client.close_control()

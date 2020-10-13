@@ -2,7 +2,7 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 from collections import deque
-from typing import Any, Callable, Deque, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Deque, Iterator, List, Tuple
 
 import numpy as np
 
@@ -14,8 +14,11 @@ SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 
 class Buffer:
-    """Provides line reader and bytes reader interfaces:
+    """Byte storage that provides line reader and bytes reader interfaces.
+    For example::
 
+        buf = Buffer()
+        buf += bytes_from_server
         line = buf.read_line()  # raises StopIteration if no line
         for line in buf:
             pass
@@ -39,18 +42,22 @@ class Buffer:
         return frame
 
     def read_bytes(self, num: int) -> bytes:
+        """Read and pop num bytes from the beginning of the buffer"""
         if num > len(self._buf):
             raise StopIteration()
         else:
             return self._extract_frame(num)
 
     def peek_bytes(self, num: int) -> bytes:
+        """Read but do not pop num bytes from the beginning of the buffer"""
         if num > len(self._buf):
             raise StopIteration()
         else:
             return self._buf[:num]
 
     def read_line(self):
+        """Read and pop a newline terminated line (without terminator)
+        from the beginning of the buffer"""
         idx = self._buf.find(b"\n")
         if idx < 0:
             raise StopIteration()
@@ -65,7 +72,19 @@ class Buffer:
 
 
 class ControlConnection:
-    """An Event based interface like h11"""
+    """Sans-IO connection to control port of PandA TCP server, supporting a
+    Command based interface. For example::
+
+        cc = ControlConnection()
+        # Connection says what bytes should be sent to execute command
+        to_send = cc.send(command)
+        socket.sendall(to_send)
+        while True:
+            # Repeatedly process bytes from the server looking for responses
+            from_server = socket.recv()
+            for command, response in cc.receive_bytes(from_server):
+                do_something_with(response)
+    """
 
     def __init__(self):
         self._buf = Buffer()
@@ -114,13 +133,32 @@ class ControlConnection:
 
 
 class DataConnection:
+    """Sans-IO connection to data port of PandA TCP server, supporting an
+    flushable iterator interface. For example::
+
+        dc = ControlConnection()
+        # Single connection string to send
+        to_send = dc.connect()
+        socket.sendall(to_send)
+        while True:
+            # Repeatedly process bytes from the server looking for data
+            from_server = socket.recv()
+            for data in dc.receive_bytes(from_server):
+                do_something_with(data)
+            # FrameData are squashed together until the end of acquisition
+            # or an explicit flush is called
+            if time_to_flush():
+                for data in dc.flush():
+                    do_something_with(data)
+    """
+
     def __init__(self):
         # TODO: could support big endian, but are there any systems out there?
         assert sys.byteorder == "little", "PandA sends data little endian"
         self._buf = Buffer()
         self._header = ""
         self._next_handler: Callable = None
-        self._raw_dtype = None
+        self._frame_dtype = None
         self._scaled_dtype = None
         self._partial_data = bytearray()
 
@@ -158,7 +196,7 @@ class DataConnection:
                 fields.insert(
                     0, DataField(name, np.dtype("uint32"), capture),
                 )
-            self._raw_dtype = np.dtype(
+            self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]
             )
             return StartData(
@@ -179,7 +217,8 @@ class DataConnection:
             self._next_handler = self._handle_data_frame
         elif bytes == b"END ":
             self._next_handler = self._handle_data_end
-            return self.flush()
+            for fd in self.flush():
+                return fd
         else:
             raise ValueError(f"Bad data '{bytes}'")
 
@@ -198,8 +237,8 @@ class DataConnection:
 
     def receive_bytes(self, received: bytes) -> Iterator[Data]:
         """Tell the connection that you have received some bytes off the network.
-        Parse these into Data structures and yield them back. Do not yield partial
-        data frames"""
+        Parse these into Data structures and yield them back. Do not yield
+        `FrameData` unless `flush` is called or end of acquisition reached"""
         assert self._next_handler, "Connect not called"
         self._buf += received
         while True:
@@ -213,15 +252,13 @@ class DataConnection:
                 if ret:
                     yield ret
 
-    def flush(self) -> Optional[FrameData]:
-        """Flush any partial data frame"""
+    def flush(self) -> Iterator[FrameData]:
+        """If there is a partial data frame, pop and yield it"""
         # Some partial data left to return
         if self._partial_data:
-            data = np.frombuffer(self._partial_data, self._raw_dtype)
+            data = np.frombuffer(self._partial_data, self._frame_dtype)
             self._partial_data = bytearray()
-            return FrameData(data)
-        else:
-            return None
+            yield FrameData(data)
 
     def connect(self, scaled: bool) -> bytes:
         """Return the bytes that need to be sent on connection"""

@@ -276,12 +276,12 @@ def dummy_server_in_thread():
 def blocking_client():
     client = BlockingClient("localhost")
     yield client
-    client.close()
+    client.close_control()
 
 
 @pytest.fixture
 async def asyncio_client():
     client = AsyncioClient("localhost")
-    await client.connect()
+    await client.connect_control()
     yield client
-    await client.close()
+    await client.close_control()

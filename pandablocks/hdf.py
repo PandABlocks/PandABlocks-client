@@ -12,30 +12,46 @@ from .responses import DataField, EndData, FrameData, StartData
 
 
 class Pipeline(threading.Thread):
-    what_to_do: Dict[Type, Callable]
+    """Helper class that runs a pipeline consumer process in its own thread"""
 
-    def __init__(self, downstream: "Pipeline" = None):
+    #: Subclasses should create this dictionary with handlers for each data
+    #: type, returning transformed data that should be passed downstream
+    what_to_do: Dict[Type, Callable]
+    downstream: Optional["Pipeline"] = None
+
+    def __init__(self):
         super().__init__()
         self.queue: queue.Queue[Any] = queue.Queue()
-        self.downstream = downstream
 
     def run(self):
         while True:
             data = self.queue.get()
-            if data:
+            if data is None:
+                # stop() called below
+                break
+            else:
                 func = self.what_to_do.get(type(data), None)
                 if func:
+                    # If we have a handler, use it to transform the data
                     data = func(data)
                 if self.downstream:
+                    # Pass the (possibly transformed) data downstream
                     self.downstream.queue.put_nowait(data)
-            else:
-                break
 
     def stop(self):
+        """Stop the processing after the current queue has been emptied"""
         self.queue.put(None)
 
 
 class HDFWriter(Pipeline):
+    """Write an HDF file per data collection. Each field will be
+    written in a 1D dataset "/<field.name>.<field.capture>".
+
+    Args:
+        scheme: Filepath scheme, where %d will be replaced with the
+            acquisition number, starting with 1
+    """
+
     def __init__(self, scheme: str):
         super().__init__()
         self.num = 1
@@ -88,8 +104,9 @@ class HDFWriter(Pipeline):
 
 
 class FrameProcessor(Pipeline):
-    def __init__(self, downstream: HDFWriter):
-        super().__init__(downstream)
+    """Scale field data according to the information in the StartData"""
+    def __init__(self):
+        super().__init__()
         self.processors: List[Callable] = []
         self.what_to_do = {
             StartData: self.create_processors,
@@ -117,22 +134,40 @@ class FrameProcessor(Pipeline):
         return [process(data.data) for process in self.processors]
 
 
+def create_pipeline(*elements: Pipeline) -> List[Pipeline]:
+    """Create a pipeline of elements, wiring them and starting them before
+    returning them"""
+    pipeline: List[Pipeline] = []
+    for element in elements:
+        if pipeline:
+            pipeline[-1].downstream = element
+        pipeline.append(element)
+        element.start()
+    return pipeline
+
+
+def stop_pipeline(pipeline: List[Pipeline]):
+    """Stop and join each element of the pipeline"""
+    for element in pipeline:
+        # Note that we stop and join each element in turn.
+        # This ensures all data is flushed all the way down
+        # even if there is lots left in a queue
+        element.stop()
+        element.join()
+
+
 async def write_hdf_files(host: str, scheme: str, num: int):
+    """Connect to host PandA data port, and write num acquisitions
+    to HDF file according to scheme"""
     conn = AsyncioClient(host)
-    writer = HDFWriter(scheme)
-    processor = FrameProcessor(writer)
+    pipeline = create_pipeline(FrameProcessor(), HDFWriter(scheme))
     counter = 0
-    processor.start()
-    writer.start()
     try:
         async for data in conn.data(scaled=False, flush_period=1):
-            processor.queue.put_nowait(data)
+            pipeline[0].queue.put_nowait(data)
             if type(data) == EndData:
                 counter += 1
                 if counter == num:
                     break
     finally:
-        processor.stop()
-        processor.join()
-        writer.stop()
-        writer.join()
+        stop_pipeline(pipeline)

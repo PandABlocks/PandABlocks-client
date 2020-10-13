@@ -67,6 +67,9 @@ autoclass_content = "both"
 # Order the members by the order they appear in the source code
 autodoc_member_order = "bysource"
 
+# Don't inherit docstrings from baseclasses
+autodoc_inherit_docstrings = False
+
 # Output graphviz directive produced images in a scalable format
 graphviz_output_format = "svg"
 
@@ -91,7 +94,10 @@ exclude_patterns = ["_build"]
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 
-intersphinx_mapping = dict(python=("https://docs.python.org/3/", None))
+intersphinx_mapping = dict(
+    python=("https://docs.python.org/3/", None),
+    numpy=("https://numpy.org/doc/stable/", None),
+)
 
 # A dictionary of graphviz graph attributes for inheritance diagrams.
 inheritance_graph_attrs = dict(rankdir="TB")

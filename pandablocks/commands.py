@@ -9,8 +9,10 @@ Lines = Union[bytes, List[bytes]]
 
 
 class Command(Generic[T]):
+    """Abstract baseclass for all `ControlConnection` commands to be inherited from"""
+
     def lines(self) -> Lines:
-        """Return lines that should be sent, with no newlines in them"""
+        """Return lines that should be sent to the PandA, with no newlines in them"""
         raise NotImplementedError(self)
 
     def response(self, lines: Lines) -> T:
@@ -25,8 +27,13 @@ class Command(Generic[T]):
 
 @dataclass
 class Get(Command[Lines]):
-    """Get the value of a field, or star command.
-    E.g.
+    """Get the value of a field or star command.
+
+    Args:
+        field: The field, attribute, or star command to get
+
+    For example::
+
         Get("PCAP.ACTIVE") -> b"1"
         Get("SEQ1.TABLE") -> [b"1048576", b"0", b"1000", b"1000"]
         Get("*IDN") -> b"PandA 1.1..."
@@ -38,6 +45,8 @@ class Get(Command[Lines]):
         return f"{self.field}?".encode()
 
     def response(self, lines: Lines) -> Lines:
+        """The value that was requested as a byte string. If it is multiline
+        then it will be a list of byte strings"""
         if not isinstance(lines, list):
             # We got OK =value
             self.ok_if(lines.startswith(b"OK ="), lines)
@@ -49,7 +58,13 @@ class Get(Command[Lines]):
 @dataclass
 class Put(Command[None]):
     """Put the value of a field.
-    E.g.
+
+    Args:
+        field: The field, attribute, or star command to put
+        value: The value, possibly multiline, to put
+
+    For example::
+
         Put("PCAP.TRIG", "PULSE1.OUT")
         Put("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
     """
@@ -71,15 +86,19 @@ class Put(Command[None]):
 
 
 class GetBlockNumbers(Command[Dict[str, int]]):
-    """Get the descriptions and field lists of the requested Blocks
-    E.g.
-        GetBlockNumbers() -> {"PCAP": 1, "LUT": 8, ...}
+    """Get the descriptions and field lists of the requested Blocks.
+
+    For example::
+
+        GetBlockNumbers() -> {"LUT": 8, "PCAP": 1, ...}
     """
 
     def lines(self) -> Lines:
         return b"*BLOCKS?"
 
     def response(self, lines: Lines) -> Dict[str, int]:
+        """The name and number of each block type in a dictionary,
+        alphabetically ordered"""
         blocks = {}
         assert isinstance(lines, list), f"Expected list of Blocks, got {lines!r}"
         for line in lines:
@@ -90,8 +109,13 @@ class GetBlockNumbers(Command[Dict[str, int]]):
 
 @dataclass
 class GetFields(Command[Dict[str, FieldType]]):
-    """Get the fields of a block
-    E.g.
+    """Get the fields of a block, returning a `FieldType` for each one.
+
+    Args:
+        block: The name of the block type
+
+    For example::
+
         GetFields("LUT") -> {"INPA": FieldType("bit_mux"), ...}
     """
 
@@ -101,6 +125,8 @@ class GetFields(Command[Dict[str, FieldType]]):
         return f"{self.block}.*?".encode()
 
     def response(self, lines: Lines) -> Dict[str, FieldType]:
+        """The name and `FieldType` of each field in a dictionary, ordered
+        to match the definition order in the PandA"""
         unsorted: Dict[int, Tuple[str, FieldType]] = {}
         assert isinstance(lines, list), f"Expected list of Fields, got {lines!r}"
         for line in lines:
@@ -112,14 +138,18 @@ class GetFields(Command[Dict[str, FieldType]]):
 
 
 class GetPcapBitsLabels(Command):
-    """Get the labels for the bit fields in PCAP
-    E.g.
+    """Get the labels for the bit fields in PCAP.
+
+    For example::
+
         GetPcapBitsLabels() -> PcapBitsLabels()
     """
 
 
 class GetChanges(Command):
-    """Get the changes since the last time this was called
-    E.g.
+    """Get the changes since the last time this was called.
+
+    For example::
+
         GetChanges() -> Changes()
     """
