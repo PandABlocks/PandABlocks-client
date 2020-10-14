@@ -9,44 +9,71 @@ and HDF5 writing.
 How the documentation is structured
 -----------------------------------
 
+.. rst-class:: columns
 
+:ref:`tutorials`
+~~~~~~~~~~~~~~~~
 
-If you have a diagram or screenshot, you can include it here.
+Tutorials for installation, library and commandline usage. New users start here.
 
-Installation
-------------
+.. rst-class:: columns
 
-This section describes how to install the module so you can try it out.
-For Python modules this often looks like this::
+:ref:`how-to`
+~~~~~~~~~~~~~
 
-    pip install pandablocks
+Practical step-by-step guides for the more experienced user.
 
-Usage
------
+.. rst-class:: columns
 
-Once you have installed the module your readers would like to know how
-to get started with it. If it is a library then you might put some
-introductory code here:
+:ref:`explanations`
+~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+Explanation of how the library works and why it works that way.
 
-    from pandablocks import HelloClass
+.. rst-class:: columns
 
-    hello = HelloClass("me")
-    print(hello.format_greeting())
+:ref:`reference`
+~~~~~~~~~~~~~~~~
 
-Or if it is a commandline tool then you might put some example commands here::
+Technical reference material, for classes, methods, APIs, commands.
 
-    dls-python3-template-module person --times=2
+.. rst-class:: endcolumns
 
-The rest of the docs
---------------------
+About the documentation
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Everything else depends very much on your target module. The `API` section
-should contain the reference material that a user of your module needs to use
-your module. Consider adding tutorials to walk users through using your module,
-how-to guides and FAQs to address particular problems, and explanations to say
-why things should be done a particular way. More details in this article on
-`writing good documentation`_
+`Why is the documentation structured this way? <https://documentation.divio.com>`_
 
-.. _writing good documentation: https://documentation.divio.com/
+.. toctree::
+    :caption: Tutorials
+    :name: tutorials
+
+    tutorials/installation
+    tutorials/load-save
+    tutorials/control
+    tutorials/commandline-hdf
+
+.. toctree::
+    :caption: How-to Guides
+    :name: how-to
+
+    how-to/library-hdf
+    how-to/poll-changes
+
+.. toctree::
+    :caption: Explanations
+    :name: explanations
+
+    explanations/sans-io
+    explanations/performance
+
+.. rst-class:: no-margin-after-ul
+
+.. toctree::
+    :caption: Reference
+    :name: reference
+
+    reference/api
+    reference/contributing
+
+* :ref:`genindex`

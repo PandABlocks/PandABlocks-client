@@ -20,7 +20,7 @@ import pandablocks  # noqa
 # -- General configuration ------------------------------------------------
 
 # General information about the project.
-project = "pandablocks"
+project = "PandABlocks-client"
 copyright = "2020, Diamond Light Source"
 author = "Tom Cobb"
 
@@ -84,7 +84,7 @@ templates_path = ["_templates"]
 source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = "contents"
+master_doc = "index"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -128,3 +128,7 @@ html_show_copyright = True
 
 # Override the colour in a custom css file
 html_css_files = ["theme_overrides.css"]
+
+# Logo
+html_logo = 'PandA-logo-for-black-background.svg'
+html_favicon = 'PandA-logo.ico'

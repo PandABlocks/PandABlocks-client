@@ -1,0 +1,9 @@
+<!-- Include Index in the sidebar -->
+<!-- https://stackoverflow.com/a/37843854 -->
+
+{% extends "!layout.html" %}
+
+  {% block menu %}
+    {{ super() }}
+    <a href="{{pathto('genindex.html', 1)}}">Index</a>
+  {% endblock %}

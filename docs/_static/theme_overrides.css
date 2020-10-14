@@ -11,3 +11,28 @@
 .rst-content table.docutils th, .rst-content table.docutils td {
     padding: 4px 6px;
 }
+
+/* allow us to stop margin after list so we can add to it */
+.no-margin-after-ul ul {
+    margin-bottom: 0 !important;
+}
+
+/* Add two-column option */
+@media only screen and (min-width: 1000px),
+       only screen and (min-width: 500px) and (max-width: 768px){
+    .columns {
+        padding-left: 5px;
+        padding-right: 5px;
+        float: left;
+        width: 50%;
+    }
+}
+
+.endcolumns {
+    clear: both
+}
+
+/* override top left pane to be black */
+.wy-side-nav-search {
+    background-color: black;
+  }

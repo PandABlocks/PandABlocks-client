@@ -13,10 +13,6 @@ from code:
 - `pandablocks.blocking`: A blocking client that uses the control and data connections
 - `pandablocks.hdf`: Some helpers for efficiently writing data responses to disk
 
-.. py:class:: T
-
-    Parameter for Generic class `Command`, indicating its response type
-
 
 .. automodule:: pandablocks.commands
     :members:

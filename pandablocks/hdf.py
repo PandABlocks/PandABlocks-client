@@ -45,7 +45,7 @@ class Pipeline(threading.Thread):
 
 class HDFWriter(Pipeline):
     """Write an HDF file per data collection. Each field will be
-    written in a 1D dataset "/<field.name>.<field.capture>".
+    written in a 1D dataset ``/<field.name>.<field.capture>``.
 
     Args:
         scheme: Filepath scheme, where %d will be replaced with the
@@ -105,6 +105,7 @@ class HDFWriter(Pipeline):
 
 class FrameProcessor(Pipeline):
     """Scale field data according to the information in the StartData"""
+
     def __init__(self):
         super().__init__()
         self.processors: List[Callable] = []
