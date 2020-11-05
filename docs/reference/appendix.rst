@@ -3,7 +3,7 @@
 Appendix
 ========
 
-These are needed to quell sphinx warnings
+These definitions are needed to quell sphinx warnings.
 
 .. py:class:: T
 

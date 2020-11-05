@@ -42,10 +42,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     # Add links to source code in API docs
     "sphinx.ext.viewcode",
-    # Adds the inheritance-diagram generation directive
-    "sphinx.ext.inheritance_diagram",
-    # Adds embedded graphviz support
-    "sphinx.ext.graphviz",
+    # Adds support for matplotlib plots
+    "matplotlib.sphinxext.plot_directive",
 ]
 
 # If true, Sphinx will warn about all references where the target cannot
@@ -97,6 +95,7 @@ pygments_style = "sphinx"
 intersphinx_mapping = dict(
     python=("https://docs.python.org/3/", None),
     numpy=("https://numpy.org/doc/stable/", None),
+    h5py=("https://docs.h5py.org/en/stable/", None),
 )
 
 # A dictionary of graphviz graph attributes for inheritance diagrams.
@@ -106,14 +105,22 @@ inheritance_graph_attrs = dict(rankdir="TB")
 rst_epilog = """
 .. _Diamond Light Source:
     http://www.diamond.ac.uk
+
+.. _numpy:
+    https://numpy.org/
+
+.. _h5py:
+    https://www.h5py.org/
 """
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
 html_theme = "sphinx_rtd_theme"
+
+# Options for the sphinx rtd theme
+html_theme_options = dict(style_nav_header_background="black")
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -130,5 +137,5 @@ html_show_copyright = True
 html_css_files = ["theme_overrides.css"]
 
 # Logo
-html_logo = 'PandA-logo-for-black-background.svg'
-html_favicon = 'PandA-logo.ico'
+html_logo = "PandA-logo-for-black-background.svg"
+html_favicon = "PandA-logo.ico"

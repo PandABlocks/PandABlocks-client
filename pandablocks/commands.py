@@ -8,6 +8,11 @@ T = TypeVar("T")
 Lines = Union[bytes, List[bytes]]
 
 
+class CommandException(Exception):
+    pass
+
+
+@dataclass
 class Command(Generic[T]):
     """Abstract baseclass for all `ControlConnection` commands to be inherited from"""
 
@@ -20,9 +25,15 @@ class Command(Generic[T]):
         raise NotImplementedError(self)
 
     def ok_if(self, ok, lines: Lines):
-        """If not ok then raise a suitable error message"""
+        """If not ok then raise a suitable `CommandException`"""
         if not ok:
-            raise ValueError("Bad response to command {self}: '{lines}'")
+            msg = f"{self} ->"
+            if isinstance(lines, list):
+                for line in lines:
+                    msg += "\n    " + line.decode()
+            else:
+                msg += " " + lines.decode()
+            raise CommandException(msg)
 
 
 @dataclass
@@ -70,7 +81,7 @@ class Put(Command[None]):
     """
 
     field: str
-    value: Union[str, List[str]]
+    value: Union[str, List[str]] = ""
 
     def lines(self) -> Lines:
         if isinstance(self.value, list):
@@ -80,6 +91,16 @@ class Put(Command[None]):
             )
         else:
             return f"{self.field}={self.value}".encode()
+
+    def response(self, lines: Lines):
+        self.ok_if(lines == b"OK", lines)
+
+
+class Arm(Command[None]):
+    """Arm PCAP for an acquisition by sending '*PCAP.ARM='"""
+
+    def lines(self) -> Lines:
+        return b"*PCAP.ARM="
 
     def response(self, lines: Lines):
         self.ok_if(lines == b"OK", lines)
@@ -153,3 +174,42 @@ class GetChanges(Command):
 
         GetChanges() -> Changes()
     """
+
+
+# Checks whether the server will interpret cmd as a table command: search for
+# first of '?', '=', '<', if '<' found first then it's a multiline command.
+def is_multiline_command(cmd: str):
+    for ch in cmd:
+        if ch in "?=":
+            return False
+        if ch == "<":
+            return True
+    return False
+
+
+@dataclass
+class Raw(Command[List[str]]):
+    """Send a raw command
+
+    Args:
+        inp: The input lines to send
+
+    For example::
+
+        Raw(["PCAP.ACTIVE?"]) -> ["OK =1"]
+        Raw(["SEQ1.TABLE>", "1", "1", "0", "0"]) -> ["OK"]
+        Raw(["SEQ1.TABLE?"]) -> ["!1", "!1", "!0", "!0", "."])
+    """
+
+    inp: List[str]
+
+    def lines(self) -> Lines:
+        return [line.encode() for line in self.inp]
+
+    def response(self, lines: Lines) -> List[str]:
+        """The lines that PandA responded, including the multiline markup"""
+        if isinstance(lines, List):
+            # Add the multiline markup back in...
+            return [f"!{line.decode()}" for line in lines] + ["."]
+        else:
+            return [lines.decode()]

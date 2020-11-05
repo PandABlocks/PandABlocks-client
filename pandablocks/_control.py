@@ -1,51 +1,16 @@
-from dataclasses import dataclass
 from string import digits
 from typing import Dict, List, Optional
 
 from .blocking import BlockingClient
-from .commands import Command, FieldType, GetBlockNumbers, GetFields, Lines
-
-
-# Checks whether the server will interpret cmd as a table command: search for
-# first of '?', '=', '<', if '<' found first then it's a table command.
-def _is_table_command(cmd):
-    for ch in cmd:
-        if ch in "?=":
-            return False
-        if ch == "<":
-            return True
-    return False
+from .commands import FieldType, GetBlockNumbers, GetFields, Raw, is_multiline_command
 
 
 def _get_user_input(prompt) -> List[str]:
     lines = [input(prompt)]
-    if _is_table_command(lines[0]):
+    if is_multiline_command(lines[0]):
         while lines[-1]:
             lines.append(input(prompt))
     return lines
-
-
-@dataclass(frozen=True)
-class Interact(Command[Lines]):
-    """Send an interactive command
-    E.g.
-        Interact(["PCAP.ACTIVE"]) -> print "< OK =1"
-        Interact(["SEQ1.TABLE>", "1", "1", "0", "0"]) -> print "< OK"
-    """
-
-    inp: List[str]
-
-    def lines(self) -> Lines:
-        return [line.encode() for line in self.inp]
-
-    def response(self, lines: Lines):
-        if isinstance(lines, List):
-            # Add the multiline markup back in...
-            for line in lines:
-                print(f"!{line.decode()}")
-            print(".")
-        else:
-            print(lines.decode())
 
 
 STATIC_STAR_COMMANDS = [
@@ -157,16 +122,19 @@ def set_completer(completer):
         readline.set_completer_delims("")
 
 
-def control(host: str, prompt: str, readline=True):
+def interactive_control(host: str, prompt: str, readline=True):
     client = BlockingClient(host)
+    client.connect()
     try:
         if readline:
             # Complete Block names when tab key pressed
             set_completer(BlockCompleter(client))
         while True:
-            client.send(Interact(_get_user_input(prompt)))
+            command = Raw(_get_user_input(prompt))
+            for line in client.send(command):
+                print(line)
     except (EOFError, KeyboardInterrupt):
         # End with a newline
         print()
     finally:
-        client.close_control()
+        client.close()

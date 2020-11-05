@@ -44,7 +44,7 @@ class EndReason(Enum):
 
 
 @dataclass
-class DataField:
+class FieldCapture:
     """Information about a field that is being captured
 
     Attributes:
@@ -69,18 +69,23 @@ class Data:
 
 
 @dataclass
+class ReadyData(Data):
+    """Yielded once when the connection is established and ready to take data"""
+
+
+@dataclass
 class StartData(Data):
     """Yielded when a new PCAP acquisition starts.
 
     Attributes:
-        fields: Information about each captured field as a `DataField` object
+        fields: Information about each captured field as a `FieldCapture` object
         missed: Number of samples missed by late data port connection
         process: Data processing option, only "Scaled" or "Raw" are requested
         format: Data delivery formatting, only "Framed" is requested
         sample_bytes: Number of bytes in one sample
     """
 
-    fields: List[DataField]
+    fields: List[FieldCapture]
     missed: int
     process: str
     format: str

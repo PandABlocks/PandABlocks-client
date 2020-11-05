@@ -1,10 +1,10 @@
 PandABlocks Python Client
 =========================
 
-A Python client to control and data ports of the PandABlocks TCP server. Library
-features a `Sans-IO <what_is_sans_io>` core with both asyncio and blocking
-wrappers. Command line tool features an interactive console, load/save control,
-and HDF5 writing.
+A Python client to the control and data ports of the PandABlocks TCP server.
+Command line tool features an interactive console, load/save control, and HDF5
+writing. Library features a `Sans-IO <sans-io>` core with both asyncio
+and blocking wrappers.
 
 How the documentation is structured
 -----------------------------------
@@ -35,7 +35,7 @@ Explanation of how the library works and why it works that way.
 :ref:`reference`
 ~~~~~~~~~~~~~~~~
 
-Technical reference material, for classes, methods, APIs, commands.
+Technical reference material, for classes, methods, APIs, commands, and contributing to the project.
 
 .. rst-class:: endcolumns
 

@@ -7,8 +7,8 @@
     "python.testing.nosetestsEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.formatting.provider": "black",
-    "python.jediEnabled": false,
     "python.languageServer": "Pylance",
     "python.pythonPath": "/scratch/tmc43/pipenv/PandABlocks-client-0xhNhEPE/bin/python",
-    "restructuredtext.confPath": "${workspaceFolder}/docs"
+    "restructuredtext.confPath": "${workspaceFolder}/docs",
+    "restructuredtext.builtDocumentationPath": "${workspaceFolder}/build/html",
 }

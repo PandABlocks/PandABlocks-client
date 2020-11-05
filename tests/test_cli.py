@@ -6,11 +6,13 @@ import numpy as np
 import pytest
 
 from pandablocks import cli
+from tests.conftest import DummyServer
 
 
-def test_writing_fast_hdf(dummy_server_in_thread, raw_dump, tmp_path):
+def test_writing_fast_hdf(dummy_server_in_thread: DummyServer, raw_dump, tmp_path):
+    dummy_server_in_thread.send.append("OK")
     dummy_server_in_thread.data = raw_dump
-    cli.main(["hdf", "localhost", str(tmp_path / "%d.h5")])
+    cli.main(["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"])
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
     assert list(hdf_file) == [
         "COUNTER1.OUT.Max",
@@ -22,10 +24,33 @@ def test_writing_fast_hdf(dummy_server_in_thread, raw_dump, tmp_path):
         "PCAP.SAMPLES.Value",
         "PCAP.TS_START.Value",
     ]
+    assert dummy_server_in_thread.received == ["*PCAP.ARM="]
 
     def multiples(num, offset=0):
         return pytest.approx(np.arange(1, 10001) * num + offset)
 
+    assert hdf_file["/COUNTER1.OUT.Max"][:] == multiples(1)
+    assert hdf_file["/COUNTER1.OUT.Mean"][:] == multiples(1)
+    assert hdf_file["/COUNTER1.OUT.Min"][:] == multiples(1)
+    assert hdf_file["/COUNTER2.OUT.Mean"][:] == multiples(2)
+    assert hdf_file["/COUNTER3.OUT.Value"][:] == multiples(3)
+    assert hdf_file["/PCAP.BITS2.Value"][:] == multiples(0)
+    assert hdf_file["/PCAP.SAMPLES.Value"][:] == multiples(0, offset=125)
+    assert hdf_file["/PCAP.TS_START.Value"][:] == multiples(2e-6, offset=7.2e-8 - 2e-6)
+
+
+def test_writing_overrun_hdf(
+    dummy_server_in_thread: DummyServer, overrun_dump, tmp_path
+):
+    dummy_server_in_thread.send.append("OK")
+    dummy_server_in_thread.data = [overrun_dump]
+    cli.main(["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"])
+    hdf_file = h5py.File(tmp_path / "1.h5", "r")
+
+    def multiples(num, offset=0):
+        return pytest.approx(np.arange(1, 8936) * num + offset)
+
+    # Check we didn't write the last chunk
     assert hdf_file["/COUNTER1.OUT.Max"][:] == multiples(1)
     assert hdf_file["/COUNTER1.OUT.Mean"][:] == multiples(1)
     assert hdf_file["/COUNTER1.OUT.Min"][:] == multiples(1)
@@ -51,7 +76,7 @@ class MockInput:
 def test_interactive_simple(dummy_server_in_thread, capsys):
     mock_input = MockInput("PCAP.ACTIVE?", "SEQ1.TABLE?")
     dummy_server_in_thread.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
-    with patch("pandablocks.control.input", side_effect=mock_input):
+    with patch("pandablocks._control.input", side_effect=mock_input):
         cli.main(["control", "localhost", "--no-readline"])
     captured = capsys.readouterr()
     assert captured.out == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"

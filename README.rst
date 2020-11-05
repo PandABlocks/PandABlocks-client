@@ -5,26 +5,10 @@ PandABlocks Python Client
 
 A Python client to control and data ports of the PandABlocks TCP server.
 
-Library features a Sans-IO core with both asyncio and blocking wrappers:
-
-.. code:: python
-
-    from pandablocks.blocking import BlockingClient
-    from pandablocks.commands import Get
-
-    client = BlockingClient("<panda-hostname>")
-    idn = client.send(Get("*IDN"))
-    print(f"Hello {idn}")
-
-    for data in client.data():
-        print(f"I got some PCAP data {data}")
-
-    client.close()
-
 Command line tool features an interactive console, load/save control, and HDF5
 writing:
 
-.. code:: python
+.. code::
 
     $ pandablocks control <panda-hostname>
     < PCAP.     # Hit TAB key...
@@ -34,7 +18,23 @@ writing:
     OK =1
 
     $ pandablocks hdf <panda-hostname> /tmp/panda-%d.h5
-    INFO:Wrote 50000000 samples into /tmp/panda-1.h5, end reason 'Disarmed'
+    INFO:Opened '/tmp/panda-1.h5' with 60 byte samples stored in 11 datasets
+    INFO:Closed '/tmp/panda-1.h5' after writing 50000000 samples. End reason is 'Disarmed'
+
+Library features a Sans-IO core with both asyncio and blocking wrappers:
+
+.. code:: python
+
+    from pandablocks.blocking import BlockingClient
+    from pandablocks.commands import Get
+
+    with BlockingClient("hostname-or-ip") as client:
+        # Commands sent to Control port
+        idn = client.send(Get("*IDN"))
+        print(f"Hello {idn}")
+        for data in client.data():
+            # Data captured from Data port
+            print(f"I got some PCAP data {data}")
 
 
 Documentation
@@ -52,12 +52,12 @@ Available from https://github.com/PandABlocks/PandABlocks-client
 Contributing
 ------------
 
-See `CONTRIBUTING`_
+See `CONTRIBUTING_`_
 
 
 License
 -------
-APACHE License. (see `LICENSE`_)
+APACHE License. (see `LICENSE_`_)
 
 
 .. |build_status| image:: https://travis-ci.com/PandABlocks/PandABlocks-client.svg?branch=master
@@ -76,8 +76,8 @@ APACHE License. (see `LICENSE`_)
     :target: https://pandablocks-client.readthedocs.io
     :alt: Documentation
 
-.. _CONTRIBUTING:
+.. _CONTRIBUTING_:
     https://github.com/PandABlocks/PandABlocks-client/blob/master/CONTRIBUTING.rst
 
-.. _LICENSE:
+.. _LICENSE_:
     https://github.com/PandABlocks/PandABlocks-client/blob/master/LICENSE

@@ -78,7 +78,7 @@ from code:
         `AsyncioClient` -> `FrameProcessor` -> `HDFWriter`
 
     The FrameProcessor and HDFWriter run in their own threads as most of the
-    heavy lifting is done by `numpy` and ``h5py``, so running in their own threads
+    heavy lifting is done by numpy_ and h5py_, so running in their own threads
     gives multi-CPU benefits without hitting the limit of the GIL.
 
     The key to the performance of this Pipeline is the use of

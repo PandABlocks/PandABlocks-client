@@ -1,4 +1,6 @@
 import asyncio
+import logging
+from asyncio.streams import StreamReader, StreamWriter
 from collections import deque
 from typing import AsyncGenerator, Deque, Dict, Optional
 
@@ -7,44 +9,89 @@ from .connections import ControlConnection, DataConnection
 from .responses import Data
 
 
+class _StreamHelper:
+    _reader: Optional[StreamReader] = None
+    _writer: Optional[StreamWriter] = None
+
+    @property
+    def reader(self) -> StreamReader:
+        assert self._reader, "connect() not called yet"
+        return self._reader
+
+    @property
+    def writer(self) -> StreamWriter:
+        assert self._writer, "connect() not called yet"
+        return self._writer
+
+    async def write_and_drain(self, data: bytes):
+        writer = self.writer
+        writer.write(data)
+        await writer.drain()
+
+    async def connect(self, host: str, port: int):
+        self._reader, self._writer = await asyncio.open_connection(host, port)
+
+    async def close(self):
+        writer = self.writer
+        self._reader = None
+        self._writer = None
+        writer.close()
+        await writer.wait_closed()
+
+
 class AsyncioClient:
     """Asyncio implementation of a PandABlocks client.
     For example::
 
-        client = AsyncioClient("hostname-or-ip")
-        await client.connect_control()
-        resp1, resp2 = asyncio.gather(client.send(cmd1), client.send(cmd2))
-        for data in client.data():
-            handle(data)
-        await client.close_control()
+        async with AsyncioClient("hostname-or-ip") as client:
+            # Control and data ports are now connected
+            resp1, resp2 = await asyncio.gather(client.send(cmd1), client.send(cmd2))
+            resp3 = await client.send(cmd3)
+            async for data in client.data():
+                handle(data)
+        # Control and data ports are now disconnected
     """
 
     def __init__(self, host: str):
         self._host = host
         self._ctrl_connection = ControlConnection()
-        self._ctrl_writer: Optional[asyncio.StreamWriter] = None
         self._ctrl_task: Optional[asyncio.Task] = None
         self._ctrl_queues: Dict[int, asyncio.Queue] = {}
+        self._ctrl_stream = _StreamHelper()
+        self._data_stream = _StreamHelper()
 
-    async def connect_control(self):
-        """Connect to the control port, and be ready to handle commands. Not needed
-        if only the data connection is needed"""
-        reader, self._ctrl_writer = await asyncio.open_connection(self._host, 8888)
-        self._ctrl_task = asyncio.create_task(self._ctrl_read_forever(reader))
+    async def connect(self):
+        """Connect to the control and data ports, and be ready to handle commands"""
+        await asyncio.gather(
+            self._ctrl_stream.connect(self._host, 8888),
+            self._data_stream.connect(self._host, 8889),
+        )
+        self._ctrl_task = asyncio.create_task(
+            self._ctrl_read_forever(self._ctrl_stream.reader)
+        )
+
+    async def close(self):
+        """Close the control and data connections, and wait for completion"""
+        assert self._ctrl_task, "connect() not called yet"
+        self._ctrl_task.cancel()
+        await asyncio.gather(self._ctrl_stream.close(), self._data_stream.close())
+
+    async def __aenter__(self) -> "AsyncioClient":
+        await self.connect()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
     async def _ctrl_read_forever(self, reader: asyncio.StreamReader):
         while True:
             bytes = await reader.read(4096)
-            for command, response in self._ctrl_connection.receive_bytes(bytes):
-                queue = self._ctrl_queues.pop(id(command))
-                queue.put_nowait(response)
-
-    async def close_control(self):
-        """Close control connection and wait for completion"""
-        assert self._ctrl_writer and self._ctrl_task, "Control port not connected yet"
-        self._ctrl_task.cancel()
-        self._ctrl_writer.close()
-        await self._ctrl_writer.wait_closed()
+            try:
+                for command, response in self._ctrl_connection.receive_bytes(bytes):
+                    queue = self._ctrl_queues.pop(id(command))
+                    queue.put_nowait(response)
+            except Exception:
+                logging.exception(f"Error handling '{bytes.decode()}'")
 
     async def send(self, command: Command[T]) -> T:
         """Send a command to control port of the PandA, returning its response.
@@ -53,15 +100,16 @@ class AsyncioClient:
         Args:
             command: The command to send
         """
-        assert self._ctrl_writer, "Control port not connected yet"
         queue: asyncio.Queue[T] = asyncio.Queue()
         # Need to use the id as non-frozen dataclasses don't hash
         self._ctrl_queues[id(command)] = queue
         bytes = self._ctrl_connection.send(command)
-        self._ctrl_writer.write(bytes)
-        await self._ctrl_writer.drain()
+        await self._ctrl_stream.write_and_drain(bytes)
         response = await queue.get()
-        return response
+        if isinstance(response, Exception):
+            raise response
+        else:
+            return response
 
     async def data(
         self,
@@ -79,15 +127,16 @@ class AsyncioClient:
                 `asyncio.TimeoutError`
         """
         connection = DataConnection()
-        reader, writer = await asyncio.open_connection(self._host, 8889)
-
         data: Deque[Data] = deque()
+        reader = self._data_stream.reader
+        # Should we flush every FrameData?
+        flush_every_frame = flush_period is None
 
         async def queue_flushed_data():
             data.extend(connection.flush())
 
         async def periodic_flush():
-            if flush_period:
+            if not flush_every_frame:
                 while True:
                     # Every flush_period seconds flush and queue data
                     await asyncio.gather(
@@ -96,19 +145,13 @@ class AsyncioClient:
 
         flush_task = asyncio.create_task(periodic_flush())
         try:
-            writer.write(connection.connect(scaled))
-            await writer.drain()
+            await self._data_stream.write_and_drain(connection.connect(scaled))
             # bool(True) instead of True so IDE sees finally block is reachable
             while bool(True):
                 bytes = await asyncio.wait_for(reader.read(4096), frame_timeout)
-                for d in connection.receive_bytes(bytes):
+                for d in connection.receive_bytes(bytes, flush_every_frame):
                     data.append(d)
-                if flush_period is None:
-                    # No flush task, do it here
-                    data.extend(connection.flush())
                 while data:
                     yield data.popleft()
         finally:
             flush_task.cancel()
-            writer.close()
-            await writer.wait_closed()

@@ -2,3 +2,4 @@
 #   numpy >= 1.16
 numpy
 h5py
+matplotlib

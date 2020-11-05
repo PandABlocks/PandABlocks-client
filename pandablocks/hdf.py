@@ -6,9 +6,11 @@ from typing import Any, Callable, Dict, List, Optional, Type
 import h5py
 import numpy as np
 
+from pandablocks.commands import Arm
+
 from .asyncio import AsyncioClient
 from .connections import SAMPLES_FIELD
-from .responses import DataField, EndData, FrameData, StartData
+from .responses import EndData, FieldCapture, FrameData, ReadyData, StartData
 
 
 class Pipeline(threading.Thread):
@@ -64,7 +66,7 @@ class HDFWriter(Pipeline):
             EndData: self.close_file,
         }
 
-    def create_dataset(self, field: DataField, raw: bool):
+    def create_dataset(self, field: FieldCapture, raw: bool):
         # Data written in a big stack, growing in that dimension
         assert self.hdf_file, "File not open yet"
         if raw and (field.capture == "Mean" or field.scale != 1 or field.offset != 0):
@@ -83,6 +85,10 @@ class HDFWriter(Pipeline):
         raw = data.process == "Raw"
         self.datasets = [self.create_dataset(field, raw) for field in data.fields]
         self.hdf_file.swmr_mode = True
+        logging.info(
+            f"Opened '{file_path}' with {data.sample_bytes} byte samples "
+            f"stored in {len(self.datasets)} datasets"
+        )
 
     def write_frame(self, data: List[np.ndarray]):
         for dataset, column in zip(self.datasets, data):
@@ -93,13 +99,13 @@ class HDFWriter(Pipeline):
             dataset.flush()
 
     def close_file(self, data: EndData):
-        logging.info(
-            f"Wrote {data.samples} samples into {self.scheme % self.num}, "
-            f"end reason '{data.reason.value}'"
-        )
         assert self.hdf_file, "File not open yet"
         self.hdf_file.close()
         self.hdf_file = None
+        logging.info(
+            f"Closed '{self.scheme % self.num}' after writing {data.samples} "
+            f"samples. End reason is '{data.reason.value}'"
+        )
         self.num += 1
 
 
@@ -114,7 +120,7 @@ class FrameProcessor(Pipeline):
             FrameData: self.scale_data,
         }
 
-    def create_processor(self, field: DataField, raw: bool):
+    def create_processor(self, field: FieldCapture, raw: bool):
         column_name = f"{field.name}.{field.capture}"
         if raw and field.capture == "Mean":
             return (
@@ -157,18 +163,31 @@ def stop_pipeline(pipeline: List[Pipeline]):
         element.join()
 
 
-async def write_hdf_files(host: str, scheme: str, num: int):
+async def write_hdf_files(
+    client: AsyncioClient, scheme: str, num: int = 1, arm: bool = False
+):
     """Connect to host PandA data port, and write num acquisitions
-    to HDF file according to scheme"""
-    conn = AsyncioClient(host)
-    pipeline = create_pipeline(FrameProcessor(), HDFWriter(scheme))
+    to HDF file according to scheme
+
+    Args:
+        client: The `AsyncioClient` to use for communications
+        scheme: Filenaming scheme for HDF files, with %d for scan number starting at 1
+        num: The number of acquisitions to store in separate files
+        arm: Whether to arm PCAP at the start, and after each successful acquisition
+
+    """
     counter = 0
+    pipeline = create_pipeline(FrameProcessor(), HDFWriter(scheme))
     try:
-        async for data in conn.data(scaled=False, flush_period=1):
+        async for data in client.data(scaled=False, flush_period=1):
             pipeline[0].queue.put_nowait(data)
-            if type(data) == EndData:
-                counter += 1
+            if type(data) in (ReadyData, EndData):
                 if counter == num:
+                    # We produced the right number of frames
                     break
+                elif arm:
+                    # Told to arm at the beginning, and after each acquisition ends
+                    await client.send(Arm())
+                counter += 1
     finally:
         stop_pipeline(pipeline)

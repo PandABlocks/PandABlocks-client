@@ -3,15 +3,20 @@ import threading
 from collections import deque
 from io import BufferedReader
 from pathlib import Path
-from typing import Deque, Iterator, List
+from typing import Deque, Iterable, Iterator, List
 
 import numpy as np
 import pytest
 
-from pandablocks.asyncio import AsyncioClient
-from pandablocks.blocking import BlockingClient
 from pandablocks.connections import Buffer
-from pandablocks.responses import DataField, EndData, EndReason, FrameData, StartData
+from pandablocks.responses import (
+    EndData,
+    EndReason,
+    FieldCapture,
+    FrameData,
+    ReadyData,
+    StartData,
+)
 
 
 def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
@@ -24,8 +29,8 @@ def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
 @pytest.fixture
 def slow_dump():
     with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
-        # Simulate small chunked read
-        yield chunked_read(f, 50)
+        # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
+        yield chunked_read(f, 44)
 
 
 @pytest.fixture
@@ -42,17 +47,24 @@ def raw_dump():
         yield chunked_read(f, 200000)
 
 
+@pytest.fixture
+def overrun_dump():
+    with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
+        # All in one go
+        return f.read().replace(b"Disarmed", b"Data overrun")
+
+
 DUMP_FIELDS = [
-    DataField(
+    FieldCapture(
         name="PCAP.BITS2", type=np.uint32, capture="Value", scale=1, offset=0, units="",
     ),
-    DataField(
+    FieldCapture(
         name="COUNTER1.OUT", type=np.double, capture="Min", scale=1, offset=0, units="",
     ),
-    DataField(
+    FieldCapture(
         name="COUNTER1.OUT", type=np.double, capture="Max", scale=1, offset=0, units="",
     ),
-    DataField(
+    FieldCapture(
         name="COUNTER3.OUT",
         type=np.double,
         capture="Value",
@@ -60,7 +72,7 @@ DUMP_FIELDS = [
         offset=0,
         units="",
     ),
-    DataField(
+    FieldCapture(
         name="PCAP.TS_START",
         type=np.double,
         capture="Value",
@@ -68,7 +80,7 @@ DUMP_FIELDS = [
         offset=0,
         units="s",
     ),
-    DataField(
+    FieldCapture(
         name="COUNTER1.OUT",
         type=np.double,
         capture="Mean",
@@ -76,7 +88,7 @@ DUMP_FIELDS = [
         offset=0,
         units="",
     ),
-    DataField(
+    FieldCapture(
         name="COUNTER2.OUT",
         type=np.double,
         capture="Mean",
@@ -99,6 +111,7 @@ class Rows:
 @pytest.fixture
 def slow_dump_expected():
     yield [
+        ReadyData(),
         StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52),
         FrameData(Rows([0, 1, 1, 3, 5.6e-08, 1, 2])),
         FrameData(Rows([8, 2, 2, 6, 1.000000056, 2, 4])),
@@ -112,6 +125,7 @@ def slow_dump_expected():
 @pytest.fixture
 def fast_dump_expected():
     yield [
+        ReadyData(),
         StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52),
         FrameData(
             Rows(
@@ -201,9 +215,12 @@ def fast_dump_expected():
 
 class DummyServer:
     def __init__(self):
+        # This will be added to whenever control port gets a message
         self.received: List[str] = []
+        # Add to this to give the control port something to send back
         self.send: Deque[str] = deque()
-        self.data = b""
+        # Add to this to give the data port something to send
+        self.data: Iterable[bytes] = []
 
     async def handle_ctrl(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -270,18 +287,3 @@ def dummy_server_in_thread():
     asyncio.run_coroutine_threadsafe(server.close(), loop).result()
     loop.call_soon_threadsafe(loop.stop())
     t.join()
-
-
-@pytest.fixture
-def blocking_client():
-    client = BlockingClient("localhost")
-    yield client
-    client.close_control()
-
-
-@pytest.fixture
-async def asyncio_client():
-    client = AsyncioClient("localhost")
-    await client.connect_control()
-    yield client
-    await client.close_control()
