@@ -22,8 +22,7 @@ SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 
 class NeedMoreData(Exception):
-    # The buffer needs more data
-    pass
+    """Raised if the `Buffer` isn't full enough to return the requested bytes"""
 
 
 class Buffer:
@@ -55,14 +54,16 @@ class Buffer:
         return frame
 
     def read_bytes(self, num: int) -> bytearray:
-        """Read and pop num bytes from the beginning of the buffer"""
+        """Read and pop num bytes from the beginning of the buffer, raising
+        `NeedMoreData` if the buffer isn't full enough to do so"""
         if num > len(self._buf):
             raise NeedMoreData()
         else:
             return self._extract_frame(num)
 
     def peek_bytes(self, num: int) -> bytearray:
-        """Read but do not pop num bytes from the beginning of the buffer"""
+        """Read but do not pop num bytes from the beginning of the buffer,
+        raising `NeedMoreData` if the buffer isn't full enough to do so"""
         if num > len(self._buf):
             raise NeedMoreData()
         else:
@@ -70,7 +71,8 @@ class Buffer:
 
     def read_line(self):
         """Read and pop a newline terminated line (without terminator)
-        from the beginning of the buffer"""
+        from the beginning of the buffer, raising `NeedMoreData` if the
+        buffer isn't full enough to do so"""
         idx = self._buf.find(b"\n")
         if idx < 0:
             raise NeedMoreData()

@@ -1,4 +1,4 @@
-.. _load-save:
+.. _tutorial-load-save:
 
 Commandline Load/Save Tutorial
 ==============================

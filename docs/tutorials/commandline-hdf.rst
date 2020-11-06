@@ -4,7 +4,7 @@ Commandline Capture of HDF Files Tutorial
 =========================================
 
 This tutorial shows how to use the commandline tool to save an HDF file from the PandA
-for each PCAP acquisition. It assumes that you have followed the `load-save` tutorial
+for each PCAP acquisition. It assumes that you have followed the `tutorial-load-save` tutorial
 to setup the PandA.
 
 Capturing some data

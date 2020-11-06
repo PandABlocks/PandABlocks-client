@@ -9,7 +9,7 @@ Lines = Union[bytes, List[bytes]]
 
 
 class CommandException(Exception):
-    pass
+    """Raised if a `Command` receives a mal-formed response"""
 
 
 @dataclass
@@ -97,7 +97,7 @@ class Put(Command[None]):
 
 
 class Arm(Command[None]):
-    """Arm PCAP for an acquisition by sending '*PCAP.ARM='"""
+    """Arm PCAP for an acquisition by sending ``*PCAP.ARM=``"""
 
     def lines(self) -> Lines:
         return b"*PCAP.ARM="

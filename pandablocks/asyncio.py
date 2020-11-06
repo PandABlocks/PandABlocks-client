@@ -95,10 +95,9 @@ class AsyncioClient:
 
     async def send(self, command: Command[T]) -> T:
         """Send a command to control port of the PandA, returning its response.
-        Requires `connect_control` to have been called first.
 
         Args:
-            command: The command to send
+            command: The `Command` to send
         """
         queue: asyncio.Queue[T] = asyncio.Queue()
         # Need to use the id as non-frozen dataclasses don't hash

@@ -67,9 +67,9 @@ zpkg.
 Flush about 1Hz
 ~~~~~~~~~~~~~~~
 
-`Asyncio.data` accepts a ``flush_period`` argument. If given, it will squash
-intermediate data frames together until this period expires, and only then
-produce them. This means the numpy data blocks are larger and can be more
+`AsyncioClient.data` accepts a ``flush_period`` argument. If given, it will
+squash intermediate data frames together until this period expires, and only
+then produce them. This means the numpy data blocks are larger and can be more
 efficiently written to disk then flushed. The `write_hdf_files` function uses
 this approach.
 

@@ -42,7 +42,7 @@ from code:
     Connections
     -----------
 
-    `Sans-IO <what_is_sans_io>` connections for both the Control and Data ports
+    `Sans-IO <sans-io>` connections for both the Control and Data ports
     of PandA TCP server.
 
 .. automodule:: pandablocks.asyncio
@@ -81,11 +81,5 @@ from code:
     heavy lifting is done by numpy_ and h5py_, so running in their own threads
     gives multi-CPU benefits without hitting the limit of the GIL.
 
-    The key to the performance of this Pipeline is the use of
-    ``data(scaled=False)``. This allows raw data from the TCP server to be used,
-    reducing CPU usage of the TCP server on the PandA and allowing about
-    55MBytes/s to be produced. The scaling is applied in the client by the
-    FrameProcessor before being written to file by the HDFWriter. In tests, this
-    data rate could be written to an SSD by a modern multi-core CPU, with
-    ``top`` showing a process CPU usage of 60%.
+    .. seealso:: `library-hdf`, `performance`
 
