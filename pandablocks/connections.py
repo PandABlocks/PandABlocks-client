@@ -169,11 +169,6 @@ class DataConnection:
             from_server = socket.recv()
             for data in dc.receive_bytes(from_server):
                 do_something_with(data)
-            # FrameData are squashed together until the end of acquisition
-            # or an explicit flush is called
-            if time_to_flush():
-                for data in dc.flush():
-                    do_something_with(data)
     """
 
     def __init__(self):

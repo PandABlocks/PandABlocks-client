@@ -36,20 +36,43 @@ corresponding `ControlConnection` and `DataConnection` objects:
     :noindex:
 
     The :meth:`~DataConnection.connect` method takes any connection arguments
-    and returns the bytes that should be sent to the PandA to make the initial connection.
-    Whenever bytes are received from the socket they can be passed to
-    :meth:`~DataConnection.receive_bytes` which will return an iterator of
-    `Data` objects. Intermediate adjacent `FrameData` instances will be squashed together
-    and only emitted when :meth:`~DataConnection.flush` is called.
-
-
-    The response type will depend on the
-    command. For instance `Get` returns `bytes` or a `list` of `bytes` of the
-    field value, and `GetFields` returns a `dict` mapping `str` field name to
-    `FieldType`.
+    and returns the bytes that should be sent to the PandA to make the initial
+    connection. Whenever bytes are received from the socket they can be passed
+    to :meth:`~DataConnection.receive_bytes` which will return an iterator of
+    `Data` objects. Intermediate `FrameData` can be squashed together by passing
+    ``flush_every_frame=False``, then explicitly calling
+    :meth:`~DataConnection.flush` when they are required.
 
 Wrappers
 --------
+
+Of course, these Connections are useless without connecting some I/O. To aid with
+this, wrappers are included for use in `asyncio` and blocking programs. They expose
+slightly different APIs to make best use of the features of their respective concurrency frameworks.
+
+For example, to send multiple commands in fields with the blocking wrapper::
+
+    with BlockingClient("hostname") as client:
+        resp1, resp2 = client.send([cmd1, cmd2])
+
+while with asyncio we would::
+
+    async with AsyncioClient("hostname") as client:
+        resp1, resp2 = await asyncio.gather(
+            client.send(cmd1),
+            client.send(cmd2)
+        )
+
+The first has the advantage of simplicity, but blocks while waiting for data.
+The second allows multiple co-routines to use the client at the same time at the
+expense of a more verbose API.
+
+The wrappers do not guarantee feature parity, for instance the ``flush_period``
+option is only available in the asyncio wrapper.
+
+
+
+
 
 
 
