@@ -1,7 +1,7 @@
 .. _API:
 
-pandablocks API
-===============
+API
+===
 
 The top level pandablocks module contains a number of packages that can be used
 from code:

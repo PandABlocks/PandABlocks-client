@@ -1,10 +1,4 @@
-PandABlocks Python Client
-=========================
-
-A Python client to the control and data ports of the PandABlocks TCP server.
-Command line tool features an interactive console, load/save control, and HDF5
-writing. Library features a `Sans-IO <sans-io>` core with both asyncio
-and blocking wrappers.
+.. include:: ../README.rst
 
 How the documentation is structured
 -----------------------------------
@@ -74,6 +68,7 @@ About the documentation
     :name: reference
 
     reference/api
+    reference/changelog
     reference/contributing
 
 * :ref:`genindex`

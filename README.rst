@@ -1,7 +1,7 @@
 PandABlocks Python Client
 =========================
 
-|build_status| |coverage| |pypi_version| |readthedocs|
+|build_status| |coverage| |pypi_version| |readthedocs| |license|
 
 A Python client to control and data ports of the PandABlocks TCP server.
 
@@ -9,6 +9,8 @@ Command line tool features an interactive console, load/save control, and HDF5
 writing:
 
 .. code::
+
+    $ pip install pandablocks
 
     $ pandablocks control <panda-hostname>
     < PCAP.     # Hit TAB key...
@@ -37,27 +39,15 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
             print(f"I got some PCAP data {data}")
 
 
-Documentation
--------------
+Essentials
+----------
 
-Full documentation is available at https://pandablocks-client.readthedocs.io
-
-
-Source Code
------------
-
-Available from https://github.com/PandABlocks/PandABlocks-client
-
-
-Contributing
-------------
-
-See `CONTRIBUTING_`_
-
-
-License
--------
-APACHE License. (see `LICENSE_`_)
+============== ==============
+Source code    https://github.com/PandABlocks/PandABlocks-client
+Documentation  https://pandablocks-client.readthedocs.io
+License        Apache 2.0
+PyPI           ``pip install pandablocks``
+============== ==============
 
 
 .. |build_status| image:: https://travis-ci.com/PandABlocks/PandABlocks-client.svg?branch=master
@@ -76,8 +66,6 @@ APACHE License. (see `LICENSE_`_)
     :target: https://pandablocks-client.readthedocs.io
     :alt: Documentation
 
-.. _CONTRIBUTING_:
-    https://github.com/PandABlocks/PandABlocks-client/blob/master/CONTRIBUTING.rst
-
-.. _LICENSE_:
-    https://github.com/PandABlocks/PandABlocks-client/blob/master/LICENSE
+.. |license| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+    :target: https://opensource.org/licenses/Apache-2.0
+    :alt: Apache License
