@@ -5,6 +5,12 @@ PandABlocks Python Client
 
 A Python client to control and data ports of the PandABlocks TCP server.
 
+============== ==============================================================
+PyPI           ``pip install pandablocks``
+Source code    https://github.com/PandABlocks/PandABlocks-client
+Documentation  https://pandablocks-client.readthedocs.io
+============== ==============================================================
+
 Command line tool features an interactive console, load/save control, and HDF5
 writing:
 
@@ -38,16 +44,6 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
             # Data captured from Data port
             print(f"I got some PCAP data {data}")
 
-
-Essentials
-----------
-
-============== ==============
-Source code    https://github.com/PandABlocks/PandABlocks-client
-Documentation  https://pandablocks-client.readthedocs.io
-License        Apache 2.0
-PyPI           ``pip install pandablocks``
-============== ==============
 
 
 .. |build_status| image:: https://travis-ci.com/PandABlocks/PandABlocks-client.svg?branch=master
