@@ -23,7 +23,7 @@ class Pipeline(threading.Thread):
 
     def __init__(self):
         super().__init__()
-        self.queue: queue.Queue[Any] = queue.Queue()
+        self.queue: queue.Queue[Any] = queue.Queue()  # type: ignore
 
     def run(self):
         while True:

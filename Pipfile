@@ -18,11 +18,14 @@ pytest-asyncio = "*"
 mypy = "*"
 atomicwrites = "*"
 matplotlib = "*"
+# This pin no longer required after https://github.com/tholo/pytest-flake8/pull/71 merges
+pytest = "==6.0"
 
 [packages]
 # All other package requirements from setup.cfg
 pandablocks = {editable = true,path = "."}
 h5py = "*"
+click = "*"
 
 [scripts]
 # Put coverage here so we don't interfere with debugging in the IDE

@@ -1,9 +1,9 @@
 import asyncio
 import logging
-from argparse import ArgumentParser
-from typing import Callable, Coroutine
+from typing import Coroutine
 
-from pandablocks import __version__
+import click
+
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
 
@@ -24,64 +24,64 @@ def asyncio_run(coro: Coroutine):
         )
 
 
-async def _write_hdf_files(args):
+async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
     # Local import as we might not have h5py installed and want other commands to work
     from pandablocks.hdf import write_hdf_files
 
-    async with AsyncioClient(args.host) as client:
-        await write_hdf_files(client, scheme=args.scheme, num=args.num, arm=args.arm)
+    async with AsyncioClient(host) as client:
+        await write_hdf_files(client, scheme=scheme, num=num, arm=arm)
 
 
-def hdf(args):
-    """Write an HDF file for each PCAP acquisition"""
+@click.group(invoke_without_command=True)
+@click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(
+        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"], case_sensitive=False
+    ),
+)
+@click.version_option()
+@click.pass_context
+def pandablocks(ctx, log_level: str):
+    """PandaBlocks client library command line interface."""
+
+    level = getattr(logging, log_level.upper(), None)
+    logging.basicConfig(format="%(levelname)s:%(message)s", level=level)
+
+    # if no command is supplied, print the help message
+    if ctx.invoked_subcommand is None:
+        click.echo(pandablocks.get_help(ctx))
+
+
+@pandablocks.command()
+@click.option(
+    "--num", help="Number of collections to capture", default=1, show_default=True,
+)
+@click.option(
+    "--arm",
+    help="Arm PCAP at the start, and after each successful acquisition",
+    is_flag=True,
+)
+@click.argument("host")
+@click.argument("scheme")
+def hdf(host: str, scheme: str, num: int, arm: bool):
+    """
+    Write an HDF file for each PCAP acquisition for HOST
+
+    Uses the filename pattern specified by SCHEME, including %d for scan number
+    starting from 1
+    """
     # Don't use asyncio.run to workaround Python3.7 bug
     # https://bugs.python.org/issue38013
-    asyncio_run(_write_hdf_files(args))
+    asyncio_run(_write_hdf_files(host, scheme, num, arm))
 
 
-def control(args):
-    """Open an interactive control console"""
-    interactive_control(args.host, args.prompt, args.readline)
-
-
-def subparser_with_host(subparsers, func: Callable):
-    sub = subparsers.add_parser(func.__name__, help=func.__doc__)
-    sub.add_argument("host", type=str, help="IP address for PandA to connect to")
-    sub.set_defaults(func=func)
-    return sub
-
-
-def main(args=None):
-    logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
-    parser = ArgumentParser()
-    parser.add_argument("--version", action="version", version=__version__)
-    subparsers = parser.add_subparsers()
-    # hdf subcommand
-    sub = subparser_with_host(subparsers, hdf)
-    sub.add_argument(
-        "scheme",
-        type=str,
-        help="Filenaming scheme for HDF files, with %%d for scan number starting at 1",
-    )
-    sub.add_argument(
-        "--num", type=int, help="Number of collections to capture, default 1", default=1
-    )
-    sub.add_argument(
-        "--arm",
-        action="store_true",
-        help="Arm PCAP at the start, and after each successful acquisition",
-    )
-    # control subcommand
-    sub = subparser_with_host(subparsers, control)
-    sub.add_argument(
-        "--prompt", default=PROMPT, help="Prompt character, default is %r" % PROMPT,
-    )
-    sub.add_argument(
-        "--no-readline",
-        action="store_false",
-        dest="readline",
-        help="Disable readline history and completion",
-    )
-    # Parse args and run
-    args = parser.parse_args(args)
-    args.func(args)
+@pandablocks.command()
+@click.option("--prompt", help="Prompt character", default=PROMPT, show_default=True)
+@click.option(
+    "--no-readline", help="Disable readline history and completion", is_flag=True,
+)
+@click.argument("host", type=str)
+def control(host: str, prompt: str, no_readline: bool):
+    """Open an interactive control console to HOST"""
+    interactive_control(host, prompt, not no_readline)
