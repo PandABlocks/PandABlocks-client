@@ -46,8 +46,8 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
 
 
 
-.. |build_status| image:: https://travis-ci.com/PandABlocks/PandABlocks-client.svg?branch=master
-    :target: https://travis-ci.com/PandABlocks/PandABlocks-client
+.. |build_status| image:: https://github.com/PandABlocks/PandABlocks-client/workflows/Python%20CI/badge.svg?branch=master
+    :target: https://github.com/PandABlocks/PandABlocks-client/actions?query=workflow%3A%22Python+CI%22
     :alt: Build Status
 
 .. |coverage| image:: https://coveralls.io/repos/github/PandABlocks/PandABlocks-client/badge.svg?branch=master
