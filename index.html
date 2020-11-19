@@ -7,74 +7,74 @@
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>PandABlocks Python Client &mdash; PandABlocks-client 0.0+untagged.g04febe8.dirty documentation</title>
-  
 
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>PandABlocks Python Client &mdash; PandABlocks-client 0.0+untagged.g04febe8.dirty documentation</title>
+
+
+
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
 
-  
-  
-    <link rel="shortcut icon" href="_static/PandA-logo.ico"/>
-  
-  
-  
 
-  
+
+    <link rel="shortcut icon" href="_static/PandA-logo.ico"/>
+
+
+
+
+
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-    
+
+
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
-    
+
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
-    
+
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Installation Tutorial" href="tutorials/installation.html" /> 
+    <link rel="next" title="Installation Tutorial" href="tutorials/installation.html" />
 </head>
 
 <body class="wy-body-for-nav">
 
-   
+
   <div class="wy-grid-for-nav">
-    
+
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search"  style="background: black" >
-          
 
-          
+
+
             <a href="#" class="icon icon-home" alt="Documentation Home"> PandABlocks-client
-          
 
-          
-            
+
+
+
             <img src="_static/PandA-logo-for-black-background.svg" class="logo" alt="Logo"/>
-          
+
           </a>
 
-          
-            
-            
+
+
+
               <div class="version">
                 0.0
               </div>
-            
-          
 
-          
+
+
+
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -83,21 +83,21 @@
   </form>
 </div>
 
-          
+
         </div>
 
-        
+
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-    
-            
-            
-              
-            
-            
+
+
+
+
+
+
+
               <p class="caption"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/installation.html">Installation Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/installation.html">Inspallation Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/control.html">Interactive Control Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
@@ -119,31 +119,31 @@
 <li class="toctree-l1"><a class="reference internal" href="reference/contributing.html">Contributing</a></li>
 </ul>
 
-            
-          
+
+
     <a href="genindex.html">Index</a>
-  
+
         </div>
-        
+
       </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
-      
+
       <nav class="wy-nav-top" aria-label="top navigation">
-        
+
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="#">PandABlocks-client</a>
-        
+
       </nav>
 
 
       <div class="wy-nav-content">
-        
+
         <div class="rst-content">
-        
-          
+
+
 
 
 
@@ -162,28 +162,28 @@
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
-    
+
       <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-        
+
       <li>PandABlocks Python Client</li>
-    
-    
+
+
       <li class="wy-breadcrumbs-aside">
-        
-            
+
+
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
-          
-        
+
+
       </li>
-    
+
   </ul>
 
-  
+
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+
   <div class="section" id="pandablocks-python-client">
 <h1>PandABlocks Python Client<a class="headerlink" href="#pandablocks-python-client" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://github.com/PandABlocks/PandABlocks-client/actions?query=workflow%3A%22Python+CI%22"><img alt="Build Status" src="https://github.com/PandABlocks/PandABlocks-client/workflows/Python%20CI/badge.svg?branch=master" /></a> <a class="reference external" href="https://coveralls.io/github/PandABlocks/PandABlocks-client?branch=master"><img alt="Test Coverage" src="https://coveralls.io/repos/github/PandABlocks/PandABlocks-client/badge.svg?branch=master" /></a> <a class="reference external" href="https://badge.fury.io/py/pandablocks"><img alt="Latest PyPI version" src="https://badge.fury.io/py/pandablocks.svg" /></a> <a class="reference external" href="https://pandablocks-client.readthedocs.io"><img alt="Documentation" src="https://readthedocs.org/projects/pandablocks-client/badge/?version=latest" /></a> <a class="reference external" href="https://opensource.org/licenses/Apache-2.0"><img alt="Apache License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" /></a></p>
@@ -354,27 +354,27 @@ INFO:Closed &#39;/tmp/panda-1.h5&#39; after writing 50000000 samples. End reason
 
 
            </div>
-           
+
           </div>
           <footer>
-  
+
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
+
         <a href="tutorials/installation.html" class="btn btn-neutral float-right" title="Installation Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
+
+
     </div>
-  
+
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        
+
         &copy; Copyright 2020, Diamond Light Source
 
     </p>
-  </div> 
+  </div>
 
 </footer>
 
@@ -384,7 +384,7 @@ INFO:Closed &#39;/tmp/panda-1.h5&#39; after writing 50000000 samples. End reason
     </section>
 
   </div>
-  
+
 
   <script type="text/javascript">
       jQuery(function () {
@@ -392,10 +392,10 @@ INFO:Closed &#39;/tmp/panda-1.h5&#39; after writing 50000000 samples. End reason
       });
   </script>
 
-  
-  
-    
-   
+
+
+
+
 
 </body>
 </html>
