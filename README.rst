@@ -8,7 +8,7 @@ A Python client to control and data ports of the PandABlocks TCP server.
 ============== ==============================================================
 PyPI           ``pip install pandablocks``
 Source code    https://github.com/PandABlocks/PandABlocks-client
-Documentation  https://pandablocks-client.readthedocs.io
+Documentation  https://pandablocks.github.io/PandABlocks-client/master/index.html
 ============== ==============================================================
 
 Command line tool features an interactive console, load/save control, and HDF5

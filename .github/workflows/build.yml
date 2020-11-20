@@ -37,7 +37,7 @@ jobs:
           python setup.py bdist_wheel
 
       - name: Run Tests
-        run : pipenv run tests # execute Pipfile script tests
+        run : pipenv run tests
 
       - name: Coveralls
         env:
@@ -49,6 +49,14 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout master
+        uses: actions/checkout@v2
+        with:
+          ref: master
+          # require all of history to build all tagged versions' docs
+          fetch-depth: 0
+
+      # also checkout the branch that triggered this build
       - name: Checkout Source
         uses: actions/checkout@v2
 
@@ -63,7 +71,8 @@ jobs:
           pipenv install --dev
 
       - name: Build Docs
-        run: pipenv run docs
+        # this builds all tagged versions and master
+        run: pipenv run sphinx-multiversion docs build/html
 
       - name: Checkout gh-pages
         uses: actions/checkout@v2
@@ -72,8 +81,10 @@ jobs:
           path: gh-pages
 
       - name: Update gh-pages
-        run:
-          rm -r gh-pages/* ; cp -r build/html/* gh-pages/
+        run: |
+          rm -r gh-pages/*
+          cp -r build/html/* gh-pages/
+          cp docs/index.html gh-pages/
 
       - name: Push gh-pages
         uses: EndBug/add-and-commit@v5
