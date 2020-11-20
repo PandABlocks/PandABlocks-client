@@ -1,4 +1,3 @@
-name: Python CI
 
 on:
   push:
@@ -8,6 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [ '3.7', '3.8' ]
 
@@ -39,17 +39,48 @@ jobs:
       - name: Run Tests
         run : pipenv run tests # execute Pipfile script tests
 
-      - name: Build Docs
-        run: pipenv run docs # build docs
-
       - name: Coveralls
-        # the official action only uses Lcov files which pytest-cov does not support
-        # https://github.com/coverallsapp/github-action/issues/30
-        #
-        # using https://github.com/coveralls-clients/coveralls-python instead
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pip install coveralls
           coveralls
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install Dependencies
+        run: |
+          pip install pipenv
+          pipenv install --dev
+
+      - name: Build Docs
+        run: pipenv run docs
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Update gh-pages
+        run:
+          rm -r gh-pages/* ; cp -r build/html/* gh-pages/
+
+      - name: Push gh-pages
+        uses: EndBug/add-and-commit@v5
+        with:
+          message: "updating built documentation"
+          branch: gh-pages
+          add: ". --force"
+          cwd: "./gh-pages/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
