@@ -67,12 +67,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          env
           pip install pipenv
           pipenv install --dev
-
-      - name: Build Docs
-        # this builds all tagged versions and master
-        run: pipenv run sphinx-multiversion docs build/html
 
       - name: Checkout gh-pages
         uses: actions/checkout@v2
@@ -83,8 +80,13 @@ jobs:
       - name: Update gh-pages
         run: |
           rm -r gh-pages/*
-          cp -r build/html/* gh-pages/
           cp docs/index.html gh-pages/
+
+      - name: Build Docs
+        # this builds all tagged versions and master
+        run: |
+          env
+          pipenv run sphinx-multiversion docs gh-pages/
 
       - name: Push gh-pages
         uses: EndBug/add-and-commit@v5
