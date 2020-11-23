@@ -1,7 +1,7 @@
 PandABlocks Python Client
 =========================
 
-|build_status| |coverage| |pypi_version| |readthedocs| |license|
+|build_status| |coverage| |pypi_version| |license|
 
 A Python client to control and data ports of the PandABlocks TCP server.
 
@@ -57,10 +57,6 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
 .. |pypi_version| image:: https://badge.fury.io/py/pandablocks.svg
     :target: https://badge.fury.io/py/pandablocks
     :alt: Latest PyPI version
-
-.. |readthedocs| image:: https://readthedocs.org/projects/pandablocks-client/badge/?version=latest
-    :target: https://pandablocks-client.readthedocs.io
-    :alt: Documentation
 
 .. |license| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
     :target: https://opensource.org/licenses/Apache-2.0
