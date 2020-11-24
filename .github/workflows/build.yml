@@ -53,6 +53,7 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}
+          skip_existing: true
 
   docs:
     runs-on: ubuntu-latest
