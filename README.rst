@@ -1,14 +1,14 @@
 PandABlocks Python Client
 =========================
 
-|build_status| |coverage| |pypi_version| |readthedocs| |license|
+|build_status| |coverage| |pypi_version| |license|
 
 A Python client to control and data ports of the PandABlocks TCP server.
 
 ============== ==============================================================
 PyPI           ``pip install pandablocks``
 Source code    https://github.com/PandABlocks/PandABlocks-client
-Documentation  https://pandablocks-client.readthedocs.io
+Documentation  https://pandablocks.github.io/PandABlocks-client/master/index.html
 ============== ==============================================================
 
 Command line tool features an interactive console, load/save control, and HDF5
@@ -46,8 +46,8 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
 
 
 
-.. |build_status| image:: https://travis-ci.com/PandABlocks/PandABlocks-client.svg?branch=master
-    :target: https://travis-ci.com/PandABlocks/PandABlocks-client
+.. |build_status| image:: https://github.com/PandABlocks/PandABlocks-client/workflows/Python%20CI/badge.svg?branch=master
+    :target: https://github.com/PandABlocks/PandABlocks-client/actions?query=workflow%3A%22Python+CI%22
     :alt: Build Status
 
 .. |coverage| image:: https://coveralls.io/repos/github/PandABlocks/PandABlocks-client/badge.svg?branch=master
@@ -57,10 +57,6 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
 .. |pypi_version| image:: https://badge.fury.io/py/pandablocks.svg
     :target: https://badge.fury.io/py/pandablocks
     :alt: Latest PyPI version
-
-.. |readthedocs| image:: https://readthedocs.org/projects/pandablocks-client/badge/?version=latest
-    :target: https://pandablocks-client.readthedocs.io
-    :alt: Documentation
 
 .. |license| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
     :target: https://opensource.org/licenses/Apache-2.0

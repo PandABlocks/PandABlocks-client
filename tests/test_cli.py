@@ -4,6 +4,7 @@ from unittest.mock import patch
 import h5py
 import numpy as np
 import pytest
+from click.testing import CliRunner
 
 from pandablocks import cli
 from tests.conftest import DummyServer
@@ -12,7 +13,11 @@ from tests.conftest import DummyServer
 def test_writing_fast_hdf(dummy_server_in_thread: DummyServer, raw_dump, tmp_path):
     dummy_server_in_thread.send.append("OK")
     dummy_server_in_thread.data = raw_dump
-    cli.main(["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"])
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.pandablocks, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
+    )
+    assert result.exit_code == 0
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
     assert list(hdf_file) == [
         "COUNTER1.OUT.Max",
@@ -44,7 +49,11 @@ def test_writing_overrun_hdf(
 ):
     dummy_server_in_thread.send.append("OK")
     dummy_server_in_thread.data = [overrun_dump]
-    cli.main(["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"])
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.pandablocks, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
+    )
+    assert result.exit_code == 0
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
 
     def multiples(num, offset=0):
@@ -77,7 +86,9 @@ def test_interactive_simple(dummy_server_in_thread, capsys):
     mock_input = MockInput("PCAP.ACTIVE?", "SEQ1.TABLE?")
     dummy_server_in_thread.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
     with patch("pandablocks._control.input", side_effect=mock_input):
-        cli.main(["control", "localhost", "--no-readline"])
-    captured = capsys.readouterr()
-    assert captured.out == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"
-    assert captured.err == ""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.pandablocks, ["control", "localhost", "--no-readline"]
+        )
+        assert result.exit_code == 0
+        assert result.output == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"

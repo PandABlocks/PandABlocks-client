@@ -6,4 +6,15 @@
   {% block menu %}
     {{ super() }}
     <a href="{{pathto('genindex.html', 1)}}">Index</a>
+    {% if versions %}
+    <p class="caption"><span class="caption-text">Versions</span></p>
+    <ul>
+    {%- for item in versions %}
+    <li><a href="{{ item.url }}">{{ item.name }}</a></li>
+    {%- endfor %}
+    </ul>
+    {% endif %}
   {% endblock %}
+
+
+

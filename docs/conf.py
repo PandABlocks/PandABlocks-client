@@ -44,6 +44,7 @@ extensions = [
     "sphinx.ext.viewcode",
     # Adds support for matplotlib plots
     "matplotlib.sphinxext.plot_directive",
+    "sphinx_multiversion",
 ]
 
 # If true, Sphinx will warn about all references where the target cannot
@@ -139,3 +140,10 @@ html_css_files = ["theme_overrides.css"]
 # Logo
 html_logo = "PandA-logo-for-black-background.svg"
 html_favicon = "PandA-logo.ico"
+
+# sphinx-multiversion config
+smv_tag_whitelist = r"^\d+\.\d+.*$"  # only document tags with form 0.9*
+smv_branch_whitelist = r"^master$"  # only branch to document is master
+smv_outputdir_format = "{ref.name}"
+smv_prefer_remote_refs = True
+smv_remote_whitelist = "origin|github"
