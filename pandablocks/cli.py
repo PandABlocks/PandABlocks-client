@@ -42,7 +42,7 @@ async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
 )
 @click.version_option()
 @click.pass_context
-def pandablocks(ctx, log_level: str):
+def cli(ctx, log_level: str):
     """PandaBlocks client library command line interface."""
 
     level = getattr(logging, log_level.upper(), None)
@@ -50,10 +50,10 @@ def pandablocks(ctx, log_level: str):
 
     # if no command is supplied, print the help message
     if ctx.invoked_subcommand is None:
-        click.echo(pandablocks.get_help(ctx))
+        click.echo(cli.get_help(ctx))
 
 
-@pandablocks.command()
+@cli.command()
 @click.option(
     "--num", help="Number of collections to capture", default=1, show_default=True,
 )
@@ -76,7 +76,7 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
     asyncio_run(_write_hdf_files(host, scheme, num, arm))
 
 
-@pandablocks.command()
+@cli.command()
 @click.option("--prompt", help="Prompt character", default=PROMPT, show_default=True)
 @click.option(
     "--no-readline", help="Disable readline history and completion", is_flag=True,

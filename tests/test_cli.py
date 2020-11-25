@@ -15,7 +15,7 @@ def test_writing_fast_hdf(dummy_server_in_thread: DummyServer, raw_dump, tmp_pat
     dummy_server_in_thread.data = raw_dump
     runner = CliRunner()
     result = runner.invoke(
-        cli.pandablocks, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
+        cli.cli, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
     )
     assert result.exit_code == 0
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
@@ -51,7 +51,7 @@ def test_writing_overrun_hdf(
     dummy_server_in_thread.data = [overrun_dump]
     runner = CliRunner()
     result = runner.invoke(
-        cli.pandablocks, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
+        cli.cli, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
     )
     assert result.exit_code == 0
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
@@ -87,8 +87,6 @@ def test_interactive_simple(dummy_server_in_thread, capsys):
     dummy_server_in_thread.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
     with patch("pandablocks._control.input", side_effect=mock_input):
         runner = CliRunner()
-        result = runner.invoke(
-            cli.pandablocks, ["control", "localhost", "--no-readline"]
-        )
+        result = runner.invoke(cli.cli, ["control", "localhost", "--no-readline"])
         assert result.exit_code == 0
         assert result.output == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"
