@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pandablocks.state import State
 from typing import Coroutine
 
 import click
@@ -85,3 +86,28 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
 def control(host: str, prompt: str, no_readline: bool):
     """Open an interactive control console to HOST"""
     interactive_control(host, prompt, not no_readline)
+
+
+@cli.command()
+@click.argument("host")
+@click.argument("outfile", type=click.File("w"))
+def save(host: str, outfile):
+    """
+    Save the current blocks configuration of HOST to OUTFILE
+    """
+    state = State(host)
+    commands = state.save()
+    command_lines = "\n".join(commands) + "\n"
+    outfile.write(command_lines)
+
+
+@cli.command()
+@click.argument("host")
+@click.argument("infile", type=click.File("r"))
+def load(host: str, infile):
+    """
+    Set the configuration of HOST using commands in INFILE
+    """
+    state = State(host)
+    commands = infile.readlines()
+    state.load(commands)
