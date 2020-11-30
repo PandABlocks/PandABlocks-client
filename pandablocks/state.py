@@ -1,7 +1,7 @@
 from typing import List
 
 from pandablocks.blocking import BlockingClient
-from pandablocks.commands import Command, Get, Raw
+from pandablocks.commands import Get, Raw
 
 
 class State:
@@ -47,6 +47,7 @@ class State:
         Returns:
             str: A sequence of PandA-client command strings
         """
+
         def save_table(table: str) -> None:
             assert table[-1] == "<", f"bad response to *CHANGES.TABLE: {table}"
             commands.append(table + "B")
@@ -54,17 +55,17 @@ class State:
                 commands.append(line)
             else:
                 # TODO is a blank line required for empty table?
-                commands.append('')
+                commands.append("")
 
         def save_metatable(meta: str) -> None:
             commands.append(meta)
             for line in self._send_get(meta[:-1]):
                 commands.append(line)
             else:
-                commands.append('')
+                commands.append("")
 
         def save_metadata(line: str) -> None:
-            if line[-1] == '<':
+            if line[-1] == "<":
                 save_metatable(line)
             else:
                 commands.append(line)

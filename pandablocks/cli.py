@@ -1,12 +1,12 @@
 import asyncio
 import logging
-from pandablocks.state import State
 from typing import Coroutine
 
 import click
 
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
+from pandablocks.state import State
 
 # Default prompt
 PROMPT = "< "
