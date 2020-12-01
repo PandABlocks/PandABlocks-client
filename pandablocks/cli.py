@@ -1,4 +1,5 @@
 import asyncio
+import io
 import logging
 from typing import Coroutine
 
@@ -104,10 +105,10 @@ def save(host: str, outfile):
 @cli.command()
 @click.argument("host")
 @click.argument("infile", type=click.File("r"))
-def load(host: str, infile):
+def load(host: str, infile: io.TextIOWrapper):
     """
-    Set the configuration of HOST using commands in INFILE
+    Load a blocks configuration into HOST using the commands in INFILE
     """
     state = State(host)
-    commands = infile.readlines()
+    commands = infile.read().splitlines()
     state.load(commands)

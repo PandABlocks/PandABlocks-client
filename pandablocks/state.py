@@ -1,7 +1,7 @@
 from typing import List
 
 from pandablocks.blocking import BlockingClient
-from pandablocks.commands import Get, Raw
+from pandablocks.commands import Get, Raw, is_multiline_command
 
 
 class State:
@@ -54,7 +54,6 @@ class State:
             for line in self._send_get(table[:-1] + ".B"):
                 commands.append(line)
             else:
-                # TODO is a blank line required for empty table?
                 commands.append("")
 
         def save_metatable(meta: str) -> None:
@@ -92,4 +91,15 @@ class State:
         Args:
             commands (str): a series of PandA-client commmand strings
         """
-        self._client.send(Raw(commands))
+        full_command = None
+        for command_line in commands:
+            if full_command is None:
+                if is_multiline_command(command_line):
+                    full_command = [command_line]
+                else:
+                    self._client.send(Raw([command_line]))
+            else:
+                full_command.append(command_line)
+                if command_line == "":
+                    self._client.send(Raw(full_command))
+                    full_command = None
