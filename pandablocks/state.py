@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from pandablocks.blocking import BlockingClient
@@ -47,6 +48,7 @@ class State:
         Returns:
             str: A sequence of PandA-client command strings
         """
+        commands = []
 
         def save_table(table: str) -> None:
             assert table[-1] == "<", f"bad response to *CHANGES.TABLE: {table}"
@@ -70,7 +72,7 @@ class State:
                 commands.append(line)
 
         # save the CONFIG state
-        commands = self._send_get("*CHANGES.ATTR")
+        commands += self._send_get("*CHANGES.ATTR")
         commands += self._send_get("*CHANGES.CONFIG")
         # save individual tables
         tables = self._send_get("*CHANGES.TABLE")
@@ -91,15 +93,21 @@ class State:
         Args:
             commands (str): a series of PandA-client commmand strings
         """
+
+        def send_check(cmd: List[str]):
+            result = self._client.send(Raw(cmd))
+            if result != ["OK"]:
+                logging.warning(f"command {cmd} failed with {result}")
+
         full_command = None
         for command_line in commands:
             if full_command is None:
                 if is_multiline_command(command_line):
                     full_command = [command_line]
                 else:
-                    self._client.send(Raw([command_line]))
+                    send_check([command_line])
             else:
                 full_command.append(command_line)
                 if command_line == "":
-                    self._client.send(Raw(full_command))
+                    send_check(full_command)
                     full_command = None

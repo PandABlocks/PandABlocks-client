@@ -92,7 +92,7 @@ def control(host: str, prompt: str, no_readline: bool):
 @cli.command()
 @click.argument("host")
 @click.argument("outfile", type=click.File("w"))
-def save(host: str, outfile):
+def save(host: str, outfile: io.TextIOWrapper):
     """
     Save the current blocks configuration of HOST to OUTFILE
     """
