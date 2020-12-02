@@ -41,5 +41,4 @@ def test_load(dummy_server_in_thread: DummyServer):
     state = State("localhost")
     state.load(savefile)
 
-    count = len(dummy_server_in_thread.send)
-    print(count)
+    assert dummy_server_in_thread.received == savefile
