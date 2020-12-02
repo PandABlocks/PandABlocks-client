@@ -234,7 +234,7 @@ class DummyServer:
             buf += received
             for line in buf:
                 self.received.append(line.decode())
-                if line.endswith(b"<"):
+                if line.endswith(b"<") or line.endswith(b"<B"):
                     is_multiline = True
                 if not is_multiline or not line:
                     is_multiline = False
