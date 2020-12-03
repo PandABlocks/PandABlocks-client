@@ -67,7 +67,9 @@ jobs:
 
       # also checkout the branch that triggered this build
       - name: Checkout Source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.7
         uses: actions/setup-python@v2
@@ -81,26 +83,14 @@ jobs:
 
       - name: Build Docs
         # this builds all tagged versions and master
-        run: pipenv run sphinx-multiversion docs build/html
-
-      - name: Checkout gh-pages
-        uses: actions/checkout@v2
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      - name: Update gh-pages
         run: |
-          rm -r gh-pages/*
-          cp -r build/html/* gh-pages/
-          cp docs/index.html gh-pages/
+          pipenv run sphinx-multiversion docs build/html
+          cp docs/index.html build/html # a root redirect to master folder
 
-      - name: Push gh-pages
-        uses: EndBug/add-and-commit@v5
+      - name: Deploy Docs to Github Pages
+        uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
-          message: "updating built documentation"
-          branch: gh-pages
-          add: ". --force"
-          cwd: "./gh-pages/"
-        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: build/html
+          CLEAN: true
