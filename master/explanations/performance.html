@@ -1,0 +1,359 @@
+<!-- Include Index in the sidebar -->
+<!-- https://stackoverflow.com/a/37843854 -->
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>How fast can we write HDF files? &mdash; PandABlocks-client 0.1.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+    <link rel="shortcut icon" href="../_static/PandA-logo.ico"/>
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API" href="../reference/api.html" />
+    <link rel="prev" title="Why write a Sans-IO library?" href="sans-io.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: black" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> PandABlocks-client
+          
+
+          
+            
+            <img src="../_static/PandA-logo-for-black-background.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+    
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/installation.html">Installation Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/control.html">Interactive Control Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
+</ul>
+<p class="caption"><span class="caption-text">How-to Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../how-to/library-hdf.html">How to use the library to capture HDF files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-to/poll-changes.html">How to efficiently poll for changes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Explanations</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="sans-io.html">Why write a Sans-IO library?</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How fast can we write HDF files?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#factors-to-consider">Factors to consider</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#strategies-to-help">Strategies to help</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#average-the-data">Average the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scale-the-data-on-the-client">Scale the data on the client</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remove-the-panda-webcontrol-package">Remove the panda-webcontrol package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#flush-about-1hz">Flush about 1Hz</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-achieved">Performance Achieved</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/contributing.html">Contributing</a></li>
+</ul>
+
+            
+          
+    <a href="../genindex.html">Index</a>
+    
+    <p class="caption"><span class="caption-text">Versions</span></p>
+    <ul>
+    <li><a href="../../0.1.1/explanations/performance.html">0.1.1</a></li>
+    <li><a href="../../0.1.2/explanations/performance.html">0.1.2</a></li>
+    <li><a href="performance.html">master</a></li>
+    </ul>
+    
+  
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PandABlocks-client</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>How fast can we write HDF files?</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/explanations/performance.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="how-fast-can-we-write-hdf-files">
+<span id="performance"></span><h1>How fast can we write HDF files?<a class="headerlink" href="#how-fast-can-we-write-hdf-files" title="Permalink to this headline">¶</a></h1>
+<p>There are many factors that affect the speed we can write HDF files. This article
+discusses how this library addresses them and what the maximum data rate of a PandA is.</p>
+<div class="section" id="factors-to-consider">
+<h2>Factors to consider<a class="headerlink" href="#factors-to-consider" title="Permalink to this headline">¶</a></h2>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 83%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>Trigger frequency</p></td>
+<td><p>Each trigger will send all the captured fields, so the higher the trigger
+frequency the more data is sent</p></td>
+</tr>
+<tr class="row-even"><td><p>Fields captured</p></td>
+<td><p>Both the number of fields captured and their capture types affect the data
+sent on each trigger</p></td>
+</tr>
+<tr class="row-odd"><td><p>Sample format and processing</p></td>
+<td><p>Server side format and processing of each sample affects the data volume.
+Framed format is selected by this library, with raw or scaled data
+processing available.</p></td>
+</tr>
+<tr class="row-even"><td><p>Network speed</p></td>
+<td><p>1 Gigabit ethernet should be used to maximise throughput</p></td>
+</tr>
+<tr class="row-odd"><td><p>File system speed</p></td>
+<td><p>Some local disks and NFS mounts may not be fast enough to sustain
+maximum data rate.</p></td>
+</tr>
+<tr class="row-even"><td><p>CPU load on the PandA</p></td>
+<td><p>Excessive CPU load on the PandA, generated by extra TCP server clients
+or panda-webcontrol will reduce throughput</p></td>
+</tr>
+<tr class="row-odd"><td><p>Flush rate</p></td>
+<td><p>Flushing data to disk to often will slow write speed</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="strategies-to-help">
+<h2>Strategies to help<a class="headerlink" href="#strategies-to-help" title="Permalink to this headline">¶</a></h2>
+<p>There are a number of strategies that help increase performance. These can be
+combined to give the greatest benefit</p>
+<div class="section" id="average-the-data">
+<h3>Average the data<a class="headerlink" href="#average-the-data" title="Permalink to this headline">¶</a></h3>
+<p>Selecting the <code class="docutils literal notranslate"><span class="pre">Mean</span></code> capture mode will activate on-FPGA averaging of the
+captured value. <code class="docutils literal notranslate"><span class="pre">Min</span></code> and <code class="docutils literal notranslate"><span class="pre">Max</span></code> can also be captured at the same time.
+Capturing these rather than <code class="docutils literal notranslate"><span class="pre">Value</span></code> may allow you to lower the trigger
+frequency while still providing enough information for data analysis</p>
+</div>
+<div class="section" id="scale-the-data-on-the-client">
+<h3>Scale the data on the client<a class="headerlink" href="#scale-the-data-on-the-client" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="../reference/api.html#pandablocks.asyncio.AsyncioClient.data" title="pandablocks.asyncio.AsyncioClient.data"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">AsyncioClient.data</span></code></a> and <a class="reference internal" href="../reference/api.html#pandablocks.blocking.BlockingClient.data" title="pandablocks.blocking.BlockingClient.data"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">BlockingClient.data</span></code></a> accept a <code class="docutils literal notranslate"><span class="pre">scaled</span></code> argument.
+Setting this to True will transfer the raw unscaled data, allowing for up to
+50% more data to be sent depending on the datatype of the field. You can
+use the <a class="reference internal" href="../reference/api.html#pandablocks.responses.StartData.fields" title="pandablocks.responses.StartData.fields"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">StartData.fields</span></code></a> information to scale the data on the client.
+The <a class="reference internal" href="../reference/api.html#pandablocks.hdf.write_hdf_files" title="pandablocks.hdf.write_hdf_files"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_hdf_files</span></code></a> function uses this approach.</p>
+</div>
+<div class="section" id="remove-the-panda-webcontrol-package">
+<h3>Remove the panda-webcontrol package<a class="headerlink" href="#remove-the-panda-webcontrol-package" title="Permalink to this headline">¶</a></h3>
+<p>The measures above should get you to about 50MBytes/s, but if more clients
+connect to the web GUI then this will drop. To increase the data rate to
+60MBytes/s and improve stability you may want to remove the panda-webcontrol
+zpkg.</p>
+</div>
+<div class="section" id="flush-about-1hz">
+<h3>Flush about 1Hz<a class="headerlink" href="#flush-about-1hz" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="../reference/api.html#pandablocks.asyncio.AsyncioClient.data" title="pandablocks.asyncio.AsyncioClient.data"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">AsyncioClient.data</span></code></a> accepts a <code class="docutils literal notranslate"><span class="pre">flush_period</span></code> argument. If given, it will
+squash intermediate data frames together until this period expires, and only
+then produce them. This means the numpy data blocks are larger and can be more
+efficiently written to disk then flushed. The <a class="reference internal" href="../reference/api.html#pandablocks.hdf.write_hdf_files" title="pandablocks.hdf.write_hdf_files"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_hdf_files</span></code></a> function uses
+this approach.</p>
+</div>
+</div>
+<div class="section" id="performance-achieved">
+<h2>Performance Achieved<a class="headerlink" href="#performance-achieved" title="Permalink to this headline">¶</a></h2>
+<p>Tests were run with the following conditions:</p>
+<ul class="simple">
+<li><p>8-core Intel i7 machine as client</p></li>
+<li><p>Version 2.1 of panda-server installed on PandA</p></li>
+<li><p>PandA and client machine connected to same Gigabit ethernet switch</p></li>
+<li><p>60 byte sample payload</p></li>
+<li><p>Using the commandline pandablocks hdf utility to write data to an SSD</p></li>
+</ul>
+<p>When panda-webcontrol is installed with a single browser connected, the following results
+were achieved:</p>
+<ul class="simple">
+<li><p>50MBytes/s throughput</p></li>
+<li><p>PandA CPU usage about 75% (of both cores)</p></li>
+<li><p>local client CPU usage about 55% (of a single core)</p></li>
+</ul>
+<p>When panda-webcontrol was not installed, the following results were achieved:</p>
+<ul class="simple">
+<li><p>60MBytes/s throughput</p></li>
+<li><p>PandA CPU usage about 65% (of both cores)</p></li>
+<li><p>local client CPU usage about 60% (of a single core)</p></li>
+</ul>
+<p>Increasing above these throughputs failed most scans with DATA_OVERRUN.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../reference/api.html" class="btn btn-neutral float-right" title="API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="sans-io.html" class="btn btn-neutral float-left" title="Why write a Sans-IO library?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Diamond Light Source
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
