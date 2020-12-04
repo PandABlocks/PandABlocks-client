@@ -1,0 +1,407 @@
+<!-- Include Index in the sidebar -->
+<!-- https://stackoverflow.com/a/37843854 -->
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>PandABlocks Python Client &mdash; PandABlocks-client 0.0+untagged.gba1bb99 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+    <link rel="shortcut icon" href="_static/PandA-logo.ico"/>
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation Tutorial" href="tutorials/installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: black" >
+          
+
+          
+            <a href="#" class="icon icon-home" alt="Documentation Home"> PandABlocks-client
+          
+
+          
+            
+            <img src="_static/PandA-logo-for-black-background.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+    
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/installation.html">Installation Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/control.html">Interactive Control Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
+</ul>
+<p class="caption"><span class="caption-text">How-to Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="how-to/library-hdf.html">How to use the library to capture HDF files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-to/poll-changes.html">How to efficiently poll for changes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Explanations</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="explanations/sans-io.html">Why write a Sans-IO library?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="explanations/performance.html">How fast can we write HDF files?</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/contributing.html">Contributing</a></li>
+</ul>
+
+            
+          
+    <a href="genindex.html">Index</a>
+    
+    <p class="caption"><span class="caption-text">Versions</span></p>
+    <ul>
+    <li><a href="index.html">sphinx-build</a></li>
+    </ul>
+    
+  
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">PandABlocks-client</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>PandABlocks Python Client</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="pandablocks-python-client">
+<h1>PandABlocks Python Client<a class="headerlink" href="#pandablocks-python-client" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://github.com/PandABlocks/PandABlocks-client/actions?query=workflow%3A%22Python+CI%22"><img alt="Build Status" src="https://github.com/PandABlocks/PandABlocks-client/workflows/Python%20CI/badge.svg?branch=master" /></a> <a class="reference external" href="https://coveralls.io/github/PandABlocks/PandABlocks-client?branch=master"><img alt="Test Coverage" src="https://coveralls.io/repos/github/PandABlocks/PandABlocks-client/badge.svg?branch=master" /></a> <a class="reference external" href="https://badge.fury.io/py/pandablocks"><img alt="Latest PyPI version" src="https://badge.fury.io/py/pandablocks.svg" /></a> <a class="reference external" href="https://opensource.org/licenses/Apache-2.0"><img alt="Apache License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" /></a></p>
+<p>A Python client to control and data ports of the PandABlocks TCP server.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 83%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>PyPI</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pandablocks</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Source code</p></td>
+<td><p><a class="reference external" href="https://github.com/PandABlocks/PandABlocks-client">https://github.com/PandABlocks/PandABlocks-client</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Documentation</p></td>
+<td><p><a class="reference external" href="https://pandablocks.github.io/PandABlocks-client/master/index.html">https://pandablocks.github.io/PandABlocks-client/master/index.html</a></p></td>
+</tr>
+</tbody>
+</table>
+<p>Command line tool features an interactive console, load/save control, and HDF5
+writing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install pandablocks
+
+$ pandablocks control &lt;panda-hostname&gt;
+&lt; PCAP.     # Hit TAB key...
+PCAP.ACTIVE     PCAP.BITS1      PCAP.BITS3      PCAP.GATE       PCAP.SAMPLES    PCAP.TRIG       PCAP.TS_END     PCAP.TS_TRIG
+PCAP.BITS0      PCAP.BITS2      PCAP.ENABLE     PCAP.HEALTH     PCAP.SHIFT_SUM  PCAP.TRIG_EDGE  PCAP.TS_START
+&lt; PCAP.ACTIVE?
+OK =1
+
+$ pandablocks hdf &lt;panda-hostname&gt; /tmp/panda-%d.h5
+INFO:Opened &#39;/tmp/panda-1.h5&#39; with 60 byte samples stored in 11 datasets
+INFO:Closed &#39;/tmp/panda-1.h5&#39; after writing 50000000 samples. End reason is &#39;Disarmed&#39;
+</pre></div>
+</div>
+<p>Library features a Sans-IO core with both asyncio and blocking wrappers:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pandablocks.blocking</span> <span class="kn">import</span> <span class="n">BlockingClient</span>
+<span class="kn">from</span> <span class="nn">pandablocks.commands</span> <span class="kn">import</span> <span class="n">Get</span>
+
+<span class="k">with</span> <span class="n">BlockingClient</span><span class="p">(</span><span class="s2">&quot;hostname-or-ip&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="c1"># Commands sent to Control port</span>
+    <span class="n">idn</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">Get</span><span class="p">(</span><span class="s2">&quot;*IDN&quot;</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hello </span><span class="si">{</span><span class="n">idn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="c1"># Data captured from Data port</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;I got some PCAP data </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="how-the-documentation-is-structured">
+<h2>How the documentation is structured<a class="headerlink" href="#how-the-documentation-is-structured" title="Permalink to this headline">¶</a></h2>
+<div class="columns section" id="tutorials">
+<h3><a class="reference internal" href="#id1"><span class="std std-ref">Tutorials</span></a><a class="headerlink" href="#tutorials" title="Permalink to this headline">¶</a></h3>
+<p>Tutorials for installation, library and commandline usage. New users start here.</p>
+</div>
+<div class="columns section" id="how-to">
+<h3><a class="reference internal" href="#id2"><span class="std std-ref">How-to Guides</span></a><a class="headerlink" href="#how-to" title="Permalink to this headline">¶</a></h3>
+<p>Practical step-by-step guides for the more experienced user.</p>
+</div>
+<div class="columns section" id="explanations">
+<h3><a class="reference internal" href="#id3"><span class="std std-ref">Explanations</span></a><a class="headerlink" href="#explanations" title="Permalink to this headline">¶</a></h3>
+<p>Explanation of how the library works and why it works that way.</p>
+</div>
+<div class="columns section" id="reference">
+<h3><a class="reference internal" href="#id4"><span class="std std-ref">Reference</span></a><a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h3>
+<p>Technical reference material, for classes, methods, APIs, commands, and contributing to the project.</p>
+</div>
+<div class="endcolumns section" id="about-the-documentation">
+<h3>About the documentation<a class="headerlink" href="#about-the-documentation" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://documentation.divio.com">Why is the documentation structured this way?</a></p>
+<div class="toctree-wrapper compound" id="id1">
+<p class="caption"><span class="caption-text">Tutorials</span><a class="headerlink" href="#id1" title="Permalink to this toctree">¶</a></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/installation.html">Installation Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/installation.html#check-your-version-of-python">Check your version of python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/installation.html#create-a-virtual-environment">Create a virtual environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/installation.html#installing-the-library">Installing the library</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/load-save.html">Commandline Load/Save Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/load-save.html#save">Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/load-save.html#load">Load</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/load-save.html#web-gui">Web GUI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/control.html">Interactive Control Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#connect">Connect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#type-commands">Type Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#control-an-acquisition">Control an acquisition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#capturing-some-data">Capturing some data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#examining-the-data">Examining the data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#collecting-more-data-faster">Collecting more data faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound" id="id2">
+<p class="caption"><span class="caption-text">How-to Guides</span><a class="headerlink" href="#id2" title="Permalink to this toctree">¶</a></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="how-to/library-hdf.html">How to use the library to capture HDF files</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="how-to/library-hdf.html#approach-1-call-the-function-directly">Approach 1: Call the function directly</a></li>
+<li class="toctree-l2"><a class="reference internal" href="how-to/library-hdf.html#approach-2-create-the-pipeline-yourself">Approach 2: Create the pipeline yourself</a></li>
+<li class="toctree-l2"><a class="reference internal" href="how-to/library-hdf.html#performance">Performance</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="how-to/poll-changes.html">How to efficiently poll for changes</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound" id="id3">
+<p class="caption"><span class="caption-text">Explanations</span><a class="headerlink" href="#id3" title="Permalink to this toctree">¶</a></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="explanations/sans-io.html">Why write a Sans-IO library?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="explanations/sans-io.html#connections">Connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="explanations/sans-io.html#wrappers">Wrappers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="explanations/performance.html">How fast can we write HDF files?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="explanations/performance.html#factors-to-consider">Factors to consider</a></li>
+<li class="toctree-l2"><a class="reference internal" href="explanations/performance.html#strategies-to-help">Strategies to help</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#average-the-data">Average the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#scale-the-data-on-the-client">Scale the data on the client</a></li>
+<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#remove-the-panda-webcontrol-package">Remove the panda-webcontrol package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#flush-about-1hz">Flush about 1Hz</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="explanations/performance.html#performance-achieved">Performance Achieved</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper no-margin-after-ul compound" id="id4">
+<p class="caption"><span class="caption-text">Reference</span><a class="headerlink" href="#id4" title="Permalink to this toctree">¶</a></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/api.html">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/api.html#commands">Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/api.html#responses">Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/api.html#connections">Connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/api.html#asyncio-client">Asyncio Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/api.html#blocking-client">Blocking Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/api.html#hdf-writing">HDF Writing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/changelog.html">Change Log</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/changelog.html#unreleased">Unreleased</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/changelog.html#id1">0.1 - 2020-07-09</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/contributing.html#running-the-tests">Running the tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/contributing.html#code-styling">Code Styling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/contributing.html#documentation">Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tutorials/installation.html" class="btn btn-neutral float-right" title="Installation Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Diamond Light Source
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
