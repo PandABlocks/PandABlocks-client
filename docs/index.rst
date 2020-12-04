@@ -8,6 +8,8 @@ How the documentation is structured
 :ref:`tutorials`
 ~~~~~~~~~~~~~~~~
 
+EXAMPLE CHANGE IN MASTER
+
 Tutorials for installation, library and commandline usage. New users start here.
 
 .. rst-class:: columns
