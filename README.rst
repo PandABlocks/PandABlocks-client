@@ -5,8 +5,6 @@ PandABlocks Python Client
 
 A Python client to control and data ports of the PandABlocks TCP server.
 
-**(this is the first version to be published on gh-pages)**
-
 ============== ==============================================================
 PyPI           ``pip install pandablocks``
 Source code    https://github.com/PandABlocks/PandABlocks-client
