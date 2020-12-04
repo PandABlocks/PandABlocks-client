@@ -9,7 +9,7 @@
     {% if versions %}
     <p class="caption"><span class="caption-text">Versions</span></p>
     <ul>
-    {%- for item in versions %}
+    {%- for item in versions|reverse %}
     <li><a href="{{ item.url }}">{{ item.name }}</a></li>
     {%- endfor %}
     </ul>
