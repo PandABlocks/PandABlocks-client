@@ -239,7 +239,7 @@
         "sphinx-multiversion": {
             "editable": true,
             "git": "https://github.com/dls-controls/sphinx-multiversion.git",
-            "ref": "31a1f1f9d26dfa0a9013ed2e12d95c424393d112"
+            "ref": "0d8fe732ac0cadef1433e39f7675a20949925898"
         },
         "sphinxcontrib-applehelp": {
             "hashes": [
@@ -891,7 +891,7 @@
         "sphinx-multiversion": {
             "editable": true,
             "git": "https://github.com/dls-controls/sphinx-multiversion.git",
-            "ref": "31a1f1f9d26dfa0a9013ed2e12d95c424393d112"
+            "ref": "0d8fe732ac0cadef1433e39f7675a20949925898"
         },
         "sphinx-rtd-theme": {
             "hashes": [

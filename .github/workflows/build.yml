@@ -74,10 +74,9 @@ jobs:
           pipenv install --dev
 
       - name: Build Docs
-        # build docs for this commit's tag or branch only but include links
-        # to all other tags and master
+        # build docs for this commit only but include links to all other tags and master
         run: |
-          pipenv run sphinx-multiversion docs build/html --only ${GITHUB_REF##*/}
+          pipenv run sphinx-multiversion docs build/html --only ${GITHUB_REF##*/} --log-level info
           cp docs/index.html build/html # a root redirect to master folder
 
       - name: Deploy Docs to Github Pages
