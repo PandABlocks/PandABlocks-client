@@ -82,6 +82,7 @@ jobs:
           cp docs/index.html build/html # a root redirect to master folder
 
       - name: Deploy Docs to Github Pages
+        if: ${{ github.event.issue.push }}
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
