@@ -79,7 +79,6 @@ jobs:
         # build docs for this commit only but include links to all historical tags
         run: |
           pipenv run sphinx-multiversion docs build/html --only ${GITHUB_REF##*/} --log-level info
-          cp docs/index.html build/html # a root redirect to master folder
 
       - name: Deploy Docs to Github Pages
         if: ${{ github.event.issue.push }}
