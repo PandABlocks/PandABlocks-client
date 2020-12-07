@@ -54,37 +54,3 @@ jobs:
           user: __token__
           password: ${{ secrets.pypi_token }}
           skip_existing: true
-
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Source
-        uses: actions/checkout@v2.3.1
-        with:
-          persist-credentials: false
-          # require all of history to see all tagged versions' docs
-          fetch-depth: 0
-
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
-
-      - name: Install Dependencies
-        run: |
-          pip install pipenv
-          pipenv install --dev
-
-      - name: Build Docs
-        # build docs for this commit only but include links to all historical tags
-        run: |
-          pipenv run sphinx-multiversion docs build/html --only ${GITHUB_REF##*/} --log-level info
-          cp docs/index.html build/html # a root redirect to master folder
-
-      - name: Deploy Docs to Github Pages
-        uses: JamesIves/github-pages-deploy-action@3.7.1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages
-          FOLDER: build/html
-          CLEAN: false
