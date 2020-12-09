@@ -48,15 +48,15 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: gh-pages
-          path: gh-pages
+          path: build/gh-pages
 
       - name: Make Coverage Badge
-        run : .github/workflows/coverage.sh tests.out gh-pages/coverage.svg
+        run : .github/workflows/coverage.sh tests.out build/gh-pages/coverage.svg
 
       - name: Build Docs
         if: matrix.python-version == '3.7'
         run: |
-          pipenv run sphinx-multiversion docs gh-pages --log-level info
+          pipenv run sphinx-multiversion docs build/gh-pages --log-level info
 
       - name: Push gh-pages
         # TODO temp change for testing
@@ -67,7 +67,7 @@ jobs:
           message: "updating built documentation"
           branch: gh-pages
           add: ". --force"
-          cwd: "./gh-pages/"
+          cwd: "./build/gh-pages/"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
