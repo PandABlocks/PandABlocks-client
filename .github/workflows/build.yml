@@ -59,7 +59,9 @@ jobs:
           pipenv run sphinx-multiversion docs gh-pages --only ${GITHUB_REF##*/} --log-level info
 
       - name: Push gh-pages
-        if: github.event_name == 'push' && github.base_ref == 'master' && matrix.python-version == '3.7'
+        # TODO temp change for testing
+        # if: github.event_name == 'push' && github.base_ref == 'master' && matrix.python-version == '3.7'
+        if: github.base_ref == 'master' && matrix.python-version == '3.7'
         uses: EndBug/add-and-commit@v5
         with:
           message: "updating built documentation"
