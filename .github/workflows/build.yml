@@ -56,7 +56,7 @@ jobs:
       - name: Build Docs
         if: matrix.python-version == '3.7'
         run: |
-          pipenv run sphinx-multiversion docs gh-pages --only ${GITHUB_REF##*/} --log-level info
+          pipenv run sphinx-multiversion docs gh-pages --log-level info
 
       - name: Push gh-pages
         # TODO temp change for testing
