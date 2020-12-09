@@ -15,6 +15,10 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          # require all of history to see all tagged versions' docs
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -25,27 +29,47 @@ jobs:
         run: |
           env
           pip install pipenv
-          pip install coveralls
           pipenv install --dev
+          pipenv graph
 
       - name: Create Wheel
+        # for reproducible builds set SOURCE_DATE_EPOCH to the date of the last commit
+        # See here for more info : https://reproducible-builds.org/
+        # Also use the same version of wheel as inside DLS
         run: |
-          pip install wheel
-          pipenv graph
-          export PIPENV_V=$(pipenv --venv)
-          ls -al ${PIPENV_V}/lib/python${{ matrix.python-version }}/site-packages
-          ls -al ${PIPENV_V}/bin
-          python setup.py bdist_wheel
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+          pip install "wheel==0.33.1"
+          python setup.py sdist bdist_wheel
 
       - name: Run Tests
-        run : pipenv run tests
+        run : pipenv run tests | tee tests.out
 
-      - name: Coveralls
+      - name: Checkout gh-pages
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+          path: build/gh-pages
+
+      - name: Make Coverage Badge
+        run : .github/workflows/coverage.sh tests.out build/gh-pages/coverage.svg
+
+      - name: Build Docs
+        if: matrix.python-version == '3.7'
+        run: |
+          pipenv run sphinx-multiversion docs build/gh-pages --log-level info
+
+      - name: Push gh-pages
+        # TODO temp change for testing
+        # if: github.event_name == 'push' && github.base_ref == 'master' && matrix.python-version == '3.7'
+        if: github.base_ref == 'master' && matrix.python-version == '3.7'
+        uses: EndBug/add-and-commit@v5
+        with:
+          message: "updating built documentation"
+          branch: gh-pages
+          add: ". --force"
+          cwd: "./build/gh-pages/"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pip install coveralls
-          coveralls
 
       - name: Publish to PyPI
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && matrix.python-version == '3.7'
