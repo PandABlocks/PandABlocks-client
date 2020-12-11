@@ -11,6 +11,8 @@ Source code    https://github.com/PandABlocks/PandABlocks-client
 Documentation  https://pandablocks.github.io/PandABlocks-client/master/index.html
 ============== ==============================================================
 
+TODO remove this test line
+
 Command line tool features an interactive console, load/save control, and HDF5
 writing:
 
