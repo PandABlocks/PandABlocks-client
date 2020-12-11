@@ -35,4 +35,4 @@ numpy = ">=1.18"
 [scripts]
 # Put coverage here so we don't interfere with debugging in the IDE
 tests = "python -m pytest --cov-fail-under=90 --cov=pandablocks --cov-report term"
-docs = "sphinx-build -E -b html docs build/html"
+docs = "sphinx-build -E -bhtml docs build/html"
