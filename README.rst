@@ -11,7 +11,7 @@ Source code    https://github.com/PandABlocks/PandABlocks-client
 Documentation  https://pandablocks.github.io/PandABlocks-client/master/index.html
 ============== ==============================================================
 
-test entry in documentation for gp-pages testing (TODO - remove this line)
+TODO - remove this line: test entry in documentation for gp-pages testing.
 
 Command line tool features an interactive console, load/save control, and HDF5
 writing:
