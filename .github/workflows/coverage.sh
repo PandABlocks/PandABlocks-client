@@ -16,4 +16,5 @@ else
     COLOR=orange
 fi
 
+mkdir -p $(dirname ${2})
 curl "https://img.shields.io/badge/coverage-$total%25-$COLOR" > ${2}
