@@ -17,4 +17,5 @@ else
 fi
 
 mkdir -p $(dirname ${2})
+echo "generating coverage badge in $(dirname ${2})"
 curl "https://img.shields.io/badge/coverage-$total%25-$COLOR" > ${2}
