@@ -28,7 +28,7 @@ jobs:
         run: |
           env
           pip install pipenv
-          pipenv install --dev
+          pipenv install --dev --deploy
           pipenv graph
 
       - name: Create Sdist and Wheel
@@ -81,8 +81,7 @@ jobs:
         # Use the args we normally pass to sphinx-build, but run sphinx-multiversion
         run: |
           mv $(pipenv --venv)/bin/sphinx-multiversion $(pipenv --venv)/bin/sphinx-build
-          pipenv run docs
-          cp .github/pages/index.html build/html
+          pipenv run docs && cp .github/pages/index.html build/html
 
       - name: Publish Docs to gh-pages
         # Only once from master or a tag
