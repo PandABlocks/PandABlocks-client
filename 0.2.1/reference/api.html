@@ -1,0 +1,993 @@
+<!-- Include Index in the sidebar -->
+<!-- https://stackoverflow.com/a/37843854 -->
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>API &mdash; PandABlocks-client 0.2.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+    <link rel="shortcut icon" href="../_static/PandA-logo.ico"/>
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Change Log" href="changelog.html" />
+    <link rel="prev" title="How fast can we write HDF files?" href="../explanations/performance.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: black" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> PandABlocks-client
+          
+
+          
+            
+            <img src="../_static/PandA-logo-for-black-background.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+    
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/installation.html">Installation Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/control.html">Interactive Control Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
+</ul>
+<p class="caption"><span class="caption-text">How-to Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../how-to/library-hdf.html">How to use the library to capture HDF files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-to/poll-changes.html">How to efficiently poll for changes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Explanations</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../explanations/sans-io.html">Why write a Sans-IO library?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../explanations/performance.html">How fast can we write HDF files?</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#commands">Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#responses">Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#connections">Connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#asyncio-client">Asyncio Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#blocking-client">Blocking Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hdf-writing">HDF Writing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+            
+          
+    <a href="../genindex.html">Index</a>
+    
+    <p class="caption"><span class="caption-text">Versions</span></p>
+    <ul>
+    <li><a href="../../master/reference/api.html">master</a></li>
+    <li><a href="api.html">0.2.1</a></li>
+    <li><a href="../../0.2.0/reference/api.html">0.2.0</a></li>
+    </ul>
+    
+  
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PandABlocks-client</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/reference/api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="api">
+<span id="id1"></span><h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<p>The top level pandablocks module contains a number of packages that can be used
+from code:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#module-pandablocks.commands" title="pandablocks.commands"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">pandablocks.commands</span></code></a>: The control commands that can be sent to a PandA</p></li>
+<li><p><a class="reference internal" href="#module-pandablocks.responses" title="pandablocks.responses"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">pandablocks.responses</span></code></a>: The control and data responses that will be received</p></li>
+<li><p><a class="reference internal" href="#module-pandablocks.connections" title="pandablocks.connections"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">pandablocks.connections</span></code></a>: Control and data connections that implements the parsing logic</p></li>
+<li><p><a class="reference internal" href="#module-pandablocks.asyncio" title="pandablocks.asyncio"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">pandablocks.asyncio</span></code></a>: An asyncio client that uses the control and data connections</p></li>
+<li><p><a class="reference internal" href="#module-pandablocks.blocking" title="pandablocks.blocking"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">pandablocks.blocking</span></code></a>: A blocking client that uses the control and data connections</p></li>
+<li><p><a class="reference internal" href="#module-pandablocks.hdf" title="pandablocks.hdf"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">pandablocks.hdf</span></code></a>: Some helpers for efficiently writing data responses to disk</p></li>
+</ul>
+<span class="target" id="module-pandablocks.commands"></span><div class="section" id="commands">
+<h2>Commands<a class="headerlink" href="#commands" title="Permalink to this headline">¶</a></h2>
+<p>There is a <a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Command</span></code></a> subclass for every sort of command that can be sent to
+the <a class="reference internal" href="#pandablocks.connections.ControlConnection" title="pandablocks.connections.ControlConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ControlConnection</span></code></a> of a PandA. Many common actions can be accomplished
+with a simple <a class="reference internal" href="#pandablocks.commands.Get" title="pandablocks.commands.Get"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Get</span></code></a> or <a class="reference internal" href="#pandablocks.commands.Put" title="pandablocks.commands.Put"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Put</span></code></a>, but some convenience commands like
+<a class="reference internal" href="#pandablocks.commands.GetBlockNumbers" title="pandablocks.commands.GetBlockNumbers"><code class="xref any py py-class docutils literal notranslate"><span class="pre">GetBlockNumbers</span></code></a>, <a class="reference internal" href="#pandablocks.commands.GetFields" title="pandablocks.commands.GetFields"><code class="xref any py py-class docutils literal notranslate"><span class="pre">GetFields</span></code></a>, etc. are provided that parse output into
+specific classes.</p>
+<dl class="py exception">
+<dt id="pandablocks.commands.CommandException">
+<em class="property">exception </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">CommandException</code><a class="reference internal" href="../_modules/pandablocks/commands.html#CommandException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.CommandException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised if a <a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Command</span></code></a> receives a mal-formed response</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.Command">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">Command</code><a class="reference internal" href="../_modules/pandablocks/commands.html#Command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract baseclass for all <a class="reference internal" href="#pandablocks.connections.ControlConnection" title="pandablocks.connections.ControlConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ControlConnection</span></code></a> commands to be inherited from</p>
+<dl class="py method">
+<dt id="pandablocks.commands.Command.lines">
+<code class="sig-name descname">lines</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.lines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.lines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lines that should be sent to the PandA, with no newlines in them</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.commands.Command.response">
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="appendix.html#T" title="T">T</a><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a response from the lines received from the PandA</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.commands.Command.ok_if">
+<code class="sig-name descname">ok_if</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ok</span></em>, <em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.ok_if"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.ok_if" title="Permalink to this definition">¶</a></dt>
+<dd><p>If not ok then raise a suitable <a class="reference internal" href="#pandablocks.commands.CommandException" title="pandablocks.commands.CommandException"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">CommandException</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.Get">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">Get</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">field</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the value of a field or star command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>field</strong> – The field, attribute, or star command to get</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Get</span><span class="p">(</span><span class="s2">&quot;PCAP.ACTIVE&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="sa">b</span><span class="s2">&quot;1&quot;</span>
+<span class="n">Get</span><span class="p">(</span><span class="s2">&quot;SEQ1.TABLE&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="sa">b</span><span class="s2">&quot;1048576&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;1000&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;1000&quot;</span><span class="p">]</span>
+<span class="n">Get</span><span class="p">(</span><span class="s2">&quot;*IDN&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="sa">b</span><span class="s2">&quot;PandA 1.1...&quot;</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.commands.Get.response">
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Get.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Get.response" title="Permalink to this definition">¶</a></dt>
+<dd><p>The value that was requested as a byte string. If it is multiline
+then it will be a list of byte strings</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.Put">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">Put</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">field</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">''</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Put"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Put" title="Permalink to this definition">¶</a></dt>
+<dd><p>Put the value of a field.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field</strong> – The field, attribute, or star command to put</p></li>
+<li><p><strong>value</strong> – The value, possibly multiline, to put</p></li>
+</ul>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Put</span><span class="p">(</span><span class="s2">&quot;PCAP.TRIG&quot;</span><span class="p">,</span> <span class="s2">&quot;PULSE1.OUT&quot;</span><span class="p">)</span>
+<span class="n">Put</span><span class="p">(</span><span class="s2">&quot;SEQ1.TABLE&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;1048576&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1000&quot;</span><span class="p">,</span> <span class="s2">&quot;1000&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.Arm">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">Arm</code><a class="reference internal" href="../_modules/pandablocks/commands.html#Arm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Arm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arm PCAP for an acquisition by sending <code class="docutils literal notranslate"><span class="pre">*PCAP.ARM=</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.GetBlockNumbers">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">GetBlockNumbers</code><a class="reference internal" href="../_modules/pandablocks/commands.html#GetBlockNumbers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetBlockNumbers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the descriptions and field lists of the requested Blocks.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">GetBlockNumbers</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="p">{</span><span class="s2">&quot;LUT&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;PCAP&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.commands.GetBlockNumbers.response">
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#GetBlockNumbers.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetBlockNumbers.response" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name and number of each block type in a dictionary,
+alphabetically ordered</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.GetFields">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">GetFields</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">block</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/commands.html#GetFields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetFields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the fields of a block, returning a <a class="reference internal" href="#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldType</span></code></a> for each one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>block</strong> – The name of the block type</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">GetFields</span><span class="p">(</span><span class="s2">&quot;LUT&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">{</span><span class="s2">&quot;INPA&quot;</span><span class="p">:</span> <span class="n">FieldType</span><span class="p">(</span><span class="s2">&quot;bit_mux&quot;</span><span class="p">),</span> <span class="o">...</span><span class="p">}</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.commands.GetFields.response">
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference internal" href="#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType">pandablocks.responses.FieldType</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#GetFields.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetFields.response" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name and <a class="reference internal" href="#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldType</span></code></a> of each field in a dictionary, ordered
+to match the definition order in the PandA</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.GetPcapBitsLabels">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">GetPcapBitsLabels</code><a class="reference internal" href="../_modules/pandablocks/commands.html#GetPcapBitsLabels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetPcapBitsLabels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the labels for the bit fields in PCAP.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">GetPcapBitsLabels</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">PcapBitsLabels</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.GetChanges">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">GetChanges</code><a class="reference internal" href="../_modules/pandablocks/commands.html#GetChanges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetChanges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the changes since the last time this was called.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">GetChanges</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Changes</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.commands.Raw">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">Raw</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inp</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Raw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Raw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a raw command</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>inp</strong> – The input lines to send</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Raw</span><span class="p">([</span><span class="s2">&quot;PCAP.ACTIVE?&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="s2">&quot;OK =1&quot;</span><span class="p">]</span>
+<span class="n">Raw</span><span class="p">([</span><span class="s2">&quot;SEQ1.TABLE&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="s2">&quot;OK&quot;</span><span class="p">]</span>
+<span class="n">Raw</span><span class="p">([</span><span class="s2">&quot;SEQ1.TABLE?&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="s2">&quot;!1&quot;</span><span class="p">,</span> <span class="s2">&quot;!1&quot;</span><span class="p">,</span> <span class="s2">&quot;!0&quot;</span><span class="p">,</span> <span class="s2">&quot;!0&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.commands.Raw.response">
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Raw.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Raw.response" title="Permalink to this definition">¶</a></dt>
+<dd><p>The lines that PandA responded, including the multiline markup</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-pandablocks.responses"></span><div class="section" id="responses">
+<h2>Responses<a class="headerlink" href="#responses" title="Permalink to this headline">¶</a></h2>
+<p>Classes used in responses from both the <a class="reference internal" href="#pandablocks.connections.ControlConnection" title="pandablocks.connections.ControlConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ControlConnection</span></code></a> and
+<a class="reference internal" href="#pandablocks.connections.DataConnection" title="pandablocks.connections.DataConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">DataConnection</span></code></a> of a PandA live in this package.</p>
+<dl class="py class">
+<dt id="pandablocks.responses.FieldType">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">FieldType</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">subtype</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#FieldType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.FieldType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field type and subtype as exposed by TCP server:
+<a class="reference external" href="https://pandablocks-server.readthedocs.io/en/latest/fields.html#field-types">https://pandablocks-server.readthedocs.io/en/latest/fields.html#field-types</a></p>
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldType.type">
+<code class="sig-name descname">type</code><a class="headerlink" href="#pandablocks.responses.FieldType.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field type, like “param”, “bit_out”, “pos_mux”, etc.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldType.subtype">
+<code class="sig-name descname">subtype</code><a class="headerlink" href="#pandablocks.responses.FieldType.subtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Some types have subtype, like “uint”, “scalar”, “lut”, etc.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.responses.EndReason">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">EndReason</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#EndReason"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.EndReason" title="Permalink to this definition">¶</a></dt>
+<dd><p>The reason that a PCAP acquisition completed</p>
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndReason.OK">
+<code class="sig-name descname">OK</code><em class="property"> = 'Ok'</em><a class="headerlink" href="#pandablocks.responses.EndReason.OK" title="Permalink to this definition">¶</a></dt>
+<dd><p>Experiment completed by falling edge of <code class="docutils literal notranslate"><span class="pre">PCAP.ENABLE`</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndReason.DISARMED">
+<code class="sig-name descname">DISARMED</code><em class="property"> = 'Disarmed'</em><a class="headerlink" href="#pandablocks.responses.EndReason.DISARMED" title="Permalink to this definition">¶</a></dt>
+<dd><p>Experiment manually completed by <code class="docutils literal notranslate"><span class="pre">*PCAP.DISARM=</span></code> command</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndReason.EARLY_DISCONNECT">
+<code class="sig-name descname">EARLY_DISCONNECT</code><em class="property"> = 'Early disconnect'</em><a class="headerlink" href="#pandablocks.responses.EndReason.EARLY_DISCONNECT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Client disconnect detected</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndReason.DATA_OVERRUN">
+<code class="sig-name descname">DATA_OVERRUN</code><em class="property"> = 'Data overrun'</em><a class="headerlink" href="#pandablocks.responses.EndReason.DATA_OVERRUN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Client not taking data quickly or network congestion, internal buffer overflow</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndReason.FRAMING_ERROR">
+<code class="sig-name descname">FRAMING_ERROR</code><em class="property"> = 'Framing error'</em><a class="headerlink" href="#pandablocks.responses.EndReason.FRAMING_ERROR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Triggers too fast for configured data capture</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndReason.DRIVER_DATA_OVERRUN">
+<code class="sig-name descname">DRIVER_DATA_OVERRUN</code><em class="property"> = 'Driver data overrun'</em><a class="headerlink" href="#pandablocks.responses.EndReason.DRIVER_DATA_OVERRUN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Probable CPU overload on PandA, should not occur</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndReason.DMA_DATA_ERROR">
+<code class="sig-name descname">DMA_DATA_ERROR</code><em class="property"> = 'DMA data error'</em><a class="headerlink" href="#pandablocks.responses.EndReason.DMA_DATA_ERROR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data capture too fast for memory bandwidth</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.responses.FieldCapture">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">FieldCapture</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.19)">numpy.dtype</a></span></em>, <em class="sig-param"><span class="n">capture</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">scale</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">offset</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">units</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#FieldCapture"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.FieldCapture" title="Permalink to this definition">¶</a></dt>
+<dd><p>Information about a field that is being captured</p>
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldCapture.name">
+<code class="sig-name descname">name</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of captured field</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldCapture.type">
+<code class="sig-name descname">type</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Numpy data type of the field as transmitted</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldCapture.capture">
+<code class="sig-name descname">capture</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.capture" title="Permalink to this definition">¶</a></dt>
+<dd><p>Value of CAPTURE field used to enable this field</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldCapture.scale">
+<code class="sig-name descname">scale</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scaling factor, default 1.0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldCapture.offset">
+<code class="sig-name descname">offset</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Offset, default 0.0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.FieldCapture.units">
+<code class="sig-name descname">units</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Units string, default “”</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.responses.Data">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">Data</code><a class="reference internal" href="../_modules/pandablocks/responses.html#Data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.Data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Baseclass for all responses yielded by a <a class="reference internal" href="#pandablocks.connections.DataConnection" title="pandablocks.connections.DataConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">DataConnection</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.responses.ReadyData">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">ReadyData</code><a class="reference internal" href="../_modules/pandablocks/responses.html#ReadyData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.ReadyData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yielded once when the connection is established and ready to take data</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.responses.StartData">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">StartData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fields</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.FieldCapture" title="pandablocks.responses.FieldCapture">pandablocks.responses.FieldCapture</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">missed</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span></em>, <em class="sig-param"><span class="n">process</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">format</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">sample_bytes</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#StartData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.StartData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yielded when a new PCAP acquisition starts.</p>
+<dl class="py attribute">
+<dt id="pandablocks.responses.StartData.fields">
+<code class="sig-name descname">fields</code><a class="headerlink" href="#pandablocks.responses.StartData.fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Information about each captured field as a <a class="reference internal" href="#pandablocks.responses.FieldCapture" title="pandablocks.responses.FieldCapture"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldCapture</span></code></a> object</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.StartData.missed">
+<code class="sig-name descname">missed</code><a class="headerlink" href="#pandablocks.responses.StartData.missed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of samples missed by late data port connection</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.StartData.process">
+<code class="sig-name descname">process</code><a class="headerlink" href="#pandablocks.responses.StartData.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data processing option, only “Scaled” or “Raw” are requested</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.StartData.format">
+<code class="sig-name descname">format</code><a class="headerlink" href="#pandablocks.responses.StartData.format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data delivery formatting, only “Framed” is requested</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.StartData.sample_bytes">
+<code class="sig-name descname">sample_bytes</code><a class="headerlink" href="#pandablocks.responses.StartData.sample_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of bytes in one sample</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.responses.FrameData">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">FrameData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)">numpy.ndarray</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#FrameData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.FrameData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yielded when a new data frame is flushed.</p>
+<dl class="py attribute">
+<dt id="pandablocks.responses.FrameData.data">
+<code class="sig-name descname">data</code><a class="headerlink" href="#pandablocks.responses.FrameData.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>A numpy <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html#module-numpy.doc.structured_arrays" title="(in NumPy v1.19)"><code class="xref any docutils literal notranslate"><span class="pre">Structured</span> <span class="pre">Array</span></code></a></p>
+</dd></dl>
+
+<p>Data is structured into complete columns. Each column name is
+<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.&lt;capture&gt;</span></code> from the corresponding <a class="reference internal" href="#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldType</span></code></a>. Data
+can be accessed with these column names. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Table view with 2 captured fields</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">fdata</span><span class="o">.</span><span class="n">data</span>
+<span class="n">array</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+       <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span>
+       <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">12</span><span class="p">)],</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;COUNTER1.OUT.Value&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;f8&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;COUNTER2.OUT.Value&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;f8&#39;</span><span class="p">)])</span>
+<span class="c1"># Row view</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">fdata</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="c1"># Column names</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">fdata</span><span class="o">.</span><span class="n">column_names</span>
+<span class="p">(</span><span class="s1">&#39;COUNTER1.OUT.Value&#39;</span><span class="p">,</span> <span class="s1">&#39;COUNTER2.OUT.Value&#39;</span><span class="p">)</span>
+<span class="c1"># Column view</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">fdata</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;COUNTER1.OUT.Value&#39;</span><span class="p">]</span>
+<span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.responses.FrameData.column_names">
+<em class="property">property </em><code class="sig-name descname">column_names</code><a class="headerlink" href="#pandablocks.responses.FrameData.column_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all the column names</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.responses.EndData">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">EndData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">samples</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span></em>, <em class="sig-param"><span class="n">reason</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.responses.EndReason" title="pandablocks.responses.EndReason">pandablocks.responses.EndReason</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#EndData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.EndData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yielded when a PCAP acquisition ends.</p>
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndData.samples">
+<code class="sig-name descname">samples</code><a class="headerlink" href="#pandablocks.responses.EndData.samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total number of samples (rows) that were yielded</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pandablocks.responses.EndData.reason">
+<code class="sig-name descname">reason</code><a class="headerlink" href="#pandablocks.responses.EndData.reason" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#pandablocks.responses.EndReason" title="pandablocks.responses.EndReason"><code class="xref any py py-class docutils literal notranslate"><span class="pre">EndReason</span></code></a> for the end of acquisition</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-pandablocks.connections"></span><div class="section" id="connections">
+<h2>Connections<a class="headerlink" href="#connections" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="../explanations/sans-io.html#sans-io"><span class="std std-ref">Sans-IO</span></a> connections for both the Control and Data ports
+of PandA TCP server.</p>
+<dl class="py exception">
+<dt id="pandablocks.connections.NeedMoreData">
+<em class="property">exception </em><code class="sig-prename descclassname">pandablocks.connections.</code><code class="sig-name descname">NeedMoreData</code><a class="reference internal" href="../_modules/pandablocks/connections.html#NeedMoreData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.NeedMoreData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised if the <a class="reference internal" href="#pandablocks.connections.Buffer" title="pandablocks.connections.Buffer"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Buffer</span></code></a> isn’t full enough to return the requested bytes</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.connections.Buffer">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.connections.</code><code class="sig-name descname">Buffer</code><a class="reference internal" href="../_modules/pandablocks/connections.html#Buffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.Buffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Byte storage that provides line reader and bytes reader interfaces.
+For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">buf</span> <span class="o">=</span> <span class="n">Buffer</span><span class="p">()</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">bytes_from_server</span>
+<span class="n">line</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">read_line</span><span class="p">()</span>  <span class="c1"># raises NeedMoreData if no line</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">buf</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="nb">bytes</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>  <span class="c1"># raises NeedMoreData if not enough bytes</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.connections.Buffer.read_bytes">
+<code class="sig-name descname">read_bytes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.9)">bytearray</a><a class="reference internal" href="../_modules/pandablocks/connections.html#Buffer.read_bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.Buffer.read_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and pop num bytes from the beginning of the buffer, raising
+<a class="reference internal" href="#pandablocks.connections.NeedMoreData" title="pandablocks.connections.NeedMoreData"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreData</span></code></a> if the buffer isn’t full enough to do so</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.connections.Buffer.peek_bytes">
+<code class="sig-name descname">peek_bytes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.9)">bytearray</a><a class="reference internal" href="../_modules/pandablocks/connections.html#Buffer.peek_bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.Buffer.peek_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read but do not pop num bytes from the beginning of the buffer,
+raising <a class="reference internal" href="#pandablocks.connections.NeedMoreData" title="pandablocks.connections.NeedMoreData"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreData</span></code></a> if the buffer isn’t full enough to do so</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.connections.Buffer.read_line">
+<code class="sig-name descname">read_line</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/connections.html#Buffer.read_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.Buffer.read_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and pop a newline terminated line (without terminator)
+from the beginning of the buffer, raising <a class="reference internal" href="#pandablocks.connections.NeedMoreData" title="pandablocks.connections.NeedMoreData"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreData</span></code></a> if the
+buffer isn’t full enough to do so</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.connections.ControlConnection">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.connections.</code><code class="sig-name descname">ControlConnection</code><a class="reference internal" href="../_modules/pandablocks/connections.html#ControlConnection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.ControlConnection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sans-IO connection to control port of PandA TCP server, supporting a
+Command based interface. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cc</span> <span class="o">=</span> <span class="n">ControlConnection</span><span class="p">()</span>
+<span class="c1"># Connection says what bytes should be sent to execute command</span>
+<span class="n">to_send</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+<span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="c1"># Repeatedly process bytes from the server looking for responses</span>
+    <span class="n">from_server</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">cc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">from_server</span><span class="p">):</span>
+        <span class="n">do_something_with</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.connections.ControlConnection.receive_bytes">
+<code class="sig-name descname">receive_bytes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">received</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a></span></em><span class="sig-paren">)</span> &#x2192; Iterator<span class="p">[</span>Tuple<span class="p">[</span><a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command">pandablocks.commands.Command</a><span class="p">, </span>Any<span class="p">]</span><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/connections.html#ControlConnection.receive_bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.ControlConnection.receive_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tell the connection that you have received some bytes off the network.
+Parse these into high level responses which are yielded back with the
+command that triggered this response</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.connections.ControlConnection.send">
+<code class="sig-name descname">send</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">command</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command">pandablocks.commands.Command</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><a class="reference internal" href="../_modules/pandablocks/connections.html#ControlConnection.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.ControlConnection.send" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tell the connection you want to send an event, and it will return
+some bytes to send down the network</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.connections.DataConnection">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.connections.</code><code class="sig-name descname">DataConnection</code><a class="reference internal" href="../_modules/pandablocks/connections.html#DataConnection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.DataConnection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sans-IO connection to data port of PandA TCP server, supporting an
+flushable iterator interface. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dc</span> <span class="o">=</span> <span class="n">ControlConnection</span><span class="p">()</span>
+<span class="c1"># Single connection string to send</span>
+<span class="n">to_send</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="c1"># Repeatedly process bytes from the server looking for data</span>
+    <span class="n">from_server</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">from_server</span><span class="p">):</span>
+        <span class="n">do_something_with</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.connections.DataConnection.receive_bytes">
+<code class="sig-name descname">receive_bytes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">received</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a></span></em>, <em class="sig-param"><span class="n">flush_every_frame</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span> &#x2192; Iterator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data">pandablocks.responses.Data</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/connections.html#DataConnection.receive_bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.DataConnection.receive_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tell the connection that you have received some bytes off the network.
+Parse these into Data structures and yield them back.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>received</strong> – the bytes you received from the socket</p></li>
+<li><p><strong>flush_every_frame</strong> – Whether to flush <a class="reference internal" href="#pandablocks.responses.FrameData" title="pandablocks.responses.FrameData"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FrameData</span></code></a> as soon as received.
+If False then they will only be sent if <a class="reference internal" href="#pandablocks.connections.DataConnection.flush" title="pandablocks.connections.DataConnection.flush"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">flush</span></code></a> is called or
+end of acquisition reached</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.connections.DataConnection.flush">
+<code class="sig-name descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Iterator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.FrameData" title="pandablocks.responses.FrameData">pandablocks.responses.FrameData</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/connections.html#DataConnection.flush"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.DataConnection.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>If there is a partial data frame, pop and yield it</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.connections.DataConnection.connect">
+<code class="sig-name descname">connect</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scaled</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><a class="reference internal" href="../_modules/pandablocks/connections.html#DataConnection.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.connections.DataConnection.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the bytes that need to be sent on connection</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-pandablocks.asyncio"></span><div class="section" id="asyncio-client">
+<h2>Asyncio Client<a class="headerlink" href="#asyncio-client" title="Permalink to this headline">¶</a></h2>
+<p>This is an <a class="reference internal" href="#module-pandablocks.asyncio" title="pandablocks.asyncio"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code></a> wrapper to the <a class="reference internal" href="#pandablocks.connections.ControlConnection" title="pandablocks.connections.ControlConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ControlConnection</span></code></a> and <a class="reference internal" href="#pandablocks.connections.DataConnection" title="pandablocks.connections.DataConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">DataConnection</span></code></a>
+objects, allowing async calls to <code class="docutils literal notranslate"><span class="pre">send(command)</span></code> and iterate over
+<code class="docutils literal notranslate"><span class="pre">data()</span></code>.</p>
+<dl class="py class">
+<dt id="pandablocks.asyncio.AsyncioClient">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.asyncio.</code><code class="sig-name descname">AsyncioClient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/asyncio.html#AsyncioClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Asyncio implementation of a PandABlocks client.
+For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">AsyncioClient</span><span class="p">(</span><span class="s2">&quot;hostname-or-ip&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="c1"># Control and data ports are now connected</span>
+    <span class="n">resp1</span><span class="p">,</span> <span class="n">resp2</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">cmd1</span><span class="p">),</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">cmd2</span><span class="p">))</span>
+    <span class="n">resp3</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">cmd3</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">handle</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="c1"># Control and data ports are now disconnected</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.asyncio.AsyncioClient.connect">
+<em class="property">async </em><code class="sig-name descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/asyncio.html#AsyncioClient.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to the control and data ports, and be ready to handle commands</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.asyncio.AsyncioClient.close">
+<em class="property">async </em><code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/asyncio.html#AsyncioClient.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the control and data connections, and wait for completion</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.asyncio.AsyncioClient.send">
+<em class="property">async </em><code class="sig-name descname">send</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">command</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command">pandablocks.commands.Command</a><span class="p">[</span><a class="reference internal" href="appendix.html#T" title="T">T</a><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="appendix.html#T" title="T">T</a><a class="reference internal" href="../_modules/pandablocks/asyncio.html#AsyncioClient.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.send" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a command to control port of the PandA, returning its response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>command</strong> – The <a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Command</span></code></a> to send</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.asyncio.AsyncioClient.data">
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scaled</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">flush_period</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">frame_timeout</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; AsyncGenerator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data">pandablocks.responses.Data</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/asyncio.html#AsyncioClient.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to data port and yield data frames</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scaled</strong> – Whether to scale and average data frames, reduces throughput</p></li>
+<li><p><strong>flush_period</strong> – How often to flush partial data frames, None is on every
+chunk of data from the server</p></li>
+<li><p><strong>frame_timeout</strong> – If no data is received for this amount of time, raise
+<a class="reference external" href="https://docs.python.org/3/library/asyncio-exceptions.html#asyncio.TimeoutError" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">asyncio.TimeoutError</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-pandablocks.blocking"></span><div class="section" id="blocking-client">
+<h2>Blocking Client<a class="headerlink" href="#blocking-client" title="Permalink to this headline">¶</a></h2>
+<p>This is a blocking wrapper to the <a class="reference internal" href="#pandablocks.connections.ControlConnection" title="pandablocks.connections.ControlConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ControlConnection</span></code></a> and <a class="reference internal" href="#pandablocks.connections.DataConnection" title="pandablocks.connections.DataConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">DataConnection</span></code></a>
+objects, allowing blocking calls to <code class="docutils literal notranslate"><span class="pre">send(commands)</span></code> and iterate over
+<code class="docutils literal notranslate"><span class="pre">data()</span></code>.</p>
+<dl class="py class">
+<dt id="pandablocks.blocking.BlockingClient">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.blocking.</code><code class="sig-name descname">BlockingClient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/blocking.html#BlockingClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.blocking.BlockingClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Blocking implementation of a PandABlocks client.
+For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">BlockingClient</span><span class="p">(</span><span class="s2">&quot;hostname-or-ip&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="c1"># Control and data ports are now connected</span>
+    <span class="n">resp1</span><span class="p">,</span> <span class="n">resp2</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">([</span><span class="n">cmd1</span><span class="p">,</span> <span class="n">cmd2</span><span class="p">])</span>
+    <span class="n">resp3</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">cmd3</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">data</span><span class="p">():</span>
+        <span class="n">handle</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="c1"># Control and data ports are now disconnected</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="pandablocks.blocking.BlockingClient.connect">
+<code class="sig-name descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/blocking.html#BlockingClient.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.blocking.BlockingClient.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to the control and data ports, and be ready to handle commands</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.blocking.BlockingClient.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/blocking.html#BlockingClient.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.blocking.BlockingClient.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the control and data connections, and wait for completion</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.blocking.BlockingClient.send">
+<code class="sig-name descname">send</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">commands</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command">pandablocks.commands.Command</a><span class="p">[</span><a class="reference internal" href="appendix.html#T" title="T">T</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">timeout</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span> <span class="o">=</span> <span class="default_value">'None'</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="appendix.html#T" title="T">T</a><a class="reference internal" href="../_modules/pandablocks/blocking.html#BlockingClient.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.blocking.BlockingClient.send" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="sig-name descname">send</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">commands</span><span class="p">:</span> <span class="n">Iterable<span class="p">[</span><a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command">pandablocks.commands.Command</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">timeout</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span> <span class="o">=</span> <span class="default_value">'None'</span></em><span class="sig-paren">)</span> &#x2192; List</dt>
+<dd><p>Send a command to control port of the PandA, returning its response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>commands</strong> – If single <a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Command</span></code></a>, return its response. If a list of commands
+return a list of reponses</p></li>
+<li><p><strong>timeout</strong> – If no reponse in this time, raise <a class="reference external" href="https://docs.python.org/3/library/socket.html#socket.timeout" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">socket.timeout</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.blocking.BlockingClient.data">
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scaled</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">frame_timeout</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Iterator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data">pandablocks.responses.Data</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/blocking.html#BlockingClient.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.blocking.BlockingClient.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to data port and yield data frames</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scaled</strong> – Whether to scale and average data frames, reduces throughput</p></li>
+<li><p><strong>frame_timeout</strong> – If no data is received for this amount of time, raise
+<a class="reference external" href="https://docs.python.org/3/library/socket.html#socket.timeout" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">socket.timeout</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-pandablocks.hdf"></span><div class="section" id="hdf-writing">
+<h2>HDF Writing<a class="headerlink" href="#hdf-writing" title="Permalink to this headline">¶</a></h2>
+<p>This package contains components needed to write PCAP data to and HDF file
+in the most efficient way. The oneshot <a class="reference internal" href="#pandablocks.hdf.write_hdf_files" title="pandablocks.hdf.write_hdf_files"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_hdf_files</span></code></a> is exposed in the
+commandline interface. It assembles a short <a class="reference internal" href="#pandablocks.hdf.Pipeline" title="pandablocks.hdf.Pipeline"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Pipeline</span></code></a> of:</p>
+<blockquote>
+<div><p><a class="reference internal" href="#pandablocks.asyncio.AsyncioClient" title="pandablocks.asyncio.AsyncioClient"><code class="xref any py py-class docutils literal notranslate"><span class="pre">AsyncioClient</span></code></a> -&gt; <a class="reference internal" href="#pandablocks.hdf.FrameProcessor" title="pandablocks.hdf.FrameProcessor"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FrameProcessor</span></code></a> -&gt; <a class="reference internal" href="#pandablocks.hdf.HDFWriter" title="pandablocks.hdf.HDFWriter"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HDFWriter</span></code></a></p>
+</div></blockquote>
+<p>The FrameProcessor and HDFWriter run in their own threads as most of the
+heavy lifting is done by <a class="reference external" href="https://numpy.org/">numpy</a> and <a class="reference external" href="https://www.h5py.org/">h5py</a>, so running in their own threads
+gives multi-CPU benefits without hitting the limit of the GIL.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../how-to/library-hdf.html#library-hdf"><span class="std std-ref">How to use the library to capture HDF files</span></a>, <a class="reference internal" href="../explanations/performance.html#performance"><span class="std std-ref">How fast can we write HDF files?</span></a></p>
+</div>
+<dl class="py class">
+<dt id="pandablocks.hdf.Pipeline">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.hdf.</code><code class="sig-name descname">Pipeline</code><a class="reference internal" href="../_modules/pandablocks/hdf.html#Pipeline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.hdf.Pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper class that runs a pipeline consumer process in its own thread</p>
+<dl class="py attribute">
+<dt id="pandablocks.hdf.Pipeline.what_to_do">
+<code class="sig-name descname">what_to_do</code><em class="property">: Dict<span class="p">[</span>Type<span class="p">, </span>Callable<span class="p">]</span></em><a class="headerlink" href="#pandablocks.hdf.Pipeline.what_to_do" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclasses should create this dictionary with handlers for each data
+type, returning transformed data that should be passed downstream</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.hdf.Pipeline.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/hdf.html#Pipeline.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.hdf.Pipeline.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop the processing after the current queue has been emptied</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.hdf.HDFWriter">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.hdf.</code><code class="sig-name descname">HDFWriter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scheme</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/hdf.html#HDFWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.hdf.HDFWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write an HDF file per data collection. Each field will be
+written in a 1D dataset <code class="docutils literal notranslate"><span class="pre">/&lt;field.name&gt;.&lt;field.capture&gt;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>scheme</strong> – Filepath scheme, where %d will be replaced with the
+acquisition number, starting with 1</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandablocks.hdf.FrameProcessor">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.hdf.</code><code class="sig-name descname">FrameProcessor</code><a class="reference internal" href="../_modules/pandablocks/hdf.html#FrameProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.hdf.FrameProcessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scale field data according to the information in the StartData</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pandablocks.hdf.create_pipeline">
+<code class="sig-prename descclassname">pandablocks.hdf.</code><code class="sig-name descname">create_pipeline</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">elements</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.hdf.Pipeline" title="pandablocks.hdf.Pipeline">pandablocks.hdf.Pipeline</a></span></em><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference internal" href="#pandablocks.hdf.Pipeline" title="pandablocks.hdf.Pipeline">pandablocks.hdf.Pipeline</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/hdf.html#create_pipeline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.hdf.create_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a pipeline of elements, wiring them and starting them before
+returning them</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pandablocks.hdf.stop_pipeline">
+<code class="sig-prename descclassname">pandablocks.hdf.</code><code class="sig-name descname">stop_pipeline</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pipeline</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference internal" href="#pandablocks.hdf.Pipeline" title="pandablocks.hdf.Pipeline">pandablocks.hdf.Pipeline</a><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/hdf.html#stop_pipeline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.hdf.stop_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop and join each element of the pipeline</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pandablocks.hdf.write_hdf_files">
+<em class="property">async </em><code class="sig-prename descclassname">pandablocks.hdf.</code><code class="sig-name descname">write_hdf_files</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">client</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.asyncio.AsyncioClient" title="pandablocks.asyncio.AsyncioClient">pandablocks.asyncio.AsyncioClient</a></span></em>, <em class="sig-param"><span class="n">scheme</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="n">arm</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/hdf.html#write_hdf_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.hdf.write_hdf_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to host PandA data port, and write num acquisitions
+to HDF file according to scheme</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>client</strong> – The <a class="reference internal" href="#pandablocks.asyncio.AsyncioClient" title="pandablocks.asyncio.AsyncioClient"><code class="xref any py py-class docutils literal notranslate"><span class="pre">AsyncioClient</span></code></a> to use for communications</p></li>
+<li><p><strong>scheme</strong> – Filenaming scheme for HDF files, with %d for scan number starting at 1</p></li>
+<li><p><strong>num</strong> – The number of acquisitions to store in separate files</p></li>
+<li><p><strong>arm</strong> – Whether to arm PCAP at the start, and after each successful acquisition</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="changelog.html" class="btn btn-neutral float-right" title="Change Log" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../explanations/performance.html" class="btn btn-neutral float-left" title="How fast can we write HDF files?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Diamond Light Source
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
