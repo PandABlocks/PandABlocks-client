@@ -20,7 +20,9 @@ atomicwrites = "*"
 matplotlib = "*"
 # This pin no longer required after https://github.com/tholo/pytest-flake8/pull/71 merges
 pytest = "==6.0"
-sphinx-multiversion = "*"
+# switch to main repo after PR https://github.com/Holzhaus/sphinx-multiversion/pull/60 is merged
+sphinx-multiversion = {editable = true,git = "https://github.com/dls-controls/sphinx-multiversion.git",ref = "only-arg"}
+
 
 [packages]
 # All other package requirements from setup.cfg
@@ -29,8 +31,8 @@ h5py = "*"
 click = "*"
 # make sure a python 3.8 compatible numpy is selected
 numpy = ">=1.18"
-
 [scripts]
 # Put coverage here so we don't interfere with debugging in the IDE
-tests = "python -m pytest --cov-fail-under=90 --cov=pandablocks --cov-report term"
-docs = "sphinx-build -E -b html docs build/html"
+tests = "python -m pytest --cov=pandablocks --cov-report term"
+docs = "sphinx-build -EWT --keep-going docs build/html"
+clean = "rm -rf build prefix */__pycache__ .coverage cov.xml *.egg-info .mypy_cache .pytest_cache"

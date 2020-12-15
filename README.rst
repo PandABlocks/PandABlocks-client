@@ -50,8 +50,8 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
     :target: https://github.com/PandABlocks/PandABlocks-client/actions?query=workflow%3A%22Python+CI%22
     :alt: Build Status
 
-.. |coverage| image:: https://coveralls.io/repos/github/PandABlocks/PandABlocks-client/badge.svg?branch=master
-    :target: https://coveralls.io/github/PandABlocks/PandABlocks-client?branch=master
+.. |coverage| image:: https://pandablocks.github.io/PandABlocks-client/coverage.svg
+    :target: https://github.com/PandABlocks/PandABlocks-client/actions?query=workflow%3A%22Python+CI%22
     :alt: Test Coverage
 
 .. |pypi_version| image:: https://badge.fury.io/py/pandablocks.svg

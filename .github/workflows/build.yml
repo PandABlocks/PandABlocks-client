@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v2
+        with:
+          # require all of history to see all tagged versions' docs
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -25,83 +28,68 @@ jobs:
         run: |
           env
           pip install pipenv
-          pip install coveralls
-          pipenv install --dev
+          pipenv install --dev --deploy && pipenv graph
 
-      - name: Create Wheel
+      - name: Create Sdist and Wheel
+        # for reproducible builds set SOURCE_DATE_EPOCH to the date of the last commit
+        # See here for more info : https://reproducible-builds.org/
+        # Also use the same version of wheel as inside DLS
         run: |
-          pip install wheel
-          pipenv graph
-          export PIPENV_V=$(pipenv --venv)
-          ls -al ${PIPENV_V}/lib/python${{ matrix.python-version }}/site-packages
-          ls -al ${PIPENV_V}/bin
-          python setup.py bdist_wheel
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+          pip install "wheel==0.33.1"
+          python setup.py sdist bdist_wheel
 
       - name: Run Tests
-        run : pipenv run tests
+        run : pipenv run tests | tee /tmp/ci_tests.out
 
-      - name: Coveralls
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pip install coveralls
-          coveralls
+      - name: Make Coverage Badge
+        run : .github/workflows/coverage.sh /tmp/ci_tests.out build/coverage/coverage.svg
 
-      - name: Publish to PyPI
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && matrix.python-version == '3.7'
-        uses: pypa/gh-action-pypi-publish@master
+      - name: Deploy badge
+        # Only once from master
+        if: matrix.python-version == '3.7' && github.ref == 'refs/heads/master'
+        # We pin to the SHA, not the tag, for security reasons.
+        # https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/security-hardening-for-github-actions#using-third-party-actions
+        uses: peaceiris/actions-gh-pages@bbdfb200618d235585ad98e965f4aafc39b4c501  # v3.7.3
         with:
-          user: __token__
-          password: ${{ secrets.pypi_token }}
-          skip_existing: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/coverage
+          keep_files: true
 
-  docs:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@v2
-        with:
-          ref: master
-          # require all of history to build all tagged versions' docs
-          fetch-depth: 0
-
-      # also checkout the branch that triggered this build
-      - name: Checkout Source
-        uses: actions/checkout@v2
-
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
-
-      - name: Install Dependencies
-        run: |
-          pip install pipenv
-          pipenv install --dev
-
-      - name: Build Docs
-        # this builds all tagged versions and master
-        run: pipenv run sphinx-multiversion docs build/html
 
       - name: Checkout gh-pages
+        # As we already did a deploy of gh-pages above, it is guaranteed to be there
+        # so check it out so we can selectively build docs below
+        if: matrix.python-version == '3.7'
         uses: actions/checkout@v2
         with:
           ref: gh-pages
-          path: gh-pages
+          path: build/html
 
-      - name: Update gh-pages
+      - name: Build Docs
+        if: matrix.python-version == '3.7'
+        # Use the args we normally pass to sphinx-build, but run sphinx-multiversion
         run: |
-          rm -r gh-pages/*
-          cp -r build/html/* gh-pages/
-          cp docs/index.html gh-pages/
+          mv $(pipenv --venv)/bin/sphinx-multiversion $(pipenv --venv)/bin/sphinx-build
+          pipenv run docs && cp .github/pages/index.html build/html
 
-      - name: Push gh-pages
-        uses: EndBug/add-and-commit@v5
+      - name: Publish Docs to gh-pages
+        # Only once from master or a tag
+        if: matrix.python-version == '3.7' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags'))
+        # We pin to the SHA, not the tag, for security reasons.
+        # https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/security-hardening-for-github-actions#using-third-party-actions
+        uses: peaceiris/actions-gh-pages@bbdfb200618d235585ad98e965f4aafc39b4c501  # v3.7.3
         with:
-          message: "updating built documentation"
-          branch: gh-pages
-          add: ". --force"
-          cwd: "./gh-pages/"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/html
+          keep_files: true
+
+      - name: Publish Sdist and Wheel to PyPI
+        # Only once when on a tag
+        if: matrix.python-version == '3.7' && startsWith(github.ref, 'refs/tags')
+        # We pin to the SHA, not the tag, for security reasons.
+        # https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/security-hardening-for-github-actions#using-third-party-actions
+        uses: pypa/gh-action-pypi-publish@54b39fb9371c0b3a6f9f14bb8a67394defc7a806  # v1.4.1
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token }}
