@@ -1,9 +1,11 @@
 import asyncio
 import io
 import logging
+import pathlib
 from typing import Coroutine
 
 import click
+from click.exceptions import ClickException
 
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
@@ -11,6 +13,7 @@ from pandablocks.state import State
 
 # Default prompt
 PROMPT = "< "
+SAVE_FOLDER = pathlib.Path(__file__).parent.parent / "saves"
 
 
 def asyncio_run(coro: Coroutine):
@@ -104,11 +107,20 @@ def save(host: str, outfile: io.TextIOWrapper):
 
 @cli.command()
 @click.argument("host")
-@click.argument("infile", type=click.File("r"))
-def load(host: str, infile: io.TextIOWrapper):
+@click.argument("infile", type=click.File("r"), required=False)
+@click.option("--tutorial", help="load the tutorial settings", is_flag=True)
+def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
     """
     Load a blocks configuration into HOST using the commands in INFILE
     """
+    if tutorial:
+        loadfile = SAVE_FOLDER / "tutorial.sav"
+        with loadfile.open("r") as stream:
+            commands = stream.read().splitlines()
+    elif infile is None:
+        raise ClickException("INFILE not specified")
+    else:
+        commands = infile.read().splitlines()
+
     state = State(host)
-    commands = infile.read().splitlines()
     state.load(commands)
