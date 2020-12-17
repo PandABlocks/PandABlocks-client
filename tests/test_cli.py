@@ -1,9 +1,11 @@
 from collections import deque
 from pathlib import Path
 from unittest.mock import patch
+from pandablocks import cli
 
 import h5py
 import numpy as np
+import pandablocks
 import pytest
 from click.testing import CliRunner
 
@@ -120,3 +122,17 @@ def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
     assert result.exit_code == 0, result.exc_info
 
     assert dummy_server_in_thread.received == test_state.savefile
+
+
+def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
+    dummy_server_in_thread.send += ["OK"] * 10000
+    runner = CliRunner()
+    path = tmp_path / "saved_state"
+
+    with cli.TUTORIAL.open("r") as stream:
+        commands = stream.read().splitlines()
+
+    result = runner.invoke(cli.cli, ["load", "localhost", "--tutorial"])
+    assert result.exit_code == 0, result.exc_info
+
+    assert dummy_server_in_thread.received == commands

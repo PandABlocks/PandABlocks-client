@@ -13,7 +13,7 @@ from pandablocks.state import State
 
 # Default prompt
 PROMPT = "< "
-SAVE_FOLDER = pathlib.Path(__file__).parent.parent / "saves"
+TUTORIAL = pathlib.Path(__file__).parent.parent / "saves" / "tutorial.sav"
 
 
 def asyncio_run(coro: Coroutine):
@@ -114,8 +114,7 @@ def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
     Load a blocks configuration into HOST using the commands in INFILE
     """
     if tutorial:
-        loadfile = SAVE_FOLDER / "tutorial.sav"
-        with loadfile.open("r") as stream:
+        with TUTORIAL.open("r") as stream:
             commands = stream.read().splitlines()
     elif infile is None:
         raise ClickException("INFILE not specified")
