@@ -97,7 +97,7 @@ class FrameData(Data):
     """Yielded when a new data frame is flushed.
 
     Attributes:
-        data: A numpy `Structured Array <numpy.doc.structured_arrays>`
+        data: A numpy `Structured Array <structured_arrays>`
 
     Data is structured into complete columns. Each column name is
     ``<name>.<capture>`` from the corresponding `FieldType`. Data
