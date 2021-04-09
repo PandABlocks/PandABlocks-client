@@ -24,14 +24,15 @@ project = "PandABlocks-client"
 copyright = "2020, Diamond Light Source"
 author = "Tom Cobb"
 
-# The short X.Y version.
-version = pandablocks.__version__.split("+")[0]
 # The full version, including alpha/beta/rc tags.
 release = pandablocks.__version__
 
-if os.environ.get("READTHEDOCS") == "True":
-    # Readthedocs modifies conf.py, so will appear dirty when it isn't
-    release = release.split("+0")[0].replace(".dirty", "")
+# The short X.Y version.
+if "+" in release:
+    # Not on a tag
+    version = "master"
+else:
+    version = release
 
 extensions = [
     # Use this for generating API docs
@@ -44,6 +45,7 @@ extensions = [
     "sphinx.ext.viewcode",
     # Adds support for matplotlib plots
     "matplotlib.sphinxext.plot_directive",
+    # Add multiple versions of documentation on CI
     "sphinx_multiversion",
 ]
 
@@ -51,13 +53,11 @@ extensions = [
 # be found.
 nitpicky = True
 
-# Don’t use a saved environment (the structure caching all cross-references),
-# but rebuild it completely.
-fresh_env = True
-
-# Turn warnings into errors. This means that the build stops at the first
-# warning and sphinx-build exits with exit status 1.
-warning_is_error = True
+# A list of (type, target) tuples (by default empty) that should be ignored when
+# generating warnings in "nitpicky mode". Note that type should include the
+# domain name if present. Example entries would be ('py:func', 'int') or
+# ('envvar', 'LD_LIBRARY_PATH').
+nitpick_ignore = [("py:func", "int")]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and
 # inserted into the main body of the autoclass directive
@@ -99,9 +99,6 @@ intersphinx_mapping = dict(
     h5py=("https://docs.h5py.org/en/stable/", None),
 )
 
-# A dictionary of graphviz graph attributes for inheritance diagrams.
-inheritance_graph_attrs = dict(rankdir="TB")
-
 # Common links that should be available on every page
 rst_epilog = """
 .. _Diamond Light Source:
@@ -138,8 +135,8 @@ html_show_copyright = True
 html_css_files = ["theme_overrides.css"]
 
 # Logo
-html_logo = "PandA-logo-for-black-background.svg"
-html_favicon = "PandA-logo.ico"
+html_logo = "images/PandA-logo-for-black-background.svg"
+html_favicon = "images/PandA-logo.ico"
 
 # sphinx-multiversion config
 smv_rebuild_tags = False

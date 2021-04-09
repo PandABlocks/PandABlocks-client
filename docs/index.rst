@@ -1,4 +1,5 @@
 .. include:: ../README.rst
+    :end-before: when included in index.rst
 
 How the documentation is structured
 -----------------------------------

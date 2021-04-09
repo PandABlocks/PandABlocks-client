@@ -56,17 +56,32 @@ def overrun_dump():
 
 DUMP_FIELDS = [
     FieldCapture(
-        name="PCAP.BITS2", type=np.uint32, capture="Value", scale=1, offset=0, units="",
+        name="PCAP.BITS2",
+        type=np.dtype("uint32"),
+        capture="Value",
+        scale=1,
+        offset=0,
+        units="",
     ),
     FieldCapture(
-        name="COUNTER1.OUT", type=np.double, capture="Min", scale=1, offset=0, units="",
+        name="COUNTER1.OUT",
+        type=np.dtype("float64"),
+        capture="Min",
+        scale=1,
+        offset=0,
+        units="",
     ),
     FieldCapture(
-        name="COUNTER1.OUT", type=np.double, capture="Max", scale=1, offset=0, units="",
+        name="COUNTER1.OUT",
+        type=np.dtype("float64"),
+        capture="Max",
+        scale=1,
+        offset=0,
+        units="",
     ),
     FieldCapture(
         name="COUNTER3.OUT",
-        type=np.double,
+        type=np.dtype("float64"),
         capture="Value",
         scale=1,
         offset=0,
@@ -74,7 +89,7 @@ DUMP_FIELDS = [
     ),
     FieldCapture(
         name="PCAP.TS_START",
-        type=np.double,
+        type=np.dtype("float64"),
         capture="Value",
         scale=8e-09,
         offset=0,
@@ -82,7 +97,7 @@ DUMP_FIELDS = [
     ),
     FieldCapture(
         name="COUNTER1.OUT",
-        type=np.double,
+        type=np.dtype("float64"),
         capture="Mean",
         scale=1,
         offset=0,
@@ -90,7 +105,7 @@ DUMP_FIELDS = [
     ),
     FieldCapture(
         name="COUNTER2.OUT",
-        type=np.double,
+        type=np.dtype("float64"),
         capture="Mean",
         scale=1,
         offset=0,
