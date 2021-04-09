@@ -1,14 +1,19 @@
 import asyncio
+import io
 import logging
+import pathlib
 from typing import Coroutine
 
 import click
+from click.exceptions import ClickException
 
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
+from pandablocks.state import State
 
 # Default prompt
 PROMPT = "< "
+TUTORIAL = pathlib.Path(__file__).parent.parent / "saves" / "tutorial.sav"
 
 
 def asyncio_run(coro: Coroutine):
@@ -42,7 +47,7 @@ async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
 )
 @click.version_option()
 @click.pass_context
-def pandablocks(ctx, log_level: str):
+def cli(ctx, log_level: str):
     """PandaBlocks client library command line interface."""
 
     level = getattr(logging, log_level.upper(), None)
@@ -50,10 +55,10 @@ def pandablocks(ctx, log_level: str):
 
     # if no command is supplied, print the help message
     if ctx.invoked_subcommand is None:
-        click.echo(pandablocks.get_help(ctx))
+        click.echo(cli.get_help(ctx))
 
 
-@pandablocks.command()
+@cli.command()
 @click.option(
     "--num", help="Number of collections to capture", default=1, show_default=True,
 )
@@ -76,7 +81,7 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
     asyncio_run(_write_hdf_files(host, scheme, num, arm))
 
 
-@pandablocks.command()
+@cli.command()
 @click.option("--prompt", help="Prompt character", default=PROMPT, show_default=True)
 @click.option(
     "--no-readline", help="Disable readline history and completion", is_flag=True,
@@ -85,3 +90,36 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
 def control(host: str, prompt: str, no_readline: bool):
     """Open an interactive control console to HOST"""
     interactive_control(host, prompt, not no_readline)
+
+
+@cli.command()
+@click.argument("host")
+@click.argument("outfile", type=click.File("w"))
+def save(host: str, outfile: io.TextIOWrapper):
+    """
+    Save the current blocks configuration of HOST to OUTFILE
+    """
+    state = State(host)
+    commands = state.save()
+    command_lines = "\n".join(commands) + "\n"
+    outfile.write(command_lines)
+
+
+@cli.command()
+@click.argument("host")
+@click.argument("infile", type=click.File("r"), required=False)
+@click.option("--tutorial", help="load the tutorial settings", is_flag=True)
+def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
+    """
+    Load a blocks configuration into HOST using the commands in INFILE
+    """
+    if tutorial:
+        with TUTORIAL.open("r") as stream:
+            commands = stream.read().splitlines()
+    elif infile is None:
+        raise ClickException("INFILE not specified")
+    else:
+        commands = infile.read().splitlines()
+
+    state = State(host)
+    state.load(commands)

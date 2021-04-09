@@ -1,11 +1,15 @@
 from collections import deque
+from pathlib import Path
 from unittest.mock import patch
+from pandablocks import cli
 
 import h5py
 import numpy as np
+import pandablocks
 import pytest
 from click.testing import CliRunner
 
+import tests.test_state as test_state
 from pandablocks import cli
 from tests.conftest import DummyServer
 
@@ -15,7 +19,7 @@ def test_writing_fast_hdf(dummy_server_in_thread: DummyServer, raw_dump, tmp_pat
     dummy_server_in_thread.data = raw_dump
     runner = CliRunner()
     result = runner.invoke(
-        cli.pandablocks, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
+        cli.cli, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
     )
     assert result.exit_code == 0
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
@@ -51,7 +55,7 @@ def test_writing_overrun_hdf(
     dummy_server_in_thread.data = [overrun_dump]
     runner = CliRunner()
     result = runner.invoke(
-        cli.pandablocks, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
+        cli.cli, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
     )
     assert result.exit_code == 0
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
@@ -87,8 +91,48 @@ def test_interactive_simple(dummy_server_in_thread, capsys):
     dummy_server_in_thread.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
     with patch("pandablocks._control.input", side_effect=mock_input):
         runner = CliRunner()
-        result = runner.invoke(
-            cli.pandablocks, ["control", "localhost", "--no-readline"]
-        )
+        result = runner.invoke(cli.cli, ["control", "localhost", "--no-readline"])
         assert result.exit_code == 0
         assert result.output == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"
+
+
+def test_save(dummy_server_in_thread: DummyServer, tmp_path: Path):
+    dummy_server_in_thread.send += test_state.responses
+    runner = CliRunner()
+    path = tmp_path / "saved_state"
+    result = runner.invoke(cli.cli, ["save", "localhost", str(path)])
+    assert result.exit_code == 0
+
+    with path.open("r") as stream:
+        results = stream.read().splitlines()
+
+    assert results == test_state.savefile
+
+
+def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
+    dummy_server_in_thread.send += ["OK"] * 10
+    runner = CliRunner()
+    path = tmp_path / "saved_state"
+
+    with path.open("w") as stream:
+        for line in test_state.savefile:
+            stream.write(line + "\n")
+
+    result = runner.invoke(cli.cli, ["load", "localhost", str(path)])
+    assert result.exit_code == 0, result.exc_info
+
+    assert dummy_server_in_thread.received == test_state.savefile
+
+
+def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
+    dummy_server_in_thread.send += ["OK"] * 10000
+    runner = CliRunner()
+    path = tmp_path / "saved_state"
+
+    with cli.TUTORIAL.open("r") as stream:
+        commands = stream.read().splitlines()
+
+    result = runner.invoke(cli.cli, ["load", "localhost", "--tutorial"])
+    assert result.exit_code == 0, result.exc_info
+
+    assert dummy_server_in_thread.received == commands
