@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -97,7 +97,7 @@ class FrameData(Data):
     """Yielded when a new data frame is flushed.
 
     Attributes:
-        data: A numpy `Structured Array <numpy.doc.structured_arrays>`
+        data: A numpy `Structured Array <structured_arrays>`
 
     Data is structured into complete columns. Each column name is
     ``<name>.<capture>`` from the corresponding `FieldType`. Data
@@ -123,9 +123,11 @@ class FrameData(Data):
     data: np.ndarray
 
     @property
-    def column_names(self) -> List[str]:
+    def column_names(self) -> Tuple[str, ...]:
         """Return all the column names"""
-        return self.data.dtype.names
+        names = self.data.dtype.names
+        assert names, f"No column names for {self.data.dtype}"
+        return names
 
 
 @dataclass

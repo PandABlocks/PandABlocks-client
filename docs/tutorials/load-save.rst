@@ -21,7 +21,7 @@ human readable file and may be edited if you want to modify a few fields.
 
 e.g. the first few lines of the tutorial save file look like this:
 
-.. literalinclude:: ../../saves/tutorial.sav
+.. literalinclude:: ../../pandablocks/saves/tutorial.sav
    :lines: 1-12
 
 Load

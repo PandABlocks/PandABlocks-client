@@ -13,7 +13,7 @@ from pandablocks.state import State
 
 # Default prompt
 PROMPT = "< "
-TUTORIAL = pathlib.Path(__file__).parent.parent / "saves" / "tutorial.sav"
+TUTORIAL = pathlib.Path(__file__).parent / "saves" / "tutorial.sav"
 
 
 def asyncio_run(coro: Coroutine):
@@ -24,9 +24,7 @@ def asyncio_run(coro: Coroutine):
         to_cancel = asyncio.tasks.all_tasks(loop)
         for task in to_cancel:
             task.cancel()
-        loop.run_until_complete(
-            asyncio.gather(*to_cancel, loop=loop, return_exceptions=True)
-        )
+        loop.run_until_complete(asyncio.gather(*to_cancel, return_exceptions=True))
 
 
 async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
