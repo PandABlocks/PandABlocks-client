@@ -11,21 +11,40 @@ blinking LEDs tutorial_.
 Save
 ----
 
-Port save-state from TCP server repo, use this to save current state. Show what
-the file might look like
+You can save the current state using the save command as follows::
+
+    $ pandablocks save <hostname> <save_file>
+
+The save file is a text file containing the sequence of pandablocks control commands
+that will set up the PandA to match its state at the time of the save. This is a
+human readable file and may be edited if you want to modify a few fields.
+
+e.g. the first few lines of the tutorial save file look like this:
+
+.. literalinclude:: ../../pandablocks/saves/tutorial.sav
+   :lines: 1-12
 
 Load
 ----
 
-Port load-state from TCP server repo to cli args, and
-document loading a canned demo state for the next tutorial. Add
-a ``--tutorial`` flag that loads this canned state that should be distributed
-with the module.
+To restore a PandA to a previously saved state use the load command as follows::
 
-Web GUI
--------
+    $ pandablocks load <hostname> <save_file>
 
-Add a web gui screenshot that demonstrates this
+This is equivalent to typing the sequence of commands in <save_file> into the
+pandablocks control command line.
+
+To load the preconfigured tutorial state::
+
+    $ pandablocks load <hostname> --tutorial
+
+The tutorial sets up a Seqencer block driving 3 Counter blocks and a Position
+Capture block. This configuration is the starting point for the next tutorial:
+:ref:`commandline-hdf`
+
+The tutorial blocks are wired up as shown in the following Web UI layout.
+
+.. image:: tutorial_layout.png
 
 
 .. _tutorial: https://pandablocks-fpga.readthedocs.io/en/latest/tutorials/tutorial1_blinking_leds.html

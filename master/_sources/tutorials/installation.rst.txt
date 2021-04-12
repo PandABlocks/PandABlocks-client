@@ -32,9 +32,9 @@ You can now use ``pip`` to install the library::
 
     python3 -m pip install pandablocks
 
-If you need to write HDF files you also need::
+If you need to write HDF files you should install the ``hdf5`` extra::
 
-    python3 -m pip install h5py
+    python3 -m pip install pandablocks[hdf5]
 
 If you require a feature that is not currently released you can also install
 from github::

@@ -6,11 +6,11 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Commandline Load/Save Tutorial &mdash; PandABlocks-client 0.0+untagged.g6541692 documentation</title>
+  <title>Commandline Load/Save Tutorial &mdash; PandABlocks-client 0.0+untagged.g89bb7d6 documentation</title>
   
 
   
@@ -22,7 +22,10 @@
   
     <link rel="shortcut icon" href="../_static/PandA-logo.ico"/>
   
+
   
+  
+
   
 
   
@@ -35,7 +38,6 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -57,7 +59,7 @@
           
 
           
-            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> PandABlocks-client
+            <a href="../index.html" class="icon icon-home"> PandABlocks-client
           
 
           
@@ -70,7 +72,7 @@
             
             
               <div class="version">
-                0.0
+                master
               </div>
             
           
@@ -102,7 +104,6 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Commandline Load/Save Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#save">Save</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#load">Load</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#web-gui">Web GUI</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="control.html">Interactive Control Tutorial</a></li>
@@ -173,6 +174,8 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
@@ -184,7 +187,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="../_sources/tutorials/load-save.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -206,19 +209,46 @@ assumes that you know the basic concepts of a PandA as outlined in the PandABloc
 blinking LEDs <a class="reference external" href="https://pandablocks-fpga.readthedocs.io/en/latest/tutorials/tutorial1_blinking_leds.html">tutorial</a>.</p>
 <div class="section" id="save">
 <h2>Save<a class="headerlink" href="#save" title="Permalink to this headline">¶</a></h2>
-<p>Port save-state from TCP server repo, use this to save current state. Show what
-the file might look like</p>
+<p>You can save the current state using the save command as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pandablocks save &lt;hostname&gt; &lt;save_file&gt;
+</pre></div>
+</div>
+<p>The save file is a text file containing the sequence of pandablocks control commands
+that will set up the PandA to match its state at the time of the save. This is a
+human readable file and may be edited if you want to modify a few fields.</p>
+<p>e.g. the first few lines of the tutorial save file look like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OUTENC1</span><span class="o">.</span><span class="n">DATA</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC2</span><span class="o">.</span><span class="n">DATA</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC3</span><span class="o">.</span><span class="n">DATA</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC4</span><span class="o">.</span><span class="n">DATA</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC1</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC2</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC3</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC4</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">DELAY</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">OUTENC1</span><span class="o">.</span><span class="n">QPERIOD</span><span class="o">.</span><span class="n">UNITS</span><span class="o">=</span><span class="n">s</span>
+<span class="n">OUTENC2</span><span class="o">.</span><span class="n">QPERIOD</span><span class="o">.</span><span class="n">UNITS</span><span class="o">=</span><span class="n">s</span>
+<span class="n">OUTENC3</span><span class="o">.</span><span class="n">QPERIOD</span><span class="o">.</span><span class="n">UNITS</span><span class="o">=</span><span class="n">s</span>
+<span class="n">OUTENC4</span><span class="o">.</span><span class="n">QPERIOD</span><span class="o">.</span><span class="n">UNITS</span><span class="o">=</span><span class="n">s</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="load">
 <h2>Load<a class="headerlink" href="#load" title="Permalink to this headline">¶</a></h2>
-<p>Port load-state from TCP server repo to cli args, and
-document loading a canned demo state for the next tutorial. Add
-a <code class="docutils literal notranslate"><span class="pre">--tutorial</span></code> flag that loads this canned state that should be distributed
-with the module.</p>
+<p>To restore a PandA to a previously saved state use the load command as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pandablocks load &lt;hostname&gt; &lt;save_file&gt;
+</pre></div>
 </div>
-<div class="section" id="web-gui">
-<h2>Web GUI<a class="headerlink" href="#web-gui" title="Permalink to this headline">¶</a></h2>
-<p>Add a web gui screenshot that demonstrates this</p>
+<p>This is equivalent to typing the sequence of commands in &lt;save_file&gt; into the
+pandablocks control command line.</p>
+<p>To load the preconfigured tutorial state:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pandablocks load &lt;hostname&gt; --tutorial
+</pre></div>
+</div>
+<p>The tutorial sets up a Seqencer block driving 3 Counter blocks and a Position
+Capture block. This configuration is the starting point for the next tutorial:
+<a class="reference internal" href="commandline-hdf.html#commandline-hdf"><span class="std std-ref">Commandline Capture of HDF Files Tutorial</span></a></p>
+<p>The tutorial blocks are wired up as shown in the following Web UI layout.</p>
+<img alt="../_images/tutorial_layout.png" src="../_images/tutorial_layout.png" />
 </div>
 </div>
 
@@ -227,29 +257,21 @@ with the module.</p>
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="control.html" class="btn btn-neutral float-right" title="Interactive Control Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="installation.html" class="btn btn-neutral float-left" title="Installation Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="control.html" class="btn btn-neutral float-right" title="Interactive Control Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        
-        &copy; Copyright 2020, Diamond Light Source
+        &#169; Copyright 2020, Diamond Light Source.
 
     </p>
   </div> 
 
 </footer>
-
         </div>
       </div>
 

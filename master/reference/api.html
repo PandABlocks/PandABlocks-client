@@ -6,11 +6,11 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>API &mdash; PandABlocks-client 0.0+untagged.g6541692 documentation</title>
+  <title>API &mdash; PandABlocks-client 0.0+untagged.g89bb7d6 documentation</title>
   
 
   
@@ -22,7 +22,10 @@
   
     <link rel="shortcut icon" href="../_static/PandA-logo.ico"/>
   
+
   
+  
+
   
 
   
@@ -35,7 +38,6 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -57,7 +59,7 @@
           
 
           
-            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> PandABlocks-client
+            <a href="../index.html" class="icon icon-home"> PandABlocks-client
           
 
           
@@ -70,7 +72,7 @@
             
             
               <div class="version">
-                0.0
+                master
               </div>
             
           
@@ -176,6 +178,8 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
@@ -187,7 +191,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="../_sources/reference/api.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -395,12 +399,22 @@ to match the definition order in the PandA</p>
 <dt id="pandablocks.responses.FieldType.type">
 <code class="sig-name descname">type</code><a class="headerlink" href="#pandablocks.responses.FieldType.type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Field type, like “param”, “bit_out”, “pos_mux”, etc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.FieldType.subtype">
 <code class="sig-name descname">subtype</code><a class="headerlink" href="#pandablocks.responses.FieldType.subtype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Some types have subtype, like “uint”, “scalar”, “lut”, etc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Optional[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a>]</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -455,42 +469,72 @@ to match the definition order in the PandA</p>
 
 <dl class="py class">
 <dt id="pandablocks.responses.FieldCapture">
-<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">FieldCapture</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.19)">numpy.dtype</a></span></em>, <em class="sig-param"><span class="n">capture</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">scale</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">offset</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">units</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#FieldCapture"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.FieldCapture" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">FieldCapture</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.20)">numpy.dtype</a></span></em>, <em class="sig-param"><span class="n">capture</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">scale</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">offset</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">units</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#FieldCapture"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.FieldCapture" title="Permalink to this definition">¶</a></dt>
 <dd><p>Information about a field that is being captured</p>
 <dl class="py attribute">
 <dt id="pandablocks.responses.FieldCapture.name">
 <code class="sig-name descname">name</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>Name of captured field</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.FieldCapture.type">
 <code class="sig-name descname">type</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Numpy data type of the field as transmitted</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.20)">numpy.dtype</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.FieldCapture.capture">
 <code class="sig-name descname">capture</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.capture" title="Permalink to this definition">¶</a></dt>
 <dd><p>Value of CAPTURE field used to enable this field</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.FieldCapture.scale">
 <code class="sig-name descname">scale</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.scale" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scaling factor, default 1.0</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.FieldCapture.offset">
 <code class="sig-name descname">offset</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.offset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Offset, default 0.0</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.FieldCapture.units">
 <code class="sig-name descname">units</code><a class="headerlink" href="#pandablocks.responses.FieldCapture.units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Units string, default “”</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -515,42 +559,72 @@ to match the definition order in the PandA</p>
 <dt id="pandablocks.responses.StartData.fields">
 <code class="sig-name descname">fields</code><a class="headerlink" href="#pandablocks.responses.StartData.fields" title="Permalink to this definition">¶</a></dt>
 <dd><p>Information about each captured field as a <a class="reference internal" href="#pandablocks.responses.FieldCapture" title="pandablocks.responses.FieldCapture"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldCapture</span></code></a> object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="#pandablocks.responses.FieldCapture" title="pandablocks.responses.FieldCapture">pandablocks.responses.FieldCapture</a>]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.StartData.missed">
 <code class="sig-name descname">missed</code><a class="headerlink" href="#pandablocks.responses.StartData.missed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Number of samples missed by late data port connection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.StartData.process">
 <code class="sig-name descname">process</code><a class="headerlink" href="#pandablocks.responses.StartData.process" title="Permalink to this definition">¶</a></dt>
 <dd><p>Data processing option, only “Scaled” or “Raw” are requested</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.StartData.format">
 <code class="sig-name descname">format</code><a class="headerlink" href="#pandablocks.responses.StartData.format" title="Permalink to this definition">¶</a></dt>
 <dd><p>Data delivery formatting, only “Framed” is requested</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.StartData.sample_bytes">
 <code class="sig-name descname">sample_bytes</code><a class="headerlink" href="#pandablocks.responses.StartData.sample_bytes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Number of bytes in one sample</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt id="pandablocks.responses.FrameData">
-<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">FrameData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)">numpy.ndarray</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#FrameData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.FrameData" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.responses.</code><code class="sig-name descname">FrameData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.20)">numpy.ndarray</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/responses.html#FrameData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.responses.FrameData" title="Permalink to this definition">¶</a></dt>
 <dd><p>Yielded when a new data frame is flushed.</p>
 <dl class="py attribute">
 <dt id="pandablocks.responses.FrameData.data">
 <code class="sig-name descname">data</code><a class="headerlink" href="#pandablocks.responses.FrameData.data" title="Permalink to this definition">¶</a></dt>
-<dd><p>A numpy <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html#module-numpy.doc.structured_arrays" title="(in NumPy v1.19)"><code class="xref any docutils literal notranslate"><span class="pre">Structured</span> <span class="pre">Array</span></code></a></p>
+<dd><p>A numpy <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html#structured-arrays" title="(in NumPy v1.20)"><code class="xref any docutils literal notranslate"><span class="pre">Structured</span> <span class="pre">Array</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.20)">numpy.ndarray</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <p>Data is structured into complete columns. Each column name is
@@ -589,12 +663,22 @@ can be accessed with these column names. For example:</p>
 <dt id="pandablocks.responses.EndData.samples">
 <code class="sig-name descname">samples</code><a class="headerlink" href="#pandablocks.responses.EndData.samples" title="Permalink to this definition">¶</a></dt>
 <dd><p>The total number of samples (rows) that were yielded</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="pandablocks.responses.EndData.reason">
 <code class="sig-name descname">reason</code><a class="headerlink" href="#pandablocks.responses.EndData.reason" title="Permalink to this definition">¶</a></dt>
 <dd><p>The <a class="reference internal" href="#pandablocks.responses.EndReason" title="pandablocks.responses.EndReason"><code class="xref any py py-class docutils literal notranslate"><span class="pre">EndReason</span></code></a> for the end of acquisition</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pandablocks.responses.EndReason" title="pandablocks.responses.EndReason">pandablocks.responses.EndReason</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -772,7 +856,7 @@ For example:</p>
 
 <dl class="py method">
 <dt id="pandablocks.asyncio.AsyncioClient.data">
-<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scaled</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">flush_period</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">frame_timeout</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; AsyncGenerator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data">pandablocks.responses.Data</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/asyncio.html#AsyncioClient.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.data" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scaled</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">flush_period</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">frame_timeout</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; AsyncGenerator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data">pandablocks.responses.Data</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/asyncio.html#AsyncioClient.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connect to data port and yield data frames</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -840,7 +924,7 @@ return a list of reponses</p></li>
 
 <dl class="py method">
 <dt id="pandablocks.blocking.BlockingClient.data">
-<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scaled</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">frame_timeout</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Iterator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data">pandablocks.responses.Data</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/blocking.html#BlockingClient.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.blocking.BlockingClient.data" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scaled</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">frame_timeout</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Iterator<span class="p">[</span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data">pandablocks.responses.Data</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/blocking.html#BlockingClient.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.blocking.BlockingClient.data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connect to data port and yield data frames</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -877,7 +961,7 @@ gives multi-CPU benefits without hitting the limit of the GIL.</p>
 <dd><p>Helper class that runs a pipeline consumer process in its own thread</p>
 <dl class="py attribute">
 <dt id="pandablocks.hdf.Pipeline.what_to_do">
-<code class="sig-name descname">what_to_do</code><em class="property">: Dict<span class="p">[</span>Type<span class="p">, </span>Callable<span class="p">]</span></em><a class="headerlink" href="#pandablocks.hdf.Pipeline.what_to_do" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">what_to_do</code><a class="headerlink" href="#pandablocks.hdf.Pipeline.what_to_do" title="Permalink to this definition">¶</a></dt>
 <dd><p>Subclasses should create this dictionary with handlers for each data
 type, returning transformed data that should be passed downstream</p>
 </dd></dl>
@@ -947,29 +1031,21 @@ to HDF file according to scheme</p>
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="changelog.html" class="btn btn-neutral float-right" title="Change Log" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="../explanations/performance.html" class="btn btn-neutral float-left" title="How fast can we write HDF files?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="changelog.html" class="btn btn-neutral float-right" title="Change Log" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../explanations/performance.html" class="btn btn-neutral float-left" title="How fast can we write HDF files?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        
-        &copy; Copyright 2020, Diamond Light Source
+        &#169; Copyright 2020, Diamond Light Source.
 
     </p>
   </div> 
 
 </footer>
-
         </div>
       </div>
 
