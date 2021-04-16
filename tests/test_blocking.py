@@ -7,8 +7,8 @@ from pandablocks.commands import CommandException, Get, Put
 def test_blocking_get(dummy_server_in_thread):
     dummy_server_in_thread.send.append("OK =something")
     with BlockingClient("localhost") as client:
-        response = client.send(Get("PCAP.ACTIVE"))
-    assert response == b"something"
+        response = client.send(Get("PCAP.ACTIVE"), timeout=1)
+    assert response == "something"
     assert dummy_server_in_thread.received == ["PCAP.ACTIVE?"]
 
 
@@ -16,7 +16,7 @@ def test_blocking_bad_put_raises(dummy_server_in_thread):
     dummy_server_in_thread.send.append("ERR no such field")
     with BlockingClient("localhost") as client:
         with pytest.raises(CommandException) as cm:
-            client.send(Put("PCAP.thing", 1))
+            client.send(Put("PCAP.thing", 1), timeout=1)
         assert str(cm.value) == "Put(field='PCAP.thing', value=1) -> ERR no such field"
     assert dummy_server_in_thread.received == ["PCAP.thing=1"]
 

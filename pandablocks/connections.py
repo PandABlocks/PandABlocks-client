@@ -6,7 +6,7 @@ from typing import Any, Callable, Deque, Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from .commands import Command, Lines
+from .commands import Command, CommandException, RawResponse
 from .responses import (
     Data,
     EndData,
@@ -106,15 +106,21 @@ class ControlConnection:
 
     def __init__(self):
         self._buf = Buffer()
-        self._lines: List[bytes] = []
+        self._lines: List[str] = []
         self._commands: Deque[Command] = deque()
 
-    def _pop_command_response(self, lines: Lines) -> Tuple[Command, Any]:
+    def _pop_command_response(self, raw: RawResponse) -> Tuple[Command, Any]:
         command = self._commands.popleft()
         try:
-            response = command.response(lines)
+            response = command.response(raw)
         except Exception as e:
-            response = e
+            msg = f"{command} ->"
+            if raw.is_multiline:
+                for line in raw.multiline:
+                    msg += "\n    " + line
+            else:
+                msg += " " + raw.line
+            response = CommandException(msg).with_traceback(e.__traceback__)
         return command, response
 
     def receive_bytes(self, received: bytes) -> Iterator[Tuple[Command, Any]]:
@@ -123,37 +129,40 @@ class ControlConnection:
         command that triggered this response"""
         self._buf += received
         is_multiline = bool(self._lines)
-        for line in self._buf:
+        for line_b in self._buf:
+            line = line_b.decode()
             if not is_multiline:
                 # Check if we need to switch to multiline mode
-                is_multiline = line.startswith(b"!") or line == b"."
-            if line == b".":
-                # End of multiline mode, return what we've got
-                yield self._pop_command_response(self._lines)
-                self._lines = []
-                is_multiline = False
-            elif is_multiline:
+                is_multiline = line.startswith("!") or line == "."
+            if is_multiline:
                 # Add a new line to the buffer
-                assert line.startswith(b"!"), (
-                    "Multiline response %r doesn't start with !" % line
-                )
-                self._lines.append(line[1:])
+                self._lines.append(line)
+                if line == ".":
+                    # End of multiline mode, return what we've got
+                    yield self._pop_command_response(
+                        RawResponse(self._lines, is_multiline)
+                    )
+                    self._lines = []
+                    is_multiline = False
+                else:
+                    # Check a correctly formatted response
+                    assert line.startswith("!"), (
+                        "Multiline response %r doesn't start with !" % line
+                    )
             else:
                 # Single line mode
                 assert not self._lines, (
                     "Multiline response %s not terminated" % self._lines
                 )
-                yield self._pop_command_response(line)
+                yield self._pop_command_response(RawResponse([line]))
 
     def send(self, command: Command) -> bytes:
         """Tell the connection you want to send an event, and it will return
         some bytes to send down the network
         """
         self._commands.append(command)
-        lines = command.lines()
-        if isinstance(lines, list):
-            lines = b"\n".join(lines)
-        return lines + b"\n"
+        text = "\n".join(command.lines()) + "\n"
+        return text.encode()
 
 
 class DataConnection:

@@ -4,8 +4,30 @@ from typing import Dict, Generic, List, Tuple, TypeVar, Union
 from .responses import FieldType
 
 T = TypeVar("T")
-# One or more lines to send
-Lines = Union[bytes, List[bytes]]
+
+
+@dataclass
+class RawResponse:
+    """A helper class representing a list of lines returned from PandA
+
+    No newlines
+    """
+
+    lines: List[str]
+    is_multiline: bool = False
+
+    @property
+    def line(self) -> str:
+        """Check we are not multiline and return the line"""
+        assert not self.is_multiline, f"{self} has many lines"
+        return self.lines[0]
+
+    @property
+    def multiline(self) -> List[str]:
+        """Return the lines, processed to remove markup"""
+        assert self.is_multiline, f"{self} is not multiline"
+        # Remove the ! and . markup
+        return [line[1:] for line in self.lines[:-1]]
 
 
 class CommandException(Exception):
@@ -16,28 +38,17 @@ class CommandException(Exception):
 class Command(Generic[T]):
     """Abstract baseclass for all `ControlConnection` commands to be inherited from"""
 
-    def lines(self) -> Lines:
+    def lines(self) -> List[str]:
         """Return lines that should be sent to the PandA, with no newlines in them"""
         raise NotImplementedError(self)
 
-    def response(self, lines: Lines) -> T:
+    def response(self, raw: RawResponse) -> T:
         """Create a response from the lines received from the PandA"""
         raise NotImplementedError(self)
 
-    def ok_if(self, ok, lines: Lines):
-        """If not ok then raise a suitable `CommandException`"""
-        if not ok:
-            msg = f"{self} ->"
-            if isinstance(lines, list):
-                for line in lines:
-                    msg += "\n    " + line.decode()
-            else:
-                msg += " " + lines.decode()
-            raise CommandException(msg)
-
 
 @dataclass
-class Get(Command[Lines]):
+class Get(Command[Union[str, List[str]]]):
     """Get the value of a field or star command.
 
     Args:
@@ -45,25 +56,25 @@ class Get(Command[Lines]):
 
     For example::
 
-        Get("PCAP.ACTIVE") -> b"1"
-        Get("SEQ1.TABLE") -> [b"1048576", b"0", b"1000", b"1000"]
-        Get("*IDN") -> b"PandA 1.1..."
+        Get("PCAP.ACTIVE") -> "1"
+        Get("SEQ1.TABLE") -> ["1048576", "0", "1000", "1000"]
+        Get("*IDN") -> "PandA 1.1..."
     """
 
     field: str
 
-    def lines(self) -> Lines:
-        return f"{self.field}?".encode()
+    def lines(self) -> List[str]:
+        return [f"{self.field}?"]
 
-    def response(self, lines: Lines) -> Lines:
-        """The value that was requested as a byte string. If it is multiline
-        then it will be a list of byte strings"""
-        if not isinstance(lines, list):
-            # We got OK =value
-            self.ok_if(lines.startswith(b"OK ="), lines)
-            return lines[4:]
+    def response(self, raw: RawResponse) -> Union[str, List[str]]:
+        """The value that was requested as a string. If it is multiline then it
+        will be a list of strings"""
+        if raw.is_multiline:
+            return raw.multiline
         else:
-            return lines
+            # We got OK =value
+            assert raw.line.startswith("OK =")
+            return raw.line[4:]
 
 
 @dataclass
@@ -83,27 +94,35 @@ class Put(Command[None]):
     field: str
     value: Union[str, List[str]] = ""
 
-    def lines(self) -> Lines:
+    def lines(self) -> List[str]:
         if isinstance(self.value, list):
             # Multiline table with blank line to terminate
-            return (
-                [f"{self.field}<".encode()] + [v.encode() for v in self.value] + [b""]
-            )
+            return [f"{self.field}<"] + self.value + [""]
         else:
-            return f"{self.field}={self.value}".encode()
+            return [f"{self.field}={self.value}"]
 
-    def response(self, lines: Lines):
-        self.ok_if(lines == b"OK", lines)
+    def response(self, raw: RawResponse):
+        assert raw.line == "OK"
 
 
 class Arm(Command[None]):
     """Arm PCAP for an acquisition by sending ``*PCAP.ARM=``"""
 
-    def lines(self) -> Lines:
-        return b"*PCAP.ARM="
+    def lines(self) -> List[str]:
+        return ["*PCAP.ARM="]
 
-    def response(self, lines: Lines):
-        self.ok_if(lines == b"OK", lines)
+    def response(self, raw: RawResponse):
+        assert raw.line == "OK"
+
+
+class Disarm(Command[None]):
+    """Disarm PCAP, stopping acquisition by sending ``*PCAP.DISARM=``"""
+
+    def lines(self) -> List[str]:
+        return ["*PCAP.DISARM="]
+
+    def response(self, raw: RawResponse):
+        assert raw.line == "OK"
 
 
 class GetBlockNumbers(Command[Dict[str, int]]):
@@ -114,18 +133,17 @@ class GetBlockNumbers(Command[Dict[str, int]]):
         GetBlockNumbers() -> {"LUT": 8, "PCAP": 1, ...}
     """
 
-    def lines(self) -> Lines:
-        return b"*BLOCKS?"
+    def lines(self) -> List[str]:
+        return ["*BLOCKS?"]
 
-    def response(self, lines: Lines) -> Dict[str, int]:
+    def response(self, raw: RawResponse) -> Dict[str, int]:
         """The name and number of each block type in a dictionary,
         alphabetically ordered"""
-        blocks = {}
-        assert isinstance(lines, list), f"Expected list of Blocks, got {lines!r}"
-        for line in lines:
+        blocks_list = []
+        for line in raw.multiline:
             block, num = line.split()
-            blocks[block.decode()] = int(num)
-        return {block: num for block, num in sorted(blocks.items())}
+            blocks_list.append((block, int(num)))
+        return dict(sorted(blocks_list))
 
 
 @dataclass
@@ -142,16 +160,15 @@ class GetFields(Command[Dict[str, FieldType]]):
 
     block: str
 
-    def lines(self) -> Lines:
-        return f"{self.block}.*?".encode()
+    def lines(self) -> List[str]:
+        return [f"{self.block}.*?"]
 
-    def response(self, lines: Lines) -> Dict[str, FieldType]:
+    def response(self, raw: RawResponse) -> Dict[str, FieldType]:
         """The name and `FieldType` of each field in a dictionary, ordered
         to match the definition order in the PandA"""
         unsorted: Dict[int, Tuple[str, FieldType]] = {}
-        assert isinstance(lines, list), f"Expected list of Fields, got {lines!r}"
-        for line in lines:
-            name, index, type_subtype = line.decode().split(maxsplit=2)
+        for line in raw.multiline:
+            name, index, type_subtype = line.split(maxsplit=2)
             unsorted[int(index)] = (name, FieldType(*type_subtype.split()))
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
@@ -203,13 +220,9 @@ class Raw(Command[List[str]]):
 
     inp: List[str]
 
-    def lines(self) -> Lines:
-        return [line.encode() for line in self.inp]
+    def lines(self) -> List[str]:
+        return self.inp
 
-    def response(self, lines: Lines) -> List[str]:
+    def response(self, raw: RawResponse) -> List[str]:
         """The lines that PandA responded, including the multiline markup"""
-        if isinstance(lines, List):
-            # Add the multiline markup back in...
-            return [f"!{line.decode()}" for line in lines] + ["."]
-        else:
-            return [lines.decode()]
+        return raw.lines

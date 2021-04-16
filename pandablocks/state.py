@@ -34,10 +34,10 @@ class State:
         lines = self._client.send(Get(command))
 
         # send may return a single bytes or a list of bytes
-        if isinstance(lines, bytes):
-            result = [lines.decode()]
+        if isinstance(lines, list):
+            result = lines
         else:
-            result = [line.decode() for line in lines]
+            result = [lines]
         return result
 
     def save(self) -> List[str]:
