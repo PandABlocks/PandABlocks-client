@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>API &mdash; PandABlocks-client 0.0+untagged.g89bb7d6 documentation</title>
+  <title>API &mdash; PandABlocks-client 0.0+untagged.g9c28763 documentation</title>
   
 
   
@@ -224,6 +224,25 @@ the <a class="reference internal" href="#pandablocks.connections.ControlConnecti
 with a simple <a class="reference internal" href="#pandablocks.commands.Get" title="pandablocks.commands.Get"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Get</span></code></a> or <a class="reference internal" href="#pandablocks.commands.Put" title="pandablocks.commands.Put"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Put</span></code></a>, but some convenience commands like
 <a class="reference internal" href="#pandablocks.commands.GetBlockNumbers" title="pandablocks.commands.GetBlockNumbers"><code class="xref any py py-class docutils literal notranslate"><span class="pre">GetBlockNumbers</span></code></a>, <a class="reference internal" href="#pandablocks.commands.GetFields" title="pandablocks.commands.GetFields"><code class="xref any py py-class docutils literal notranslate"><span class="pre">GetFields</span></code></a>, etc. are provided that parse output into
 specific classes.</p>
+<dl class="py class">
+<dt id="pandablocks.commands.RawResponse">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">RawResponse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">is_multiline</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/commands.html#RawResponse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.RawResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>A helper class representing a list of lines returned from PandA</p>
+<p>No newlines</p>
+<dl class="py method">
+<dt id="pandablocks.commands.RawResponse.line">
+<em class="property">property </em><code class="sig-name descname">line</code><a class="headerlink" href="#pandablocks.commands.RawResponse.line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check we are not multiline and return the line</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandablocks.commands.RawResponse.multiline">
+<em class="property">property </em><code class="sig-name descname">multiline</code><a class="headerlink" href="#pandablocks.commands.RawResponse.multiline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the lines, processed to remove markup</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py exception">
 <dt id="pandablocks.commands.CommandException">
 <em class="property">exception </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">CommandException</code><a class="reference internal" href="../_modules/pandablocks/commands.html#CommandException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.CommandException" title="Permalink to this definition">¶</a></dt>
@@ -236,20 +255,14 @@ specific classes.</p>
 <dd><p>Abstract baseclass for all <a class="reference internal" href="#pandablocks.connections.ControlConnection" title="pandablocks.connections.ControlConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ControlConnection</span></code></a> commands to be inherited from</p>
 <dl class="py method">
 <dt id="pandablocks.commands.Command.lines">
-<code class="sig-name descname">lines</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.lines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.lines" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">lines</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.lines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.lines" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return lines that should be sent to the PandA, with no newlines in them</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="pandablocks.commands.Command.response">
-<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="appendix.html#T" title="T">T</a><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.response" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">raw</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.RawResponse" title="pandablocks.commands.RawResponse">pandablocks.commands.RawResponse</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="appendix.html#T" title="T">T</a><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.response" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a response from the lines received from the PandA</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="pandablocks.commands.Command.ok_if">
-<code class="sig-name descname">ok_if</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ok</span></em>, <em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Command.ok_if"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Command.ok_if" title="Permalink to this definition">¶</a></dt>
-<dd><p>If not ok then raise a suitable <a class="reference internal" href="#pandablocks.commands.CommandException" title="pandablocks.commands.CommandException"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">CommandException</span></code></a></p>
 </dd></dl>
 
 </dd></dl>
@@ -264,16 +277,16 @@ specific classes.</p>
 </dd>
 </dl>
 <p>For example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Get</span><span class="p">(</span><span class="s2">&quot;PCAP.ACTIVE&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="sa">b</span><span class="s2">&quot;1&quot;</span>
-<span class="n">Get</span><span class="p">(</span><span class="s2">&quot;SEQ1.TABLE&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="sa">b</span><span class="s2">&quot;1048576&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;1000&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;1000&quot;</span><span class="p">]</span>
-<span class="n">Get</span><span class="p">(</span><span class="s2">&quot;*IDN&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="sa">b</span><span class="s2">&quot;PandA 1.1...&quot;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Get</span><span class="p">(</span><span class="s2">&quot;PCAP.ACTIVE&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;1&quot;</span>
+<span class="n">Get</span><span class="p">(</span><span class="s2">&quot;SEQ1.TABLE&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="s2">&quot;1048576&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1000&quot;</span><span class="p">,</span> <span class="s2">&quot;1000&quot;</span><span class="p">]</span>
+<span class="n">Get</span><span class="p">(</span><span class="s2">&quot;*IDN&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PandA 1.1...&quot;</span>
 </pre></div>
 </div>
 <dl class="py method">
 <dt id="pandablocks.commands.Get.response">
-<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Get.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Get.response" title="Permalink to this definition">¶</a></dt>
-<dd><p>The value that was requested as a byte string. If it is multiline
-then it will be a list of byte strings</p>
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">raw</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.RawResponse" title="pandablocks.commands.RawResponse">pandablocks.commands.RawResponse</a></span></em><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Get.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Get.response" title="Permalink to this definition">¶</a></dt>
+<dd><p>The value that was requested as a string. If it is multiline then it
+will be a list of strings</p>
 </dd></dl>
 
 </dd></dl>
@@ -304,6 +317,12 @@ then it will be a list of byte strings</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="pandablocks.commands.Disarm">
+<em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">Disarm</code><a class="reference internal" href="../_modules/pandablocks/commands.html#Disarm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Disarm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disarm PCAP, stopping acquisition by sending <code class="docutils literal notranslate"><span class="pre">*PCAP.DISARM=</span></code></p>
+</dd></dl>
+
+<dl class="py class">
 <dt id="pandablocks.commands.GetBlockNumbers">
 <em class="property">class </em><code class="sig-prename descclassname">pandablocks.commands.</code><code class="sig-name descname">GetBlockNumbers</code><a class="reference internal" href="../_modules/pandablocks/commands.html#GetBlockNumbers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetBlockNumbers" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the descriptions and field lists of the requested Blocks.</p>
@@ -313,7 +332,7 @@ then it will be a list of byte strings</p>
 </div>
 <dl class="py method">
 <dt id="pandablocks.commands.GetBlockNumbers.response">
-<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#GetBlockNumbers.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetBlockNumbers.response" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">raw</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.RawResponse" title="pandablocks.commands.RawResponse">pandablocks.commands.RawResponse</a></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#GetBlockNumbers.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetBlockNumbers.response" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name and number of each block type in a dictionary,
 alphabetically ordered</p>
 </dd></dl>
@@ -335,7 +354,7 @@ alphabetically ordered</p>
 </div>
 <dl class="py method">
 <dt id="pandablocks.commands.GetFields.response">
-<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference internal" href="#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType">pandablocks.responses.FieldType</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#GetFields.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetFields.response" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">raw</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.RawResponse" title="pandablocks.commands.RawResponse">pandablocks.commands.RawResponse</a></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference internal" href="#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType">pandablocks.responses.FieldType</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#GetFields.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.GetFields.response" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name and <a class="reference internal" href="#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldType</span></code></a> of each field in a dictionary, ordered
 to match the definition order in the PandA</p>
 </dd></dl>
@@ -379,7 +398,7 @@ to match the definition order in the PandA</p>
 </div>
 <dl class="py method">
 <dt id="pandablocks.commands.Raw.response">
-<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">, </span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Raw.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Raw.response" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">raw</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pandablocks.commands.RawResponse" title="pandablocks.commands.RawResponse">pandablocks.commands.RawResponse</a></span></em><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><a class="reference internal" href="../_modules/pandablocks/commands.html#Raw.response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandablocks.commands.Raw.response" title="Permalink to this definition">¶</a></dt>
 <dd><p>The lines that PandA responded, including the multiline markup</p>
 </dd></dl>
 
