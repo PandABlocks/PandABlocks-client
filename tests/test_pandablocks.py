@@ -19,7 +19,7 @@ def test_connection_gets_split_value():
     cmd = Get("PCAP.ACTIVE")
     assert conn.send(cmd) == b"PCAP.ACTIVE?\n"
     assert list(conn.receive_bytes(b"OK =1")) == []
-    assert list(conn.receive_bytes(b"\nAnySpamWeLike")) == [(cmd, b"1")]
+    assert list(conn.receive_bytes(b"\nAnySpamWeLike")) == [(cmd, "1")]
 
 
 def test_connection_gets_muliline():
@@ -28,7 +28,7 @@ def test_connection_gets_muliline():
     assert conn.send(cmd) == b"SEQ1.TABLE?\n"
     assert list(conn.receive_bytes(b"!1048576\n!0\n!10")) == []
     assert list(conn.receive_bytes(b"00\n!1000\n.\n")) == [
-        (cmd, [b"1048576", b"0", b"1000", b"1000"])
+        (cmd, ["1048576", "0", "1000", "1000"])
     ]
 
 

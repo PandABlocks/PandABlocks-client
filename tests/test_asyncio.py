@@ -11,7 +11,7 @@ async def test_asyncio_get(dummy_server_async):
     dummy_server_async.send.append("OK =something")
     async with AsyncioClient("localhost") as client:
         response = await asyncio.wait_for(client.send(Get("PCAP.ACTIVE")), timeout=1)
-    assert response == b"something"
+    assert response == "something"
     assert dummy_server_async.received == ["PCAP.ACTIVE?"]
 
 
