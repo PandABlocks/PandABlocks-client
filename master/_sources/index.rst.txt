@@ -42,6 +42,7 @@ About the documentation
 .. toctree::
     :caption: Tutorials
     :name: tutorials
+    :maxdepth: 1
 
     tutorials/installation
     tutorials/load-save
@@ -51,6 +52,7 @@ About the documentation
 .. toctree::
     :caption: How-to Guides
     :name: how-to
+    :maxdepth: 1
 
     how-to/library-hdf
     how-to/poll-changes
@@ -58,6 +60,7 @@ About the documentation
 .. toctree::
     :caption: Explanations
     :name: explanations
+    :maxdepth: 1
 
     explanations/sans-io
     explanations/performance
@@ -67,6 +70,7 @@ About the documentation
 .. toctree::
     :caption: Reference
     :name: reference
+    :maxdepth: 1
 
     reference/api
     reference/changelog

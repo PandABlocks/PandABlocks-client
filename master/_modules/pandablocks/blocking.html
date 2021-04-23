@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>pandablocks.blocking &mdash; PandABlocks-client 0.0+untagged.g9c28763 documentation</title>
+  <title>pandablocks.blocking &mdash; PandABlocks-client 0.0+untagged.gd78ac60 documentation</title>
   
 
   
@@ -282,12 +282,14 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">commands</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">:</span>
-            <span class="nb">bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
-            <span class="n">s</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="nb">bytes</span><span class="p">)</span>
+            <span class="n">to_send</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
         <span class="n">responses</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Command</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">responses</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">):</span>
-            <span class="nb">bytes</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
-            <span class="n">responses</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="nb">bytes</span><span class="p">))</span>
+            <span class="n">received</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+            <span class="n">to_send</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+            <span class="n">responses</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">responses</span><span class="p">())</span>
         <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
             <span class="n">c</span> <span class="o">==</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">responses</span><span class="p">)</span>
         <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Mismatched </span><span class="si">{</span><span class="n">commands</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">responses</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -311,10 +313,9 @@
         <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_socket</span><span class="o">.</span><span class="n">socket</span>
         <span class="n">s</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="n">frame_timeout</span><span class="p">)</span>  <span class="c1"># close enough</span>
         <span class="n">s</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">scaled</span><span class="p">))</span>
-        <span class="c1"># bool(True) instead of True so IDE sees finally block is reachable</span>
-        <span class="k">while</span> <span class="nb">bool</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-            <span class="nb">bytes</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
-            <span class="k">yield from</span> <span class="n">connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="nb">bytes</span><span class="p">)</span></div></div>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">received</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+            <span class="k">yield from</span> <span class="n">connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>PandABlocks Python Client &mdash; PandABlocks-client 0.0+untagged.g9c28763 documentation</title>
+  <title>PandABlocks Python Client &mdash; PandABlocks-client 0.0+untagged.gd78ac60 documentation</title>
   
 
   
@@ -270,91 +270,32 @@ INFO:Closed &#39;/tmp/panda-1.h5&#39; after writing 50000000 samples. End reason
 <div class="toctree-wrapper compound" id="id1">
 <p class="caption"><span class="caption-text">Tutorials</span><a class="headerlink" href="#id1" title="Permalink to this toctree">¶</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/installation.html">Installation Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/installation.html#check-your-version-of-python">Check your version of python</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/installation.html#create-a-virtual-environment">Create a virtual environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/installation.html#installing-the-library">Installing the library</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/load-save.html">Commandline Load/Save Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/load-save.html#save">Save</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/load-save.html#load">Load</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/control.html">Interactive Control Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#connect">Connect</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#type-commands">Type Commands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#control-an-acquisition">Control an acquisition</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/control.html#conclusion">Conclusion</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#capturing-some-data">Capturing some data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#examining-the-data">Examining the data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#collecting-more-data-faster">Collecting more data faster</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/commandline-hdf.html#conclusion">Conclusion</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/installation.html">Installation Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/control.html">Interactive Control Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound" id="id2">
 <p class="caption"><span class="caption-text">How-to Guides</span><a class="headerlink" href="#id2" title="Permalink to this toctree">¶</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="how-to/library-hdf.html">How to use the library to capture HDF files</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="how-to/library-hdf.html#approach-1-call-the-function-directly">Approach 1: Call the function directly</a></li>
-<li class="toctree-l2"><a class="reference internal" href="how-to/library-hdf.html#approach-2-create-the-pipeline-yourself">Approach 2: Create the pipeline yourself</a></li>
-<li class="toctree-l2"><a class="reference internal" href="how-to/library-hdf.html#performance">Performance</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="how-to/library-hdf.html">How to use the library to capture HDF files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="how-to/poll-changes.html">How to efficiently poll for changes</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound" id="id3">
 <p class="caption"><span class="caption-text">Explanations</span><a class="headerlink" href="#id3" title="Permalink to this toctree">¶</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="explanations/sans-io.html">Why write a Sans-IO library?</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="explanations/sans-io.html#connections">Connections</a></li>
-<li class="toctree-l2"><a class="reference internal" href="explanations/sans-io.html#wrappers">Wrappers</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="explanations/performance.html">How fast can we write HDF files?</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="explanations/performance.html#factors-to-consider">Factors to consider</a></li>
-<li class="toctree-l2"><a class="reference internal" href="explanations/performance.html#strategies-to-help">Strategies to help</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#average-the-data">Average the data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#scale-the-data-on-the-client">Scale the data on the client</a></li>
-<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#remove-the-panda-webcontrol-package">Remove the panda-webcontrol package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="explanations/performance.html#flush-about-1hz">Flush about 1Hz</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="explanations/performance.html#performance-achieved">Performance Achieved</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="explanations/sans-io.html">Why write a Sans-IO library?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="explanations/performance.html">How fast can we write HDF files?</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper no-margin-after-ul compound" id="id4">
 <p class="caption"><span class="caption-text">Reference</span><a class="headerlink" href="#id4" title="Permalink to this toctree">¶</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="reference/api.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reference/api.html#commands">Commands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/api.html#responses">Responses</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/api.html#connections">Connections</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/api.html#asyncio-client">Asyncio Client</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/api.html#blocking-client">Blocking Client</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/api.html#hdf-writing">HDF Writing</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="reference/changelog.html">Change Log</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reference/changelog.html#unreleased">Unreleased</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/changelog.html#id1">0.1 - 2020-07-09</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="reference/contributing.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reference/contributing.html#running-the-tests">Running the tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/contributing.html#code-styling">Code Styling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/contributing.html#documentation">Documentation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/contributing.html#release-checklist">Release Checklist</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/contributing.html">Contributing</a></li>
 </ul>
 </div>
 <ul class="simple">

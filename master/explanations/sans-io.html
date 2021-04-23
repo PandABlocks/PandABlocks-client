@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Why write a Sans-IO library? &mdash; PandABlocks-client 0.0+untagged.g9c28763 documentation</title>
+  <title>Why write a Sans-IO library? &mdash; PandABlocks-client 0.0+untagged.gd78ac60 documentation</title>
   
 
   
@@ -224,20 +224,25 @@ Command based interface. For example:</p>
 <span class="n">to_send</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
 <span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
 <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-    <span class="c1"># Repeatedly process bytes from the server looking for responses</span>
-    <span class="n">from_server</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">cc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">from_server</span><span class="p">):</span>
+    <span class="c1"># Repeatedly process bytes from the PandA</span>
+    <span class="n">received</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
+    <span class="c1"># Sending any subsequent bytes to be sent back to the PandA</span>
+    <span class="n">to_send</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">)</span>
+    <span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+    <span class="c1"># And processing the produced responses</span>
+    <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">cc</span><span class="o">.</span><span class="n">responses</span><span class="p">()</span>
         <span class="n">do_something_with</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The <a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection.send" title="pandablocks.connections.ControlConnection.send"><code class="xref py py-meth docutils literal notranslate"><span class="pre">send()</span></code></a> method takes a <a class="reference internal" href="../reference/api.html#pandablocks.commands.Command" title="pandablocks.commands.Command"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Command</span></code></a> subclass and
 returns the bytes that should be sent to the PandA. Whenever bytes are
 received from the socket they can be passed to
-<a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection.receive_bytes" title="pandablocks.connections.ControlConnection.receive_bytes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">receive_bytes()</span></code></a> which will return an iterator of
-<code class="docutils literal notranslate"><span class="pre">(command,</span> <span class="pre">response)</span></code> tuples. The response type will depend on the
-command. For instance <a class="reference internal" href="../reference/api.html#pandablocks.commands.Get" title="pandablocks.commands.Get"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Get</span></code></a> returns <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">bytes</span></code></a> or a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">bytes</span></code></a> of the
-field value, and <a class="reference internal" href="../reference/api.html#pandablocks.commands.GetFields" title="pandablocks.commands.GetFields"><code class="xref any py py-class docutils literal notranslate"><span class="pre">GetFields</span></code></a> returns a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> mapping <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> field name to
-<a class="reference internal" href="../reference/api.html#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldType</span></code></a>.</p>
+<a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection.receive_bytes" title="pandablocks.connections.ControlConnection.receive_bytes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">receive_bytes()</span></code></a> which will return any subsequent
+bytes that should be send back. The <a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection.responses" title="pandablocks.connections.ControlConnection.responses"><code class="xref py py-meth docutils literal notranslate"><span class="pre">responses()</span></code></a>
+method returns an iterator of <code class="docutils literal notranslate"><span class="pre">(command,</span> <span class="pre">response)</span></code> tuples that have now
+completed. The response type will depend on the command. For instance <a class="reference internal" href="../reference/api.html#pandablocks.commands.Get" title="pandablocks.commands.Get"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Get</span></code></a>
+returns <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">bytes</span></code></a> or a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">bytes</span></code></a> of the field value, and <a class="reference internal" href="../reference/api.html#pandablocks.commands.GetFields" title="pandablocks.commands.GetFields"><code class="xref any py py-class docutils literal notranslate"><span class="pre">GetFields</span></code></a>
+returns a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> mapping <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> field name to <a class="reference internal" href="../reference/api.html#pandablocks.responses.FieldType" title="pandablocks.responses.FieldType"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldType</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -245,14 +250,14 @@ field value, and <a class="reference internal" href="../reference/api.html#panda
 <em class="property">class </em><code class="sig-prename descclassname">pandablocks.connections.</code><code class="sig-name descname">DataConnection</code><a class="reference internal" href="../_modules/pandablocks/connections.html#DataConnection"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Sans-IO connection to data port of PandA TCP server, supporting an
 flushable iterator interface. For example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dc</span> <span class="o">=</span> <span class="n">ControlConnection</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dc</span> <span class="o">=</span> <span class="n">DataConnection</span><span class="p">()</span>
 <span class="c1"># Single connection string to send</span>
 <span class="n">to_send</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
 <span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
 <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-    <span class="c1"># Repeatedly process bytes from the server looking for data</span>
-    <span class="n">from_server</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">from_server</span><span class="p">):</span>
+    <span class="c1"># Repeatedly process bytes from the PandA looking for data</span>
+    <span class="n">received</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">):</span>
         <span class="n">do_something_with</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -269,14 +274,14 @@ to <a class="reference internal" href="../reference/api.html#pandablocks.connect
 <div class="section" id="wrappers">
 <h2>Wrappers<a class="headerlink" href="#wrappers" title="Permalink to this headline">¶</a></h2>
 <p>Of course, these Connections are useless without connecting some I/O. To aid with
-this, wrappers are included for use in <a class="reference internal" href="../reference/api.html#module-pandablocks.asyncio" title="pandablocks.asyncio"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code></a> and blocking programs. They expose
+this, wrappers are included for use in <a class="reference external" href="https://docs.python.org/3/library/asyncio.html" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">asyncio</span></code></a> and blocking programs. They expose
 slightly different APIs to make best use of the features of their respective concurrency frameworks.</p>
-<p>For example, to send multiple commands in fields with the blocking wrapper:</p>
+<p>For example, to send multiple commands in fields with the <a class="reference internal" href="../reference/api.html#module-pandablocks.blocking" title="pandablocks.blocking"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">blocking</span></code></a> wrapper:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">BlockingClient</span><span class="p">(</span><span class="s2">&quot;hostname&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
     <span class="n">resp1</span><span class="p">,</span> <span class="n">resp2</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">([</span><span class="n">cmd1</span><span class="p">,</span> <span class="n">cmd2</span><span class="p">])</span>
 </pre></div>
 </div>
-<p>while with asyncio we would:</p>
+<p>while with the <a class="reference internal" href="../reference/api.html#module-pandablocks.asyncio" title="pandablocks.asyncio"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code></a> wrapper we would:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">AsyncioClient</span><span class="p">(</span><span class="s2">&quot;hostname&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
     <span class="n">resp1</span><span class="p">,</span> <span class="n">resp2</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
         <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">cmd1</span><span class="p">),</span>

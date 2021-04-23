@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>pandablocks.responses &mdash; PandABlocks-client 0.0+untagged.g9c28763 documentation</title>
+  <title>pandablocks.responses &mdash; PandABlocks-client 0.0+untagged.gd78ac60 documentation</title>
   
 
   
@@ -196,7 +196,7 @@
   <h1>Source code for pandablocks.responses</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
@@ -215,6 +215,18 @@
 
     <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="Changes"><a class="viewcode-back" href="../../reference/api.html#pandablocks.responses.Changes">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Changes</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The changes returned from a ``*CHANGES`` command&quot;&quot;&quot;</span>
+
+    <span class="c1">#: Map field -&gt; value for single-line values that were returned</span>
+    <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="c1">#: The fields that were present but without value</span>
+    <span class="n">no_value</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="c1">#: The fields that were in error</span>
+    <span class="n">in_error</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
 
 
 <span class="c1"># Data</span>

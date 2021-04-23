@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>pandablocks.commands &mdash; PandABlocks-client 0.0+untagged.g9c28763 documentation</title>
+  <title>pandablocks.commands &mdash; PandABlocks-client 0.0+untagged.gd78ac60 documentation</title>
   
 
   
@@ -194,53 +194,143 @@
            <div itemprop="articleBody">
             
   <h1>Source code for pandablocks.commands</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">overload</span>
 
-<span class="kn">from</span> <span class="nn">.responses</span> <span class="kn">import</span> <span class="n">FieldType</span>
+<span class="kn">from</span> <span class="nn">._exchange</span> <span class="kn">import</span> <span class="n">Exchange</span><span class="p">,</span> <span class="n">ExchangeGenerator</span>
+<span class="kn">from</span> <span class="nn">.responses</span> <span class="kn">import</span> <span class="n">Changes</span><span class="p">,</span> <span class="n">FieldType</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)</span>
+<span class="n">T2</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T2&quot;</span><span class="p">)</span>
+<span class="n">T3</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T3&quot;</span><span class="p">)</span>
+<span class="n">T4</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T4&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="RawResponse"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.RawResponse">[docs]</a><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">RawResponse</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;A helper class representing a list of lines returned from PandA</span>
+<span class="c1"># Checks whether the server will interpret cmd as a table command: search for</span>
+<span class="c1"># first of &#39;?&#39;, &#39;=&#39;, &#39;&lt;&#39;, if &#39;&lt;&#39; found first then it&#39;s a multiline command.</span>
+<span class="n">MULTILINE_COMMAND</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[^?=]*&lt;&quot;</span><span class="p">)</span>
 
-<span class="sd">    No newlines</span>
-<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">lines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-    <span class="n">is_multiline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">def</span> <span class="nf">is_multiline_command</span><span class="p">(</span><span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">MULTILINE_COMMAND</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">line</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Check we are not multiline and return the line&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_multiline</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> has many lines&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">multiline</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Return the lines, processed to remove markup&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_multiline</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> is not multiline&quot;</span>
-        <span class="c1"># Remove the ! and . markup</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span></div>
+<div class="viewcode-block" id="Command"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Command">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Command</span><span class="p">(</span><span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract baseclass for all ControlConnection commands to be inherited from&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+        <span class="c1"># A generator that sends lines to the PandA, gets lines back, and returns a</span>
+        <span class="c1"># response</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CommandException"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.CommandException">[docs]</a><span class="k">class</span> <span class="nc">CommandException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Raised if a `Command` receives a mal-formed response&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="Command"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Command">[docs]</a><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">Command</span><span class="p">(</span><span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
-    <span class="sd">&quot;&quot;&quot;Abstract baseclass for all `ControlConnection` commands to be inherited from&quot;&quot;&quot;</span>
+<span class="c1"># `execute_commands()` actually returns a list with length equal to the number</span>
+<span class="c1"># of tasks passed; however, Tuple is used similar to the annotation for</span>
+<span class="c1"># zip() because typing does not support variadic type variables.  See</span>
+<span class="c1"># typeshed PR #1550 for discussion.</span>
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">]]:</span>
+    <span class="o">...</span>
 
-<div class="viewcode-block" id="Command.lines"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Command.lines">[docs]</a>    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Return lines that should be sent to the PandA, with no newlines in them&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Command.response"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Command.response">[docs]</a>    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create a response from the lines received from the PandA&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">]]:</span>
+    <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">],</span> <span class="n">c3</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T3</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">]]:</span>
+    <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">],</span> <span class="n">c3</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T3</span><span class="p">],</span> <span class="n">c4</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T4</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">,</span> <span class="n">T4</span><span class="p">]]:</span>
+    <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+    <span class="o">...</span>
+
+
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Call the `Command.execute` method on each of the commands to produce</span>
+<span class="sd">    some `Exchange` generators. , then</span>
+<span class="sd">    zip together the  to produce a &quot;&quot;&quot;</span>
+    <span class="c1"># If we add type annotations to this function then mypy complains:</span>
+    <span class="c1"># Overloaded function implementation does not accept all possible arguments</span>
+    <span class="c1"># As we want to type check this, we put the logic in _zip_with_return</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_zip_with_return</span><span class="p">([</span><span class="n">command</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span> <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">def</span> <span class="nf">_zip_with_return</span><span class="p">(</span>
+    <span class="n">generators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+    <span class="c1"># Sentinel to show what generators are not yet exhausted</span>
+    <span class="n">pending</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="n">returns</span> <span class="o">=</span> <span class="p">[</span><span class="n">pending</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">generators</span><span class="p">)</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">yields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Exchange</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">generators</span><span class="p">):</span>
+            <span class="c1"># If we haven&#39;t exhausted the generator</span>
+            <span class="k">if</span> <span class="n">returns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="n">pending</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Get the exchanges that it wants to fill in</span>
+                    <span class="n">exchanges</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c1"># Generator is exhausted, store its return value</span>
+                    <span class="n">returns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Add the exchanges to the list</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exchanges</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">yields</span> <span class="o">+=</span> <span class="n">exchanges</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">yields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exchanges</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">yields</span><span class="p">:</span>
+            <span class="c1"># There were some Exchanges yielded, so yield them all up</span>
+            <span class="c1"># for the Connection to fill in</span>
+            <span class="k">yield</span> <span class="n">yields</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># All the generators are exhausted, so return the tuple of all</span>
+            <span class="c1"># their return values</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">returns</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Raw"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Raw">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Raw</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]):</span>
+    <span class="sd">&quot;&quot;&quot;Send a raw command</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inp: The input lines to send</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        Raw([&quot;PCAP.ACTIVE?&quot;]) -&gt; [&quot;OK =1&quot;]</span>
+<span class="sd">        Raw([&quot;SEQ1.TABLE&gt;&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, &quot;&quot;]) -&gt; [&quot;OK&quot;]</span>
+<span class="sd">        Raw([&quot;SEQ1.TABLE?&quot;]) -&gt; [&quot;!1&quot;, &quot;!1&quot;, &quot;!0&quot;, &quot;!0&quot;, &quot;.&quot;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">inp</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inp</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">return</span> <span class="n">ex</span><span class="o">.</span><span class="n">received</span></div>
 
 
 <div class="viewcode-block" id="Get"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Get">[docs]</a><span class="nd">@dataclass</span>
@@ -259,18 +349,16 @@
 
     <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
 
-    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">]</span>
-
-<div class="viewcode-block" id="Get.response"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Get.response">[docs]</a>    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;The value that was requested as a string. If it is multiline then it</span>
-<span class="sd">        will be a list of strings&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">raw</span><span class="o">.</span><span class="n">is_multiline</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">raw</span><span class="o">.</span><span class="n">multiline</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">if</span> <span class="n">ex</span><span class="o">.</span><span class="n">is_multiline</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># We got OK =value</span>
-            <span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;OK =&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">raw</span><span class="o">.</span><span class="n">line</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span></div></div>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span>
+            <span class="k">assert</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;OK =&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">line</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span></div>
 
 
 <div class="viewcode-block" id="Put"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Put">[docs]</a><span class="nd">@dataclass</span>
@@ -290,61 +378,57 @@
     <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="c1"># Multiline table with blank line to terminate</span>
-            <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">&lt;&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span>
+            <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">&lt;&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
+            <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">assert</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
 
 
 <div class="viewcode-block" id="Arm"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Arm">[docs]</a><span class="k">class</span> <span class="nc">Arm</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
     <span class="sd">&quot;&quot;&quot;Arm PCAP for an acquisition by sending ``*PCAP.ARM=``&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;*PCAP.ARM=&quot;</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;*PCAP.ARM=&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">assert</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
 
 
 <div class="viewcode-block" id="Disarm"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Disarm">[docs]</a><span class="k">class</span> <span class="nc">Disarm</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
     <span class="sd">&quot;&quot;&quot;Disarm PCAP, stopping acquisition by sending ``*PCAP.DISARM=``&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;*PCAP.DISARM=&quot;</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">raw</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;*PCAP.DISARM=&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">assert</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
 
 
 <div class="viewcode-block" id="GetBlockNumbers"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetBlockNumbers">[docs]</a><span class="k">class</span> <span class="nc">GetBlockNumbers</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]):</span>
-    <span class="sd">&quot;&quot;&quot;Get the descriptions and field lists of the requested Blocks.</span>
+    <span class="sd">&quot;&quot;&quot;Get the name and number of each block type in a dictionary,</span>
+<span class="sd">    alphabetically ordered</span>
 
 <span class="sd">    For example::</span>
 
 <span class="sd">        GetBlockNumbers() -&gt; {&quot;LUT&quot;: 8, &quot;PCAP&quot;: 1, ...}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;*BLOCKS?&quot;</span><span class="p">]</span>
-
-<div class="viewcode-block" id="GetBlockNumbers.response"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetBlockNumbers.response">[docs]</a>    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;The name and number of each block type in a dictionary,</span>
-<span class="sd">        alphabetically ordered&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;*BLOCKS?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
         <span class="n">blocks_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
             <span class="n">block</span><span class="p">,</span> <span class="n">num</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
             <span class="n">blocks_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">block</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span><span class="p">)))</span>
-        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">blocks_list</span><span class="p">))</span></div></div>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">blocks_list</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="GetFields"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetFields">[docs]</a><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">GetFields</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldType</span><span class="p">]]):</span>
-    <span class="sd">&quot;&quot;&quot;Get the fields of a block, returning a `FieldType` for each one.</span>
+    <span class="sd">&quot;&quot;&quot;Get the fields of a block, returning a `FieldType` for each one, ordered</span>
+<span class="sd">    to match the definition order in the PandA</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        block: The name of the block type</span>
@@ -356,19 +440,16 @@
 
     <span class="n">block</span><span class="p">:</span> <span class="nb">str</span>
 
-    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.*?&quot;</span><span class="p">]</span>
-
-<div class="viewcode-block" id="GetFields.response"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetFields.response">[docs]</a>    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldType</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;The name and `FieldType` of each field in a dictionary, ordered</span>
-<span class="sd">        to match the definition order in the PandA&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldType</span><span class="p">]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.*?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
         <span class="n">unsorted</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldType</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
             <span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">type_subtype</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">unsorted</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">FieldType</span><span class="p">(</span><span class="o">*</span><span class="n">type_subtype</span><span class="o">.</span><span class="n">split</span><span class="p">()))</span>
         <span class="c1"># Dict keeps insertion order, so insert in the order the server said</span>
         <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">field</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unsorted</span><span class="o">.</span><span class="n">items</span><span class="p">())}</span>
-        <span class="k">return</span> <span class="n">fields</span></div></div>
+        <span class="k">return</span> <span class="n">fields</span></div>
 
 
 <div class="viewcode-block" id="GetPcapBitsLabels"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetPcapBitsLabels">[docs]</a><span class="k">class</span> <span class="nc">GetPcapBitsLabels</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
@@ -380,48 +461,140 @@
 <span class="sd">    &quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="GetChanges"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetChanges">[docs]</a><span class="k">class</span> <span class="nc">GetChanges</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Get the changes since the last time this was called.</span>
-
-<span class="sd">    For example::</span>
-
-<span class="sd">        GetChanges() -&gt; Changes()</span>
-<span class="sd">    &quot;&quot;&quot;</span></div>
-
-
-<span class="c1"># Checks whether the server will interpret cmd as a table command: search for</span>
-<span class="c1"># first of &#39;?&#39;, &#39;=&#39;, &#39;&lt;&#39;, if &#39;&lt;&#39; found first then it&#39;s a multiline command.</span>
-<span class="k">def</span> <span class="nf">is_multiline_command</span><span class="p">(</span><span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">cmd</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">ch</span> <span class="ow">in</span> <span class="s2">&quot;?=&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="n">ch</span> <span class="o">==</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="kc">False</span>
-
-
-<div class="viewcode-block" id="Raw"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Raw">[docs]</a><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">Raw</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]):</span>
-    <span class="sd">&quot;&quot;&quot;Send a raw command</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        inp: The input lines to send</span>
-
-<span class="sd">    For example::</span>
-
-<span class="sd">        Raw([&quot;PCAP.ACTIVE?&quot;]) -&gt; [&quot;OK =1&quot;]</span>
-<span class="sd">        Raw([&quot;SEQ1.TABLE&gt;&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;]) -&gt; [&quot;OK&quot;]</span>
-<span class="sd">        Raw([&quot;SEQ1.TABLE?&quot;]) -&gt; [&quot;!1&quot;, &quot;!1&quot;, &quot;!0&quot;, &quot;!0&quot;, &quot;.&quot;])</span>
+<div class="viewcode-block" id="ChangeGroup"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.ChangeGroup">[docs]</a><span class="k">class</span> <span class="nc">ChangeGroup</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Which group of values to ask for ``*CHANGES`` on:</span>
+<span class="sd">    https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">inp</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="c1">#: All the groups below</span>
+    <span class="n">ALL</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="c1">#: Configuration settings</span>
+    <span class="n">CONFIG</span> <span class="o">=</span> <span class="s2">&quot;.CONFIG&quot;</span>
+    <span class="c1">#: Bits on the system bus</span>
+    <span class="n">BITS</span> <span class="o">=</span> <span class="s2">&quot;.BITS&quot;</span>
+    <span class="c1">#: Positions</span>
+    <span class="n">POSN</span> <span class="o">=</span> <span class="s2">&quot;.POSN&quot;</span>
+    <span class="c1">#: Polled read values</span>
+    <span class="n">READ</span> <span class="o">=</span> <span class="s2">&quot;.READ&quot;</span>
+    <span class="c1">#: Attributes (included capture enable flags)</span>
+    <span class="n">ATTR</span> <span class="o">=</span> <span class="s2">&quot;.ATTR&quot;</span>
+    <span class="c1">#: Table changes</span>
+    <span class="n">TABLE</span> <span class="o">=</span> <span class="s2">&quot;.TABLE&quot;</span>
+    <span class="c1">#: Table changes</span>
+    <span class="n">METADATA</span> <span class="o">=</span> <span class="s2">&quot;.METADATA&quot;</span></div>
 
-    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inp</span>
 
-<div class="viewcode-block" id="Raw.response"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.Raw.response">[docs]</a>    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="n">RawResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;The lines that PandA responded, including the multiline markup&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">raw</span><span class="o">.</span><span class="n">lines</span></div></div>
+<div class="viewcode-block" id="GetChanges"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetChanges">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetChanges</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">Changes</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;Get a `Changes` object showing which fields have changed since the last</span>
+<span class="sd">    time this was called</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        group: Restrict to a particular `ChangeGroup`</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetChanges() -&gt; Changes(</span>
+<span class="sd">            value={&quot;PCAP.TRIG&quot;: &quot;PULSE1.OUT&quot;},</span>
+<span class="sd">            no_value=[&quot;SEQ1.TABLE&quot;],</span>
+<span class="sd">            in_error=[&quot;BAD.ENUM&quot;],</span>
+<span class="sd">        )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">group</span><span class="p">:</span> <span class="n">ChangeGroup</span> <span class="o">=</span> <span class="n">ChangeGroup</span><span class="o">.</span><span class="n">ALL</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Changes</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*CHANGES</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="n">Changes</span><span class="p">({},</span> <span class="p">[],</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span>
+                <span class="n">changes</span><span class="o">.</span><span class="n">no_value</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;(error)&quot;</span><span class="p">):</span>
+                <span class="n">changes</span><span class="o">.</span><span class="n">in_error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">changes</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">changes</span></div>
+
+
+<div class="viewcode-block" id="GetState"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.GetState">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetState</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]):</span>
+    <span class="sd">&quot;&quot;&quot;Get the state of all the fields in a PandA that should be saved as a</span>
+<span class="sd">    list of raw lines that could be sent with `SetState`.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetState() -&gt; [</span>
+<span class="sd">            &quot;SEQ1.TABLE&lt;B&quot;</span>
+<span class="sd">            &quot;234fds0SDklnmnr&quot;</span>
+<span class="sd">            &quot;&quot;</span>
+<span class="sd">            &quot;PCAP.TRIG=PULSE1.OUT&quot;,</span>
+<span class="sd">        ]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="c1"># TODO: explain in detail how this works</span>
+        <span class="c1"># See: references/how-it-works</span>
+        <span class="n">attr</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">ATTR</span><span class="p">),</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">CONFIG</span><span class="p">),</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">TABLE</span><span class="p">),</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">METADATA</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="c1"># Add the single line values</span>
+        <span class="n">line_values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="o">**</span><span class="n">metadata</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">line_values</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="c1"># Get the multiline values</span>
+        <span class="n">multiline_keys</span><span class="p">,</span> <span class="n">commands</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">no_value</span><span class="p">:</span>
+            <span class="c1"># Get tables as base64</span>
+            <span class="n">multiline_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&lt;B&quot;</span><span class="p">)</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">.B&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">no_value</span><span class="p">:</span>
+            <span class="c1"># Get metadata as string list</span>
+            <span class="n">multiline_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&lt;&quot;</span><span class="p">)</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+        <span class="n">multiline_values</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">multiline_keys</span><span class="p">,</span> <span class="n">multiline_values</span><span class="p">):</span>
+            <span class="n">state</span> <span class="o">+=</span> <span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+<div class="viewcode-block" id="SetState"><a class="viewcode-back" href="../../reference/api.html#pandablocks.commands.SetState">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">SetState</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;Set the state of all the fields in a PandA</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        state: A list of raw lines as produced by `GetState`</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        SetState([</span>
+<span class="sd">            &quot;SEQ1.TABLE&lt;B&quot;</span>
+<span class="sd">            &quot;234fds0SDklnmnr&quot;</span>
+<span class="sd">            &quot;&quot;</span>
+<span class="sd">            &quot;PCAP.TRIG=PULSE1.OUT&quot;,</span>
+<span class="sd">        ])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="n">commands</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Raw</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">command_lines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span>
+            <span class="n">command_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">first_line</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">command_lines</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">first_line</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_multiline_command</span><span class="p">(</span><span class="n">line</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                <span class="c1"># If not a multiline command</span>
+                <span class="c1"># Or blank line at the end of a multiline command</span>
+                <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Raw</span><span class="p">(</span><span class="n">command_lines</span><span class="p">))</span>
+                <span class="n">command_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">returns</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">ret</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">returns</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">ret</span> <span class="o">!=</span> <span class="p">[</span><span class="s2">&quot;OK&quot;</span><span class="p">]:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;command </span><span class="si">{</span><span class="n">command</span><span class="o">.</span><span class="n">inp</span><span class="si">}</span><span class="s2"> failed with </span><span class="si">{</span><span class="n">ret</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
