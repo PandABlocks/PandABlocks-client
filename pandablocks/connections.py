@@ -2,11 +2,13 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 from collections import deque
+from dataclasses import dataclass
 from typing import Any, Callable, Deque, Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from .commands import Command, CommandException, RawResponse
+from ._exchange import Exchange, ExchangeGenerator, Exchanges
+from .commands import Command, CommandException
 from .responses import (
     Data,
     EndData,
@@ -89,6 +91,29 @@ class Buffer:
             raise StopIteration()
 
 
+@dataclass
+class _ExchangeContext:
+    #: The exchange we should be filling
+    exchange: Exchange
+    #: The command that produced it
+    command: Command
+    #: If this was the last in the list, the generator to call next
+    generator: Optional[ExchangeGenerator[Any]] = None
+
+    def exception(self, e: Exception) -> CommandException:
+        """Return a `CommandException` with the sent and received strings
+        in the text"""
+        msg = f"{self.command} ->"
+        if self.exchange.is_multiline:
+            for line in self.exchange.multiline:
+                msg += "\n    " + line
+        else:
+            msg += " " + self.exchange.line
+        if e.args:
+            msg += f"\n{type(e).__name__}:{e}"
+        return CommandException(msg).with_traceback(e.__traceback__)
+
+
 class ControlConnection:
     """Sans-IO connection to control port of PandA TCP server, supporting a
     Command based interface. For example::
@@ -98,37 +123,67 @@ class ControlConnection:
         to_send = cc.send(command)
         socket.sendall(to_send)
         while True:
-            # Repeatedly process bytes from the server looking for responses
-            from_server = socket.recv()
-            for command, response in cc.receive_bytes(from_server):
+            # Repeatedly process bytes from the PandA
+            received = socket.recv()
+            # Sending any subsequent bytes to be sent back to the PandA
+            to_send = cc.receive_bytes(received)
+            socket.sendall(to_send)
+            # And processing the produced responses
+            for command, response in cc.responses()
                 do_something_with(response)
     """
 
     def __init__(self):
         self._buf = Buffer()
         self._lines: List[str] = []
-        self._commands: Deque[Command] = deque()
+        self._contexts: Deque[_ExchangeContext] = deque()
+        self._responses: Deque[Tuple[Command, Any]] = deque()
 
-    def _pop_command_response(self, raw: RawResponse) -> Tuple[Command, Any]:
-        command = self._commands.popleft()
-        try:
-            response = command.response(raw)
-        except Exception as e:
-            msg = f"{command} ->"
-            if raw.is_multiline:
-                for line in raw.multiline:
-                    msg += "\n    " + line
+    def _update_contexts(self, lines: List[str], is_multiline=False) -> bytes:
+        to_send = b""
+        context = self._contexts.popleft()
+        # Update the exchange with what we've got
+        context.exchange.received = lines
+        context.exchange.is_multiline = is_multiline
+        # If we're given a generator to run then do so
+        if context.generator:
+            try:
+                # Return the bytes from sending the next bit of the command
+                exchanges = next(context.generator)
+            except StopIteration as e:
+                # Command complete, store the result
+                self._responses.append((context.command, e.value))
+            except Exception as e:
+                # Command failed, store an exception
+                self._responses.append((context.command, context.exception(e)))
             else:
-                msg += " " + raw.line
-            response = CommandException(msg).with_traceback(e.__traceback__)
-        return command, response
+                to_send = b"".join(
+                    self._bytes_from_exchanges(
+                        exchanges, context.command, context.generator
+                    )
+                )
+        return to_send
 
-    def receive_bytes(self, received: bytes) -> Iterator[Tuple[Command, Any]]:
+    def _bytes_from_exchanges(
+        self, exchanges: Exchanges, command: Command, generator: ExchangeGenerator[Any]
+    ) -> Iterator[bytes]:
+        if not isinstance(exchanges, list):
+            exchanges = [exchanges]
+        for ex in exchanges:
+            context = _ExchangeContext(ex, command)
+            self._contexts.append(context)
+            text = "\n".join(ex.to_send) + "\n"
+            yield text.encode()
+        # The last exchange gets the generator so it triggers the next thing to send
+        context.generator = generator
+
+    def receive_bytes(self, received: bytes) -> bytes:
         """Tell the connection that you have received some bytes off the network.
-        Parse these into high level responses which are yielded back with the
-        command that triggered this response"""
+        Parse these into high level responses which are yielded back by `responses`.
+        Return any bytes to send back"""
         self._buf += received
         is_multiline = bool(self._lines)
+        to_send = b""
         for line_b in self._buf:
             line = line_b.decode()
             if not is_multiline:
@@ -139,9 +194,7 @@ class ControlConnection:
                 self._lines.append(line)
                 if line == ".":
                     # End of multiline mode, return what we've got
-                    yield self._pop_command_response(
-                        RawResponse(self._lines, is_multiline)
-                    )
+                    to_send += self._update_contexts(self._lines, is_multiline)
                     self._lines = []
                     is_multiline = False
                 else:
@@ -154,29 +207,38 @@ class ControlConnection:
                 assert not self._lines, (
                     "Multiline response %s not terminated" % self._lines
                 )
-                yield self._pop_command_response(RawResponse([line]))
+                to_send += self._update_contexts([line])
+        return to_send
+
+    def responses(self) -> Iterator[Tuple[Command, Any]]:
+        """Get the (command, response) tuples generated as part of the last
+        receive_bytes"""
+        while self._responses:
+            yield self._responses.popleft()
 
     def send(self, command: Command) -> bytes:
         """Tell the connection you want to send an event, and it will return
         some bytes to send down the network
         """
-        self._commands.append(command)
-        text = "\n".join(command.lines()) + "\n"
-        return text.encode()
+        # If not given a partially run generator, start one here
+        generator = command.execute()
+        exchanges = next(generator)
+        to_send = b"".join(self._bytes_from_exchanges(exchanges, command, generator))
+        return to_send
 
 
 class DataConnection:
     """Sans-IO connection to data port of PandA TCP server, supporting an
     flushable iterator interface. For example::
 
-        dc = ControlConnection()
+        dc = DataConnection()
         # Single connection string to send
         to_send = dc.connect()
         socket.sendall(to_send)
         while True:
-            # Repeatedly process bytes from the server looking for data
-            from_server = socket.recv()
-            for data in dc.receive_bytes(from_server):
+            # Repeatedly process bytes from the PandA looking for data
+            received = socket.recv()
+            for data in dc.receive_bytes(received):
                 do_something_with(data)
     """
 

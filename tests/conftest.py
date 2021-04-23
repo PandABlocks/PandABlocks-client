@@ -302,3 +302,30 @@ def dummy_server_in_thread():
     asyncio.run_coroutine_threadsafe(server.close(), loop).result()
     loop.call_soon_threadsafe(loop.stop())
     t.join()
+
+
+STATE_RESPONSES = [
+    "!Attr=0\n.",
+    "!Config=0\n.",
+    "!Table<\n.",
+    "!SingleLineMeta1=0\n!MultiLineMeta1<\n!SingleLineMeta2=0\n!MultiLineMeta2<\n.",
+    "!tabledata\n.",
+    "!multimetadata1\n.",
+    "!multimetadata2\n.",
+]
+
+STATE_SAVEFILE = [
+    "Attr=0",
+    "Config=0",
+    "SingleLineMeta1=0",
+    "SingleLineMeta2=0",
+    "Table<B",
+    "tabledata",
+    "",
+    "MultiLineMeta1<",
+    "multimetadata1",
+    "",
+    "MultiLineMeta2<",
+    "multimetadata2",
+    "",
+]

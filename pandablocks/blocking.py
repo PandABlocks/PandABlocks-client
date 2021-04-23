@@ -86,12 +86,14 @@ class BlockingClient:
         else:
             commands = list(commands)
         for command in commands:
-            bytes = self._ctrl_connection.send(command)
-            s.sendall(bytes)
+            to_send = self._ctrl_connection.send(command)
+            s.sendall(to_send)
         responses: List[Tuple[Command, Any]] = []
         while len(responses) < len(commands):
-            bytes = s.recv(4096)
-            responses += list(self._ctrl_connection.receive_bytes(bytes))
+            received = s.recv(4096)
+            to_send = self._ctrl_connection.receive_bytes(received)
+            s.sendall(to_send)
+            responses += list(self._ctrl_connection.responses())
         assert all(
             c == r[0] for c, r in zip(commands, responses)
         ), f"Mismatched {commands} and {responses}"
@@ -115,7 +117,6 @@ class BlockingClient:
         s = self._data_socket.socket
         s.settimeout(frame_timeout)  # close enough
         s.sendall(connection.connect(scaled))
-        # bool(True) instead of True so IDE sees finally block is reachable
-        while bool(True):
-            bytes = s.recv(4096)
-            yield from connection.receive_bytes(bytes)
+        while True:
+            received = s.recv(4096)
+            yield from connection.receive_bytes(received)

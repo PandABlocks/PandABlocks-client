@@ -26,11 +26,12 @@ corresponding `ControlConnection` and `DataConnection` objects:
     The :meth:`~ControlConnection.send` method takes a `Command` subclass and
     returns the bytes that should be sent to the PandA. Whenever bytes are
     received from the socket they can be passed to
-    :meth:`~ControlConnection.receive_bytes` which will return an iterator of
-    ``(command, response)`` tuples. The response type will depend on the
-    command. For instance `Get` returns `bytes` or a `list` of `bytes` of the
-    field value, and `GetFields` returns a `dict` mapping `str` field name to
-    `FieldType`.
+    :meth:`~ControlConnection.receive_bytes` which will return any subsequent
+    bytes that should be send back. The :meth:`~ControlConnection.responses`
+    method returns an iterator of ``(command, response)`` tuples that have now
+    completed. The response type will depend on the command. For instance `Get`
+    returns `bytes` or a `list` of `bytes` of the field value, and `GetFields`
+    returns a `dict` mapping `str` field name to `FieldType`.
 
 .. autoclass:: DataConnection
     :noindex:
@@ -47,15 +48,15 @@ Wrappers
 --------
 
 Of course, these Connections are useless without connecting some I/O. To aid with
-this, wrappers are included for use in `asyncio` and blocking programs. They expose
+this, wrappers are included for use in `asyncio <library/asyncio>` and blocking programs. They expose
 slightly different APIs to make best use of the features of their respective concurrency frameworks.
 
-For example, to send multiple commands in fields with the blocking wrapper::
+For example, to send multiple commands in fields with the `blocking` wrapper::
 
     with BlockingClient("hostname") as client:
         resp1, resp2 = client.send([cmd1, cmd2])
 
-while with asyncio we would::
+while with the `asyncio` wrapper we would::
 
     async with AsyncioClient("hostname") as client:
         resp1, resp2 = await asyncio.gather(
