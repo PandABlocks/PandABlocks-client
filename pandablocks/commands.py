@@ -1,50 +1,140 @@
+import logging
+import re
 from dataclasses import dataclass
-from typing import Dict, Generic, List, Tuple, TypeVar, Union
+from enum import Enum
+from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
 
-from .responses import FieldType
+from ._exchange import Exchange, ExchangeGenerator
+from .responses import Changes, FieldType
 
 T = TypeVar("T")
+T2 = TypeVar("T2")
+T3 = TypeVar("T3")
+T4 = TypeVar("T4")
+
+
+# Checks whether the server will interpret cmd as a table command: search for
+# first of '?', '=', '<', if '<' found first then it's a multiline command.
+MULTILINE_COMMAND = re.compile(r"^[^?=]*<")
+
+
+def is_multiline_command(cmd: str):
+    return MULTILINE_COMMAND.match(cmd) is not None
 
 
 @dataclass
-class RawResponse:
-    """A helper class representing a list of lines returned from PandA
+class Command(Generic[T]):
+    """Abstract baseclass for all ControlConnection commands to be inherited from"""
 
-    No newlines
-    """
-
-    lines: List[str]
-    is_multiline: bool = False
-
-    @property
-    def line(self) -> str:
-        """Check we are not multiline and return the line"""
-        assert not self.is_multiline, f"{self} has many lines"
-        return self.lines[0]
-
-    @property
-    def multiline(self) -> List[str]:
-        """Return the lines, processed to remove markup"""
-        assert self.is_multiline, f"{self} is not multiline"
-        # Remove the ! and . markup
-        return [line[1:] for line in self.lines[:-1]]
+    def execute(self) -> ExchangeGenerator[T]:
+        # A generator that sends lines to the PandA, gets lines back, and returns a
+        # response
+        raise NotImplementedError(self)
 
 
 class CommandException(Exception):
     """Raised if a `Command` receives a mal-formed response"""
 
 
+# `execute_commands()` actually returns a list with length equal to the number
+# of tasks passed; however, Tuple is used similar to the annotation for
+# zip() because typing does not support variadic type variables.  See
+# typeshed PR #1550 for discussion.
+@overload
+def _execute_commands(c1: Command[T]) -> ExchangeGenerator[Tuple[T]]:
+    ...
+
+
+@overload
+def _execute_commands(
+    c1: Command[T], c2: Command[T2]
+) -> ExchangeGenerator[Tuple[T, T2]]:
+    ...
+
+
+@overload
+def _execute_commands(
+    c1: Command[T], c2: Command[T2], c3: Command[T3]
+) -> ExchangeGenerator[Tuple[T, T2, T3]]:
+    ...
+
+
+@overload
+def _execute_commands(
+    c1: Command[T], c2: Command[T2], c3: Command[T3], c4: Command[T4]
+) -> ExchangeGenerator[Tuple[T, T2, T3, T4]]:
+    ...
+
+
+@overload
+def _execute_commands(*commands: Command[Any]) -> ExchangeGenerator[Tuple[Any, ...]]:
+    ...
+
+
+def _execute_commands(*commands):
+    """Call the `Command.execute` method on each of the commands to produce
+    some `Exchange` generators. , then
+    zip together the  to produce a """
+    # If we add type annotations to this function then mypy complains:
+    # Overloaded function implementation does not accept all possible arguments
+    # As we want to type check this, we put the logic in _zip_with_return
+    ret = yield from _zip_with_return([command.execute() for command in commands])
+    return ret
+
+
+def _zip_with_return(
+    generators: List[ExchangeGenerator[Any]],
+) -> ExchangeGenerator[Tuple[Any, ...]]:
+    # Sentinel to show what generators are not yet exhausted
+    pending = object()
+    returns = [pending] * len(generators)
+    while True:
+        yields: List[Exchange] = []
+        for i, gen in enumerate(generators):
+            # If we haven't exhausted the generator
+            if returns[i] is pending:
+                try:
+                    # Get the exchanges that it wants to fill in
+                    exchanges = next(gen)
+                except StopIteration as e:
+                    # Generator is exhausted, store its return value
+                    returns[i] = e.value
+                else:
+                    # Add the exchanges to the list
+                    if isinstance(exchanges, list):
+                        yields += exchanges
+                    else:
+                        yields.append(exchanges)
+        if yields:
+            # There were some Exchanges yielded, so yield them all up
+            # for the Connection to fill in
+            yield yields
+        else:
+            # All the generators are exhausted, so return the tuple of all
+            # their return values
+            return tuple(returns)
+
+
 @dataclass
-class Command(Generic[T]):
-    """Abstract baseclass for all `ControlConnection` commands to be inherited from"""
+class Raw(Command[List[str]]):
+    """Send a raw command
 
-    def lines(self) -> List[str]:
-        """Return lines that should be sent to the PandA, with no newlines in them"""
-        raise NotImplementedError(self)
+    Args:
+        inp: The input lines to send
 
-    def response(self, raw: RawResponse) -> T:
-        """Create a response from the lines received from the PandA"""
-        raise NotImplementedError(self)
+    For example::
+
+        Raw(["PCAP.ACTIVE?"]) -> ["OK =1"]
+        Raw(["SEQ1.TABLE>", "1", "1", "0", "0", ""]) -> ["OK"]
+        Raw(["SEQ1.TABLE?"]) -> ["!1", "!1", "!0", "!0", "."])
+    """
+
+    inp: List[str]
+
+    def execute(self) -> ExchangeGenerator[List[str]]:
+        ex = Exchange(self.inp)
+        yield ex
+        return ex.received
 
 
 @dataclass
@@ -63,18 +153,16 @@ class Get(Command[Union[str, List[str]]]):
 
     field: str
 
-    def lines(self) -> List[str]:
-        return [f"{self.field}?"]
-
-    def response(self, raw: RawResponse) -> Union[str, List[str]]:
-        """The value that was requested as a string. If it is multiline then it
-        will be a list of strings"""
-        if raw.is_multiline:
-            return raw.multiline
+    def execute(self) -> ExchangeGenerator[Union[str, List[str]]]:
+        ex = Exchange(f"{self.field}?")
+        yield ex
+        if ex.is_multiline:
+            return ex.multiline
         else:
             # We got OK =value
-            assert raw.line.startswith("OK =")
-            return raw.line[4:]
+            line = ex.line
+            assert line.startswith("OK =")
+            return line[4:]
 
 
 @dataclass
@@ -94,53 +182,48 @@ class Put(Command[None]):
     field: str
     value: Union[str, List[str]] = ""
 
-    def lines(self) -> List[str]:
+    def execute(self) -> ExchangeGenerator[None]:
         if isinstance(self.value, list):
             # Multiline table with blank line to terminate
-            return [f"{self.field}<"] + self.value + [""]
+            ex = Exchange([f"{self.field}<"] + self.value + [""])
         else:
-            return [f"{self.field}={self.value}"]
-
-    def response(self, raw: RawResponse):
-        assert raw.line == "OK"
+            ex = Exchange(f"{self.field}={self.value}")
+        yield ex
+        assert ex.line == "OK"
 
 
 class Arm(Command[None]):
     """Arm PCAP for an acquisition by sending ``*PCAP.ARM=``"""
 
-    def lines(self) -> List[str]:
-        return ["*PCAP.ARM="]
-
-    def response(self, raw: RawResponse):
-        assert raw.line == "OK"
+    def execute(self) -> ExchangeGenerator[None]:
+        ex = Exchange("*PCAP.ARM=")
+        yield ex
+        assert ex.line == "OK"
 
 
 class Disarm(Command[None]):
     """Disarm PCAP, stopping acquisition by sending ``*PCAP.DISARM=``"""
 
-    def lines(self) -> List[str]:
-        return ["*PCAP.DISARM="]
-
-    def response(self, raw: RawResponse):
-        assert raw.line == "OK"
+    def execute(self) -> ExchangeGenerator[None]:
+        ex = Exchange("*PCAP.DISARM=")
+        yield ex
+        assert ex.line == "OK"
 
 
 class GetBlockNumbers(Command[Dict[str, int]]):
-    """Get the descriptions and field lists of the requested Blocks.
+    """Get the name and number of each block type in a dictionary,
+    alphabetically ordered
 
     For example::
 
         GetBlockNumbers() -> {"LUT": 8, "PCAP": 1, ...}
     """
 
-    def lines(self) -> List[str]:
-        return ["*BLOCKS?"]
-
-    def response(self, raw: RawResponse) -> Dict[str, int]:
-        """The name and number of each block type in a dictionary,
-        alphabetically ordered"""
+    def execute(self) -> ExchangeGenerator[Dict[str, int]]:
+        ex = Exchange("*BLOCKS?")
+        yield ex
         blocks_list = []
-        for line in raw.multiline:
+        for line in ex.multiline:
             block, num = line.split()
             blocks_list.append((block, int(num)))
         return dict(sorted(blocks_list))
@@ -148,7 +231,8 @@ class GetBlockNumbers(Command[Dict[str, int]]):
 
 @dataclass
 class GetFields(Command[Dict[str, FieldType]]):
-    """Get the fields of a block, returning a `FieldType` for each one.
+    """Get the fields of a block, returning a `FieldType` for each one, ordered
+    to match the definition order in the PandA
 
     Args:
         block: The name of the block type
@@ -160,14 +244,11 @@ class GetFields(Command[Dict[str, FieldType]]):
 
     block: str
 
-    def lines(self) -> List[str]:
-        return [f"{self.block}.*?"]
-
-    def response(self, raw: RawResponse) -> Dict[str, FieldType]:
-        """The name and `FieldType` of each field in a dictionary, ordered
-        to match the definition order in the PandA"""
+    def execute(self) -> ExchangeGenerator[Dict[str, FieldType]]:
+        ex = Exchange(f"{self.block}.*?")
+        yield ex
         unsorted: Dict[int, Tuple[str, FieldType]] = {}
-        for line in raw.multiline:
+        for line in ex.multiline:
             name, index, type_subtype = line.split(maxsplit=2)
             unsorted[int(index)] = (name, FieldType(*type_subtype.split()))
         # Dict keeps insertion order, so insert in the order the server said
@@ -184,45 +265,137 @@ class GetPcapBitsLabels(Command):
     """
 
 
-class GetChanges(Command):
-    """Get the changes since the last time this was called.
-
-    For example::
-
-        GetChanges() -> Changes()
+class ChangeGroup(Enum):
+    """Which group of values to ask for ``*CHANGES`` on:
+    https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands
     """
 
-
-# Checks whether the server will interpret cmd as a table command: search for
-# first of '?', '=', '<', if '<' found first then it's a multiline command.
-def is_multiline_command(cmd: str):
-    for ch in cmd:
-        if ch in "?=":
-            return False
-        if ch == "<":
-            return True
-    return False
+    #: All the groups below
+    ALL = ""
+    #: Configuration settings
+    CONFIG = ".CONFIG"
+    #: Bits on the system bus
+    BITS = ".BITS"
+    #: Positions
+    POSN = ".POSN"
+    #: Polled read values
+    READ = ".READ"
+    #: Attributes (included capture enable flags)
+    ATTR = ".ATTR"
+    #: Table changes
+    TABLE = ".TABLE"
+    #: Table changes
+    METADATA = ".METADATA"
 
 
 @dataclass
-class Raw(Command[List[str]]):
-    """Send a raw command
+class GetChanges(Command[Changes]):
+    """Get a `Changes` object showing which fields have changed since the last
+    time this was called
 
     Args:
-        inp: The input lines to send
+        group: Restrict to a particular `ChangeGroup`
 
     For example::
 
-        Raw(["PCAP.ACTIVE?"]) -> ["OK =1"]
-        Raw(["SEQ1.TABLE>", "1", "1", "0", "0"]) -> ["OK"]
-        Raw(["SEQ1.TABLE?"]) -> ["!1", "!1", "!0", "!0", "."])
+        GetChanges() -> Changes(
+            value={"PCAP.TRIG": "PULSE1.OUT"},
+            no_value=["SEQ1.TABLE"],
+            in_error=["BAD.ENUM"],
+        )
     """
 
-    inp: List[str]
+    group: ChangeGroup = ChangeGroup.ALL
 
-    def lines(self) -> List[str]:
-        return self.inp
+    def execute(self) -> ExchangeGenerator[Changes]:
+        ex = Exchange(f"*CHANGES{self.group.value}?")
+        yield ex
+        changes = Changes({}, [], [])
+        for line in ex.multiline:
+            if line[-1] == "<":
+                changes.no_value.append(line[:-1])
+            elif line.endswith("(error)"):
+                changes.in_error.append(line.split(" ", 1)[0])
+            else:
+                field, value = line.split("=", maxsplit=1)
+                changes.values[field] = value
+        return changes
 
-    def response(self, raw: RawResponse) -> List[str]:
-        """The lines that PandA responded, including the multiline markup"""
-        return raw.lines
+
+@dataclass
+class GetState(Command[List[str]]):
+    """Get the state of all the fields in a PandA that should be saved as a
+    list of raw lines that could be sent with `SetState`.
+
+    For example::
+
+        GetState() -> [
+            "SEQ1.TABLE<B"
+            "234fds0SDklnmnr"
+            ""
+            "PCAP.TRIG=PULSE1.OUT",
+        ]
+    """
+
+    def execute(self) -> ExchangeGenerator[List[str]]:
+        # TODO: explain in detail how this works
+        # See: references/how-it-works
+        attr, config, table, metadata = yield from _execute_commands(
+            GetChanges(ChangeGroup.ATTR),
+            GetChanges(ChangeGroup.CONFIG),
+            GetChanges(ChangeGroup.TABLE),
+            GetChanges(ChangeGroup.METADATA),
+        )
+        # Add the single line values
+        line_values = dict(**attr.values, **config.values, **metadata.values)
+        state = [f"{k}={v}" for k, v in line_values.items()]
+        # Get the multiline values
+        multiline_keys, commands = [], []
+        for field in table.no_value:
+            # Get tables as base64
+            multiline_keys.append(f"{field}<B")
+            commands.append(Get(f"{field}.B"))
+        for field in metadata.no_value:
+            # Get metadata as string list
+            multiline_keys.append(f"{field}<")
+            commands.append(Get(f"{field}"))
+        multiline_values = yield from _execute_commands(*commands)
+        for k, v in zip(multiline_keys, multiline_values):
+            state += [k] + v + [""]
+        return state
+
+
+@dataclass
+class SetState(Command[None]):
+    """Set the state of all the fields in a PandA
+
+    Args:
+        state: A list of raw lines as produced by `GetState`
+
+    For example::
+
+        SetState([
+            "SEQ1.TABLE<B"
+            "234fds0SDklnmnr"
+            ""
+            "PCAP.TRIG=PULSE1.OUT",
+        ])
+    """
+
+    state: List[str]
+
+    def execute(self) -> ExchangeGenerator[None]:
+        commands: List[Raw] = []
+        command_lines: List[str] = []
+        for line in self.state:
+            command_lines.append(line)
+            first_line = len(command_lines) == 1
+            if (first_line and not is_multiline_command(line)) or not line:
+                # If not a multiline command
+                # Or blank line at the end of a multiline command
+                commands.append(Raw(command_lines))
+                command_lines = []
+        returns = yield from _execute_commands(*commands)
+        for command, ret in zip(commands, returns):
+            if ret != ["OK"]:
+                logging.warning(f"command {command.inp} failed with {ret}")

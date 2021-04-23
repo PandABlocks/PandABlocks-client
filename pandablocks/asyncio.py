@@ -85,13 +85,15 @@ class AsyncioClient:
 
     async def _ctrl_read_forever(self, reader: asyncio.StreamReader):
         while True:
-            bytes = await reader.read(4096)
+            received = await reader.read(4096)
             try:
-                for command, response in self._ctrl_connection.receive_bytes(bytes):
+                to_send = self._ctrl_connection.receive_bytes(received)
+                await self._ctrl_stream.write_and_drain(to_send)
+                for command, response in self._ctrl_connection.responses():
                     queue = self._ctrl_queues.pop(id(command))
                     queue.put_nowait(response)
             except Exception:
-                logging.exception(f"Error handling '{bytes.decode()}'")
+                logging.exception(f"Error handling '{received.decode()}'")
 
     async def send(self, command: Command[T]) -> T:
         """Send a command to control port of the PandA, returning its response.
@@ -102,8 +104,8 @@ class AsyncioClient:
         queue: asyncio.Queue[T] = asyncio.Queue()
         # Need to use the id as non-frozen dataclasses don't hash
         self._ctrl_queues[id(command)] = queue
-        bytes = self._ctrl_connection.send(command)
-        await self._ctrl_stream.write_and_drain(bytes)
+        to_send = self._ctrl_connection.send(command)
+        await self._ctrl_stream.write_and_drain(to_send)
         response = await queue.get()
         if isinstance(response, Exception):
             raise response
@@ -145,10 +147,9 @@ class AsyncioClient:
         flush_task = asyncio.create_task(periodic_flush())
         try:
             await self._data_stream.write_and_drain(connection.connect(scaled))
-            # bool(True) instead of True so IDE sees finally block is reachable
-            while bool(True):
-                bytes = await asyncio.wait_for(reader.read(4096), frame_timeout)
-                for d in connection.receive_bytes(bytes, flush_every_frame):
+            while True:
+                received = await asyncio.wait_for(reader.read(4096), frame_timeout)
+                for d in connection.receive_bytes(received, flush_every_frame):
                     data.append(d)
                 while data:
                     yield data.popleft()

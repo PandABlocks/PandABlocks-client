@@ -7,9 +7,8 @@ import numpy as np
 import pytest
 from click.testing import CliRunner
 
-import tests.test_state as test_state
 from pandablocks import cli
-from tests.conftest import DummyServer
+from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE, DummyServer
 
 
 def test_writing_fast_hdf(dummy_server_in_thread: DummyServer, raw_dump, tmp_path):
@@ -95,7 +94,7 @@ def test_interactive_simple(dummy_server_in_thread, capsys):
 
 
 def test_save(dummy_server_in_thread: DummyServer, tmp_path: Path):
-    dummy_server_in_thread.send += test_state.responses
+    dummy_server_in_thread.send += STATE_RESPONSES
     runner = CliRunner()
     path = tmp_path / "saved_state"
     result = runner.invoke(cli.cli, ["save", "localhost", str(path)])
@@ -104,7 +103,7 @@ def test_save(dummy_server_in_thread: DummyServer, tmp_path: Path):
     with path.open("r") as stream:
         results = stream.read().splitlines()
 
-    assert results == test_state.savefile
+    assert results == STATE_SAVEFILE
 
 
 def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
@@ -113,13 +112,13 @@ def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
     path = tmp_path / "saved_state"
 
     with path.open("w") as stream:
-        for line in test_state.savefile:
+        for line in STATE_SAVEFILE:
             stream.write(line + "\n")
 
     result = runner.invoke(cli.cli, ["load", "localhost", str(path)])
     assert result.exit_code == 0, result.exc_info
 
-    assert dummy_server_in_thread.received == test_state.savefile
+    assert dummy_server_in_thread.received == STATE_SAVEFILE
 
 
 def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):

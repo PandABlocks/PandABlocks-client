@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -19,6 +19,18 @@ class FieldType:
 
     type: str
     subtype: Optional[str] = None
+
+
+@dataclass
+class Changes:
+    """The changes returned from a ``*CHANGES`` command"""
+
+    #: Map field -> value for single-line values that were returned
+    values: Dict[str, str]
+    #: The fields that were present but without value
+    no_value: List[str]
+    #: The fields that were in error
+    in_error: List[str]
 
 
 # Data

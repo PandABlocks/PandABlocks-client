@@ -2,37 +2,29 @@ import asyncio
 import io
 import logging
 import pathlib
-from typing import Coroutine
+from typing import Awaitable, List
 
 import click
 from click.exceptions import ClickException
 
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.state import State
+from pandablocks.commands import GetState, SetState, T
 
 # Default prompt
 PROMPT = "< "
 TUTORIAL = pathlib.Path(__file__).parent / "saves" / "tutorial.sav"
 
 
-def asyncio_run(coro: Coroutine):
+def asyncio_run(coro: Awaitable[T]) -> T:
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(coro)
+        return loop.run_until_complete(coro)
     finally:
         to_cancel = asyncio.tasks.all_tasks(loop)
         for task in to_cancel:
             task.cancel()
         loop.run_until_complete(asyncio.gather(*to_cancel, return_exceptions=True))
-
-
-async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
-    # Local import as we might not have h5py installed and want other commands to work
-    from pandablocks.hdf import write_hdf_files
-
-    async with AsyncioClient(host) as client:
-        await write_hdf_files(client, scheme=scheme, num=num, arm=arm)
 
 
 @click.group(invoke_without_command=True)
@@ -74,6 +66,15 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
     Uses the filename pattern specified by SCHEME, including %d for scan number
     starting from 1
     """
+
+    async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
+        # Local import as we might not have h5py installed and want other commands
+        # to work
+        from pandablocks.hdf import write_hdf_files
+
+        async with AsyncioClient(host) as client:
+            await write_hdf_files(client, scheme=scheme, num=num, arm=arm)
+
     # Don't use asyncio.run to workaround Python3.7 bug
     # https://bugs.python.org/issue38013
     asyncio_run(_write_hdf_files(host, scheme, num, arm))
@@ -97,10 +98,13 @@ def save(host: str, outfile: io.TextIOWrapper):
     """
     Save the current blocks configuration of HOST to OUTFILE
     """
-    state = State(host)
-    commands = state.save()
-    command_lines = "\n".join(commands) + "\n"
-    outfile.write(command_lines)
+
+    async def _save(host: str) -> List[str]:
+        async with AsyncioClient(host) as client:
+            return await client.send(GetState())
+
+    state = asyncio_run(_save(host))
+    outfile.write("\n".join(state) + "\n")
 
 
 @cli.command()
@@ -113,11 +117,14 @@ def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
     """
     if tutorial:
         with TUTORIAL.open("r") as stream:
-            commands = stream.read().splitlines()
+            state = stream.read().splitlines()
     elif infile is None:
         raise ClickException("INFILE not specified")
     else:
-        commands = infile.read().splitlines()
+        state = infile.read().splitlines()
 
-    state = State(host)
-    state.load(commands)
+    async def _load(host: str, state: List[str]):
+        async with AsyncioClient(host) as client:
+            await client.send(SetState(state))
+
+    asyncio_run(_load(host, state))
