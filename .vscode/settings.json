@@ -9,6 +9,4 @@
     "python.formatting.provider": "black",
     "python.languageServer": "Pylance",
     "python.pythonPath": "/home/tom/.local/share/virtualenvs/PandABlocks-client-iNSfgxBb/bin/python",
-    "restructuredtext.confPath": "${workspaceFolder}/docs",
-    "restructuredtext.builtDocumentationPath": "${workspaceFolder}/build/html",
 }
