@@ -10,7 +10,7 @@
             "request": "test",
             "justMyCode": false,
             "env": {
-                "PYTEST_ADDOPTS": "--no-cov" 
+                "PYTEST_ADDOPTS": "--no-cov"
             }
         }
     ]
