@@ -13,5 +13,4 @@
     "editor.codeActionsOnSave": {
         "source.organizeImports": true //TODO: May want to not specify this, as it'll reformat a lot of code? Just imports though so probably okay
     },
-    "python.pythonPath": "/home/tom/.local/share/virtualenvs/PandABlocks-client-iNSfgxBb/bin/python",
 }
