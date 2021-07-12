@@ -6,6 +6,7 @@ Appendix
 These definitions are needed to quell sphinx warnings.
 
 .. py:class:: T
+  :canonical: pandablocks.commands.T
 
     Parameter for Generic class `Command`, indicating its response type
 

@@ -18,10 +18,10 @@ pytest-cov = "*"
 pytest-mypy = "*"
 pytest-flake8 = "*"
 pytest-black = "*"
+pytest-asyncio = "*"
 flake8-isort = "*"
 isort = ">5.0"
 sphinx-rtd-theme = "*"
-pytest-asyncio = "*"
 
 # TODO: Delete this - template module has moved to using JS github API
 # switch to main repo after PR https://github.com/Holzhaus/sphinx-multiversion/pull/60 is merged
