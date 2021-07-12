@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a5d48f647ba731928c00b886acc05f6f63bc057dbcfb5d866ac65ffd10dfb6f8"
+            "sha256": "774f165c59bde4fe89dc0bf353c2664eeafb258a97b9653869ffc14f3d76692b"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -690,11 +690,6 @@
                 "sha256:dff357e6a208eb7edb2002714733ac21a9fe597e73609ff417ab8cf0c6b4fbb8"
             ],
             "version": "==4.0.3"
-        },
-        "sphinx-multiversion": {
-            "editable": true,
-            "git": "https://github.com/dls-controls/sphinx-multiversion.git",
-            "ref": "3e72beb7f8f0a76b53722fb2eb3daeed3d2a3d31"
         },
         "sphinx-rtd-theme": {
             "hashes": [
