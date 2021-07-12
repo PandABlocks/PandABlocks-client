@@ -11,6 +11,6 @@
     "python.languageServer": "Pylance",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.organizeImports": true //TODO: May want to not specify this, as it'll reformat a lot of code? Just imports though so probably okay
+        "source.organizeImports": true
     },
 }
