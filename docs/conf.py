@@ -12,10 +12,10 @@
 import os
 import sys
 
+import pandablocks
 
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
 
-import pandablocks  # noqa
 
 # -- General configuration ------------------------------------------------
 
@@ -45,8 +45,8 @@ extensions = [
     "sphinx.ext.viewcode",
     # Adds support for matplotlib plots
     "matplotlib.sphinxext.plot_directive",
-    # Add multiple versions of documentation on CI
-    "sphinx_multiversion",
+    # Adds the inheritance-diagram generation directive
+    "sphinx.ext.inheritance_diagram",
 ]
 
 # If true, Sphinx will warn about all references where the target cannot
@@ -93,11 +93,16 @@ exclude_patterns = ["_build"]
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 
+# This means you can link things like `str` and `asyncio` to the relevant
+# docs in the python documentation.
 intersphinx_mapping = dict(
     python=("https://docs.python.org/3/", None),
     numpy=("https://numpy.org/doc/stable/", None),
     h5py=("https://docs.h5py.org/en/stable/", None),
 )
+
+# A dictionary of graphviz graph attributes for inheritance diagrams.
+inheritance_graph_attrs = dict(rankdir="TB")
 
 # Common links that should be available on every page
 rst_epilog = """
@@ -117,8 +122,8 @@ rst_epilog = """
 # a list of builtin themes.
 html_theme = "sphinx_rtd_theme"
 
-# Options for the sphinx rtd theme
-html_theme_options = dict(style_nav_header_background="black")
+# Options for the sphinx rtd theme, use DLS blue
+html_theme_options = dict(style_nav_header_background="rgb(7, 43, 93)")
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -131,17 +136,9 @@ html_show_sphinx = False
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
 html_show_copyright = True
 
-# Override the colour in a custom css file
+# Add some CSS classes for columns and other tweaks in a custom css file
 html_css_files = ["theme_overrides.css"]
 
 # Logo
 html_logo = "images/PandA-logo-for-black-background.svg"
 html_favicon = "images/PandA-logo.ico"
-
-# sphinx-multiversion config
-smv_rebuild_tags = False
-smv_tag_whitelist = r"^\d+\.\d+.*$"  # only document tags with form 0.9*
-smv_branch_whitelist = r"^master$"  # only branch to document is master
-smv_outputdir_format = "{ref.name}"
-smv_prefer_remote_refs = True
-smv_remote_whitelist = "origin|github"
