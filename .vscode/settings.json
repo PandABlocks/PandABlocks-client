@@ -14,7 +14,4 @@
         "source.organizeImports": true //TODO: May want to not specify this, as it'll reformat a lot of code? Just imports though so probably okay
     },
     "python.pythonPath": "/home/tom/.local/share/virtualenvs/PandABlocks-client-iNSfgxBb/bin/python",
-    "restructuredtext.confPath": "${workspaceFolder}/docs", //TODO: Add restructured text extension, or delete these lines
-    "restructuredtext.builtDocumentationPath": "${workspaceFolder}/build/html",
-    
 }
