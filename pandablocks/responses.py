@@ -129,20 +129,18 @@ class FrameData(Data):
     can be accessed with these column names. For example::
 
         # Table view with 2 captured fields
-        #>>> fdata.data
-        array([(0, 10),
-               (1, 11),
-               (2, 12)],
-              dtype=[('COUNTER1.OUT.Value', '<f8'), ('COUNTER2.OUT.Value', '<f8')])
-        # Row view
-        #>>> fdata.data[0]
-        (0, 10)
-        # Column names
-        #>>> fdata.column_names
+        >>> import numpy
+        >>> data = numpy.array([(0, 10),
+        ...       (1, 11),
+        ...       (2, 12)],
+        ...      dtype=[('COUNTER1.OUT.Value', '<f8'), ('COUNTER2.OUT.Value', '<f8')])
+        >>> fdata = FrameData(data)
+        >>> fdata.data[0] # Row view
+        (0., 10.)
+        >>> fdata.column_names # Column names
         ('COUNTER1.OUT.Value', 'COUNTER2.OUT.Value')
-        # Column view
-        #>>> fdata.data['COUNTER1.OUT.Value']
-        (0, 1, 2)
+        >>> fdata.data['COUNTER1.OUT.Value'] # Column view
+        array([0., 1., 2.])
     """
 
     data: np.ndarray
