@@ -7,6 +7,25 @@ from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import Changes, FieldType
 
+# Define the public API of this module
+__all__ = [
+    "Command",
+    "CommandException",
+    "Raw",
+    "Get",
+    "Put",
+    "Arm",
+    "Disarm",
+    "GetBlockNumbers",
+    "GetFields",
+    "GetPcapBitsLabels",
+    "ChangeGroup",
+    "GetChanges",
+    "GetState",
+    "SetState",
+]
+
+
 T = TypeVar("T")
 T2 = TypeVar("T2")
 T3 = TypeVar("T3")

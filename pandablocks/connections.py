@@ -19,6 +19,14 @@ from .responses import (
     StartData,
 )
 
+# Define the public API of this module
+__all__ = [
+    "NeedMoreData",
+    "Buffer",
+    "ControlConnection",
+    "DataConnection",
+]
+
 # The name of the samples field used for averaging unscaled fields
 SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
