@@ -4,33 +4,66 @@
 How the documentation is structured
 -----------------------------------
 
+Documentation is split into four categories, accessible from links in the side-bar.
+
 .. rst-class:: columns
 
-:ref:`tutorials`
-~~~~~~~~~~~~~~~~
+Tutorials
+~~~~~~~~~
 
 Tutorials for installation, library and commandline usage. New users start here.
 
+.. toctree::
+    :caption: Tutorials
+    :hidden:
+
+    tutorials/installation
+    tutorials/load-save
+    tutorials/control
+    tutorials/commandline-hdf
+
 .. rst-class:: columns
 
-:ref:`how-to`
+How-to Guides
 ~~~~~~~~~~~~~
 
 Practical step-by-step guides for the more experienced user.
 
+.. toctree::
+    :caption: How-to Guides
+    :hidden:
+
+    how-to/library-hdf
+    how-to/poll-changes
+
 .. rst-class:: columns
 
-:ref:`explanations`
-~~~~~~~~~~~~~~~~~~~
+Explanations
+~~~~~~~~~~~~
 
 Explanation of how the library works and why it works that way.
 
+.. toctree::
+    :caption: Explanations
+    :hidden:
+
+    explanations/sans-io
+    explanations/performance
+
 .. rst-class:: columns
 
-:ref:`reference`
-~~~~~~~~~~~~~~~~
+Reference
+~~~~~~~~~
 
 Technical reference material, for classes, methods, APIs, commands, and contributing to the project.
+
+.. toctree::
+    :caption: Reference
+    :hidden:
+
+    reference/api
+    reference/changelog
+    reference/contributing
 
 .. rst-class:: endcolumns
 
@@ -38,42 +71,3 @@ About the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 `Why is the documentation structured this way? <https://documentation.divio.com>`_
-
-.. toctree::
-    :caption: Tutorials
-    :name: tutorials
-    :maxdepth: 1
-
-    tutorials/installation
-    tutorials/load-save
-    tutorials/control
-    tutorials/commandline-hdf
-
-.. toctree::
-    :caption: How-to Guides
-    :name: how-to
-    :maxdepth: 1
-
-    how-to/library-hdf
-    how-to/poll-changes
-
-.. toctree::
-    :caption: Explanations
-    :name: explanations
-    :maxdepth: 1
-
-    explanations/sans-io
-    explanations/performance
-
-.. rst-class:: no-margin-after-ul
-
-.. toctree::
-    :caption: Reference
-    :name: reference
-    :maxdepth: 1
-
-    reference/api
-    reference/changelog
-    reference/contributing
-
-* :ref:`genindex`
