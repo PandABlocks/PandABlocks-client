@@ -165,8 +165,8 @@ class Get(Command[Union[str, List[str]]]):
 
     For example::
 
-        Get("PCAP.ACTIVE") -> "1"
-        Get("SEQ1.TABLE") -> ["1048576", "0", "1000", "1000"]
+        Get("PCAP.ACTIVE?") -> "1"
+        Get("SEQ1.TABLE?") -> ["1048576", "0", "1000", "1000"]
         Get("*IDN") -> "PandA 1.1..."
     """
 
