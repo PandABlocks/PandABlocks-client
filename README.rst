@@ -3,7 +3,7 @@ PandABlocks Python Client
 
 |code_ci| |docs_ci| |coverage| |pypi_version| |license|
 
-A Python client to control, and data ports of, the PandABlocks TCP server.
+A Python client which connects to the control and data ports of the PandABlocks TCP server.
 
 ============== ==============================================================
 PyPI           ``pip install pandablocks``
