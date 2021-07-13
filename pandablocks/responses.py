@@ -116,19 +116,19 @@ class FrameData(Data):
     can be accessed with these column names. For example::
 
         # Table view with 2 captured fields
-        >>> fdata.data
+        #>>> fdata.data
         array([(0, 10),
                (1, 11),
                (2, 12)],
               dtype=[('COUNTER1.OUT.Value', '<f8'), ('COUNTER2.OUT.Value', '<f8')])
         # Row view
-        >>> fdata.data[0]
+        #>>> fdata.data[0]
         (0, 10)
         # Column names
-        >>> fdata.column_names
+        #>>> fdata.column_names
         ('COUNTER1.OUT.Value', 'COUNTER2.OUT.Value')
         # Column view
-        >>> fdata.data['COUNTER1.OUT.Value']
+        #>>> fdata.data['COUNTER1.OUT.Value']
         (0, 1, 2)
     """
 
