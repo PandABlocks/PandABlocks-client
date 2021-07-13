@@ -12,16 +12,6 @@ from .asyncio import AsyncioClient
 from .connections import SAMPLES_FIELD
 from .responses import EndData, FieldCapture, FrameData, ReadyData, StartData
 
-# Define the public API of this module
-__all__ = [
-    "Pipeline",
-    "HDFWriter",
-    "FrameProcessor",
-    "create_pipeline",
-    "stop_pipeline",
-    "write_hdf_files",
-]
-
 
 class Pipeline(threading.Thread):
     """Helper class that runs a pipeline consumer process in its own thread"""
