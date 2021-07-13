@@ -5,6 +5,9 @@ from .commands import Command, T
 from .connections import ControlConnection, DataConnection
 from .responses import Data
 
+# Define the public API of this module
+__all__ = ["BlockingClient"]
+
 
 class _SocketHelper:
     _socket: Optional[socket.socket] = None

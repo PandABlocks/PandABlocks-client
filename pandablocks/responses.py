@@ -4,6 +4,19 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
+# Define the public API of this module
+__all__ = [
+    "FieldType",
+    "Changes",
+    "EndReason",
+    "FieldCapture",
+    "Data",
+    "ReadyData",
+    "StartData",
+    "FrameData",
+    "EndData",
+]
+
 # Control
 
 
