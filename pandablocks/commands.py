@@ -2,7 +2,17 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    OrderedDict,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import Changes, FieldType
@@ -282,6 +292,23 @@ class GetPcapBitsLabels(Command):
 
         GetPcapBitsLabels() -> PcapBitsLabels()
     """
+
+    def execute(self) -> ExchangeGenerator[Dict[str, List[str]]]:
+        ex = Exchange("PCAP.*?\n")
+        yield ex
+        bits_fields = []
+        for line in ex.multiline:
+            split = line.split()
+            if len(split) == 4:
+                field_name, _, field_type, field_subtype = split
+                if field_type == "ext_out" and field_subtype == "bits":
+                    bits_fields.append("PCAP.%s" % field_name)
+
+        result = map(lambda field: field + ".BITS?\n", bits_fields)
+        ex = Exchange(list(result))
+        yield ex
+        for line in ex.multiline:
+            pass  # todo
 
 
 class ChangeGroup(Enum):
