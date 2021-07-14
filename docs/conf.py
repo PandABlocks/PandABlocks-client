@@ -4,18 +4,7 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-import os
-import sys
-
-
-sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
-
-import pandablocks  # noqa
+import pandablocks
 
 # -- General configuration ------------------------------------------------
 
@@ -45,8 +34,8 @@ extensions = [
     "sphinx.ext.viewcode",
     # Adds support for matplotlib plots
     "matplotlib.sphinxext.plot_directive",
-    # Add multiple versions of documentation on CI
-    "sphinx_multiversion",
+    # Adds the inheritance-diagram generation directive
+    "sphinx.ext.inheritance_diagram",
 ]
 
 # If true, Sphinx will warn about all references where the target cannot
@@ -93,11 +82,16 @@ exclude_patterns = ["_build"]
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 
+# This means you can link things like `str` and `asyncio` to the relevant
+# docs in the python documentation.
 intersphinx_mapping = dict(
     python=("https://docs.python.org/3/", None),
     numpy=("https://numpy.org/doc/stable/", None),
     h5py=("https://docs.h5py.org/en/stable/", None),
 )
+
+# A dictionary of graphviz graph attributes for inheritance diagrams.
+inheritance_graph_attrs = dict(rankdir="TB")
 
 # Common links that should be available on every page
 rst_epilog = """
@@ -131,17 +125,9 @@ html_show_sphinx = False
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
 html_show_copyright = True
 
-# Override the colour in a custom css file
+# Add some CSS classes for columns and other tweaks in a custom css file
 html_css_files = ["theme_overrides.css"]
 
 # Logo
 html_logo = "images/PandA-logo-for-black-background.svg"
 html_favicon = "images/PandA-logo.ico"
-
-# sphinx-multiversion config
-smv_rebuild_tags = False
-smv_tag_whitelist = r"^\d+\.\d+.*$"  # only document tags with form 0.9*
-smv_branch_whitelist = r"^master$"  # only branch to document is master
-smv_outputdir_format = "{ref.name}"
-smv_prefer_remote_refs = True
-smv_remote_whitelist = "origin|github"

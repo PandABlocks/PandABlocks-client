@@ -18,5 +18,6 @@ async def arm_and_hdf():
         await write_hdf_files(client, scheme="/tmp/panda-capture-%d.h5", arm=True)
 
 
-# One-shot run of a co-routine
-asyncio.run(arm_and_hdf())
+if __name__ == "__main__":
+    # One-shot run of a co-routine
+    asyncio.run(arm_and_hdf())

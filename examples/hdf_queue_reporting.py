@@ -51,5 +51,6 @@ async def hdf_queue_reporting():
         print(f"took {time.time() - start:.1f} seconds")
 
 
-# One-shot run of a co-routine
-asyncio.run(hdf_queue_reporting())
+if __name__ == "__main__":
+    # One-shot run of a co-routine
+    asyncio.run(hdf_queue_reporting())
