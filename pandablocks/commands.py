@@ -280,7 +280,7 @@ class GetPcapBitsLabels(Command):
 
     For example::
 
-        GetPcapBitsLabels() -> PcapBitsLabels()
+        GetPcapBitsLabels() -> {"BITS0" : ["TTLIN1.VAL", "TTLIN2.VAL", ...], ...}
     """
 
     def execute(self) -> ExchangeGenerator[Dict[str, List[str]]]:

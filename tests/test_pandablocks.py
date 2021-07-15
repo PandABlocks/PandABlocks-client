@@ -8,6 +8,7 @@ from pandablocks.commands import (
     Get,
     GetBlockNumbers,
     GetFields,
+    GetPcapBitsLabels,
     GetState,
     Put,
     SetState,
@@ -117,6 +118,67 @@ def test_get_fields():
         )
     ]
     assert list(responses[0][1]) == ["INPA", "TYPEA"]
+
+
+def test_get_pcap_bits_labels():
+    """Simple working testcase"""
+
+    # PandA's return data when it receives "PCAP.*?"
+    PCAP_RETURN = [
+        "!BITS2 12 ext_out bits",
+        "!SHIFT_SUM 4 param uint",
+        "!BITS0 10 ext_out bits",
+        ".",
+    ]
+
+    # PandA's return data when it receives "PCAP.BITS2.BITS?"
+    BITS2_RETURN = ["!PCOMP2.OUT", "!PGEN1.ACTIVE", "!PGEN2.ACTIVE", "!PULSE1.OUT", "."]
+
+    # PandA's return data when it receives "PCAP.BITS0.BITS?"
+    BITS0_RETURN = [
+        "!SFP3_SYNC_IN.BIT8",
+        "!SFP3_SYNC_IN.BIT9",
+        "!SFP3_SYNC_IN.BIT10",
+        ".",
+    ]
+
+    conn = ControlConnection()
+    cmd = GetPcapBitsLabels()
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    # First yield, requesting response for PCAP.*?
+    response_bytes = "\n".join(PCAP_RETURN).encode() + b"\n"
+    assert conn.receive_bytes(response_bytes) == b"PCAP.BITS2.BITS?\nPCAP.BITS0.BITS?\n"
+
+    # First of the .BITS? yields
+    response_bytes = "\n".join(BITS2_RETURN).encode() + b"\n"
+    assert (
+        conn.receive_bytes(response_bytes) == b""
+    )  # No data returned as there's still one outstanding request
+
+    # Second of the .BITS? yields - as this is the last response we can call
+    # get_responses to also get the overall result
+    response_bytes = "\n".join(BITS0_RETURN).encode() + b"\n"
+
+    assert not get_responses(conn)
+    assert get_responses(conn, response_bytes) == [
+        (
+            cmd,
+            {
+                "PCAP.BITS0": [
+                    "SFP3_SYNC_IN.BIT8",
+                    "SFP3_SYNC_IN.BIT9",
+                    "SFP3_SYNC_IN.BIT10",
+                ],
+                "PCAP.BITS2": [
+                    "PCOMP2.OUT",
+                    "PGEN1.ACTIVE",
+                    "PGEN2.ACTIVE",
+                    "PULSE1.OUT",
+                ],
+            },
+        )
+    ]
 
 
 def test_save():
