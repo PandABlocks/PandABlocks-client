@@ -294,7 +294,7 @@ class GetPcapBitsLabels(Command):
     """
 
     def execute(self) -> ExchangeGenerator[Dict[str, List[str]]]:
-        ex = Exchange("PCAP.*?\n")
+        ex = Exchange("PCAP.*?")
         yield ex
         bits_fields = []
         for line in ex.multiline:
@@ -304,11 +304,10 @@ class GetPcapBitsLabels(Command):
                 if field_type == "ext_out" and field_subtype == "bits":
                     bits_fields.append("PCAP.%s" % field_name)
 
-        result = map(lambda field: field + ".BITS?\n", bits_fields)
-        ex = Exchange(list(result))
-        yield ex
-        for line in ex.multiline:
-            pass  # todo
+        exchanges = [Exchange(f"{field}.BITS?") for field in bits_fields)]
+        yield exchanges
+        bits = {field: ex.multiline for field, ex in zip(bits_fields, exchanges)}
+        return bits
 
 
 class ChangeGroup(Enum):
