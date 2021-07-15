@@ -2,17 +2,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    List,
-    OrderedDict,
-    Tuple,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
 
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import Changes, FieldType
@@ -304,7 +294,7 @@ class GetPcapBitsLabels(Command):
                 if field_type == "ext_out" and field_subtype == "bits":
                     bits_fields.append("PCAP.%s" % field_name)
 
-        exchanges = [Exchange(f"{field}.BITS?") for field in bits_fields)]
+        exchanges = [Exchange(f"{field}.BITS?") for field in bits_fields]
         yield exchanges
         bits = {field: ex.multiline for field, ex in zip(bits_fields, exchanges)}
         return bits
