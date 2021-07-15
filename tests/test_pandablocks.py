@@ -181,6 +181,25 @@ def test_get_pcap_bits_labels():
     ]
 
 
+def test_get_pcap_bits_labels_no_bits_fields():
+    """Test we get no response when no BITS fields are on the PandA"""
+
+    # PandA's return data when it receives "PCAP.*?"
+    PCAP_RETURN = [
+        "!SHIFT_SUM 4 param uint",
+        "!ACTIVE 5 bit_out",
+        "!ENABLE 0 bit_mux",
+        ".",
+    ]
+    conn = ControlConnection()
+    cmd = GetPcapBitsLabels()
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    # As there are no BITS fields in the PCAP return, expect no response
+    response_bytes = "\n".join(PCAP_RETURN).encode() + b"\n"
+    assert conn.receive_bytes(response_bytes) == b""
+
+
 def test_save():
     conn = ControlConnection()
     cmd = GetState()
