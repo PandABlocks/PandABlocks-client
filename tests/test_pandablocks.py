@@ -14,7 +14,11 @@ from pandablocks.commands import (
     SetState,
     is_multiline_command,
 )
-from pandablocks.connections import ControlConnection, DataConnection
+from pandablocks.connections import (
+    ControlConnection,
+    DataConnection,
+    NoContextAvailable,
+)
 from pandablocks.responses import Data
 from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE
 
@@ -121,7 +125,7 @@ def test_get_fields():
 
 
 def test_get_pcap_bits_labels():
-    """Simple working testcase"""
+    """Simple working testcase for GetPcapBitsLabels"""
 
     # PandA's return data when it receives "PCAP.*?"
     PCAP_RETURN = [
@@ -182,7 +186,7 @@ def test_get_pcap_bits_labels():
 
 
 def test_get_pcap_bits_labels_no_bits_fields():
-    """Test we get no response when no BITS fields are on the PandA"""
+    """Test we get no response when no BITS fields are returned by the PandA"""
 
     # PandA's return data when it receives "PCAP.*?"
     PCAP_RETURN = [
@@ -198,6 +202,15 @@ def test_get_pcap_bits_labels_no_bits_fields():
     # As there are no BITS fields in the PCAP return, expect no response
     response_bytes = "\n".join(PCAP_RETURN).encode() + b"\n"
     assert conn.receive_bytes(response_bytes) == b""
+
+
+def test_expected_exception_when_receive_without_send():
+    """Test that calling receive_bytes() without first calling send() raises the
+    expected exception"""
+
+    conn = ControlConnection()
+    with pytest.raises(NoContextAvailable):
+        conn.receive_bytes(b"abc\n")
 
 
 def test_save():

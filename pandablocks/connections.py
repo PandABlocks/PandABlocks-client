@@ -22,6 +22,7 @@ from .responses import (
 # Define the public API of this module
 __all__ = [
     "NeedMoreData",
+    "NoContextAvailable",
     "Buffer",
     "ControlConnection",
     "DataConnection",
@@ -33,6 +34,12 @@ SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 class NeedMoreData(Exception):
     """Raised if the `Buffer` isn't full enough to return the requested bytes"""
+
+
+class NoContextAvailable(Exception):
+    """Raised if there were no contexts available for this connection.
+    This may result from calling `ControlConnection.receive_bytes()` without calling
+    `ControlConnection.send()` """
 
 
 class Buffer:
@@ -149,6 +156,8 @@ class ControlConnection:
 
     def _update_contexts(self, lines: List[str], is_multiline=False) -> bytes:
         to_send = b""
+        if len(self._contexts) == 0:
+            raise NoContextAvailable()
         context = self._contexts.popleft()
         # Update the exchange with what we've got
         context.exchange.received = lines
