@@ -2,7 +2,17 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    OrderedDict,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import Changes, FieldType
@@ -16,7 +26,7 @@ __all__ = [
     "Put",
     "Arm",
     "Disarm",
-    "GetBlockNumbers",
+    "GetBlockInfo",
     "GetFields",
     "GetPcapBitsLabels",
     "ChangeGroup",
@@ -93,7 +103,7 @@ def _execute_commands(*commands: Command[Any]) -> ExchangeGenerator[Tuple[Any, .
 def _execute_commands(*commands):
     """Call the `Command.execute` method on each of the commands to produce
     some `Exchange` generators. , then
-    zip together the  to produce a """
+    zip together the  to produce a"""
     # If we add type annotations to this function then mypy complains:
     # Overloaded function implementation does not accept all possible arguments
     # As we want to type check this, we put the logic in _zip_with_return
@@ -229,23 +239,43 @@ class Disarm(Command[None]):
         assert ex.line == "OK"
 
 
-class GetBlockNumbers(Command[Dict[str, int]]):
-    """Get the name and number of each block type in a dictionary,
-    alphabetically ordered
+@dataclass
+class BlockInfo:
+    number: int = 0
+    description: str = ""
+
+
+class GetBlockInfo(Command[Dict[str, BlockInfo]]):
+    """Get the name, number, and description of each block type
+    in a dictionary, alphabetically ordered
 
     For example::
 
-        GetBlockNumbers() -> {"LUT": 8, "PCAP": 1, ...}
+         GetBlockInfo() ->
+             {
+                 "LUT": BlockInfo(number=8, description="Lookup table"),
+                 "PCAP": BlockInfo(number=1, description="Position capture control"),
+                 ...
+             }
     """
 
-    def execute(self) -> ExchangeGenerator[Dict[str, int]]:
+    def execute(self) -> ExchangeGenerator[Dict[str, BlockInfo]]:
         ex = Exchange("*BLOCKS?")
         yield ex
         blocks_list = []
+        exchanges = []
         for line in ex.multiline:
             block, num = line.split()
             blocks_list.append((block, int(num)))
-        return dict(sorted(blocks_list))
+            exchanges.append(Exchange(f"*DESC.{block}?"))
+        yield exchanges
+
+        blocks_info = {
+            block[0]: BlockInfo(number=block[1], description=ex.line)
+            for block, ex in zip(blocks_list, exchanges)
+        }
+
+        return OrderedDict(sorted(blocks_info.items()))
 
 
 @dataclass

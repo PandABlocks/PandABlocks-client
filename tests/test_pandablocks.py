@@ -1,12 +1,13 @@
-from typing import Iterator
+from typing import Iterator, OrderedDict
 
 import pytest
 
 from pandablocks.commands import (
+    BlockInfo,
     CommandException,
     FieldType,
     Get,
-    GetBlockNumbers,
+    GetBlockInfo,
     GetFields,
     GetPcapBitsLabels,
     GetState,
@@ -98,13 +99,37 @@ def test_connect_put_multi_line():
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
 
 
-def test_get_block_numbers():
+def test_get_block_info():
     conn = ControlConnection()
-    cmd = GetBlockNumbers()
+    cmd = GetBlockInfo()
     assert conn.send(cmd) == b"*BLOCKS?\n"
-    responses = get_responses(conn, b"!PCAP 1\n!LUT 8\n.\n")
-    assert responses == [(cmd, {"PCAP": 1, "LUT": 8})]
-    assert list(responses[0][1]) == ["LUT", "PCAP"]
+
+    # Respond to first yield, the return from the BLOCKS? command
+    assert conn.receive_bytes(b"!PCAP 1\n!LUT 8\n.\n")
+
+    # First of the *DESC.{block}? yields
+    assert (
+        conn.receive_bytes(b"Description for PCAP field\n") == b""
+    )  # No data returned as there's still one outstanding request
+
+    # Create an OrderedDict of the output to test key order - that won't happen
+    # with a regular dict
+    ordered_dict = OrderedDict(
+        [
+            ("LUT", BlockInfo(number=8, description="Description for LUT field")),
+            ("PCAP", BlockInfo(number=1, description="Description for PCAP field")),
+        ]
+    )
+
+    # Second and last of the *DESC.{block}? yields - as this is the last response we
+    # can call get_responses to also get the overall result
+    assert not get_responses(conn)
+    assert get_responses(conn, b"Description for LUT field\n") == [
+        (
+            cmd,
+            ordered_dict,
+        ),
+    ]
 
 
 def test_get_fields():
