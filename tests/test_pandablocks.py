@@ -125,10 +125,7 @@ def test_get_block_info():
     # can call get_responses to also get the overall result
     assert not get_responses(conn)
     assert get_responses(conn, b"Description for LUT field\n") == [
-        (
-            cmd,
-            ordered_dict,
-        ),
+        (cmd, ordered_dict,),
     ]
 
 

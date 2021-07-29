@@ -8,6 +8,8 @@ from pandablocks.blocking import BlockingClient
 def dummy_server_with_blocks(dummy_server_in_thread):
     dummy_server_in_thread.send += [
         "!PCAP 1\n!LUT 8\n.",
+        "Description for PCAP field\nDescription for LUT field",
+        # TODO: Ask why no \n or '.' at end of above line
         "!TYPEA 5 param enum\n!TYPEA_INP 1 bit_mux\n.",
         "!TS_START 6 ext_out timestamp\n!ACTIVE 7 bit_out\n.",
     ]
