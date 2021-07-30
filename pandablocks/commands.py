@@ -190,7 +190,7 @@ class Get(Command[Union[str, List[str]]]):
         else:
             # We got OK =value
             line = ex.line
-            assert line.startswith("OK =")
+            assert line.startswith("OK ="), "Line did not start with 'OK ='"
             return line[4:]
 
 
@@ -262,17 +262,18 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
     def execute(self) -> ExchangeGenerator[Dict[str, BlockInfo]]:
         ex = Exchange("*BLOCKS?")
         yield ex
-        blocks_list = []
-        exchanges = []
+
+        blocks_list, commands = [], []
         for line in ex.multiline:
             block, num = line.split()
             blocks_list.append((block, int(num)))
-            exchanges.append(Exchange(f"*DESC.{block}?"))
-        yield exchanges
+            commands.append(Get(f"*DESC.{block}"))
+
+        description_values = yield from _execute_commands(*commands)
 
         blocks_info = {
-            block[0]: BlockInfo(number=block[1], description=ex.line)
-            for block, ex in zip(blocks_list, exchanges)
+            block[0]: BlockInfo(number=block[1], description=desc)
+            for block, desc in zip(blocks_list, description_values)
         }
 
         return OrderedDict(sorted(blocks_info.items()))

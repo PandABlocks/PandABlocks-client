@@ -3,7 +3,7 @@ import pprint
 import sys
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import GetPcapBitsLabels
+from pandablocks.commands import GetBlockInfo, GetPcapBitsLabels
 
 
 # TODO: Add this to documentation somewhere!
@@ -13,6 +13,9 @@ async def introspect():
 
         labels = await client.send(GetPcapBitsLabels())
         pprint.pprint(labels)
+
+        block_info = await client.send(GetBlockInfo())
+        pprint.pprint(block_info)
 
 
 if __name__ == "__main__":

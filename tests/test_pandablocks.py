@@ -109,7 +109,7 @@ def test_get_block_info():
 
     # First of the *DESC.{block}? yields
     assert (
-        conn.receive_bytes(b"Description for PCAP field\n") == b""
+        conn.receive_bytes(b"OK =Description for PCAP field\n") == b""
     )  # No data returned as there's still one outstanding request
 
     # Create an OrderedDict of the output to test key order - that won't happen
@@ -124,7 +124,7 @@ def test_get_block_info():
     # Second and last of the *DESC.{block}? yields - as this is the last response we
     # can call get_responses to also get the overall result
     assert not get_responses(conn)
-    assert get_responses(conn, b"Description for LUT field\n") == [
+    assert get_responses(conn, b"OK =Description for LUT field\n") == [
         (cmd, ordered_dict,),
     ]
 
