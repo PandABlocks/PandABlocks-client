@@ -244,11 +244,15 @@ def test_save():
     )
     response_bytes = "\n".join(STATE_RESPONSES).encode() + b"\n"
     assert (
-        conn.receive_bytes(response_bytes[:109])
+        # TODO: This test is a bit broken - index 109 ends up chopping a word in half:
+        # \n.\n!ta <break> bledata\n.
+        # I think the index should be 107, but weirdly the test passes with a whole
+        # range of indexes around this number
+        conn.receive_bytes(response_bytes[:107])
         == b"Table.B?\nMultiLineMeta1?\nMultiLineMeta2?\n"
     )
     assert not get_responses(conn)
-    assert get_responses(conn, response_bytes[109:]) == [(cmd, STATE_SAVEFILE)]
+    assert get_responses(conn, response_bytes[107:]) == [(cmd, STATE_SAVEFILE)]
 
 
 def test_load():
