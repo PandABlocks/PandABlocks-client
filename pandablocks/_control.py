@@ -2,7 +2,7 @@ from string import digits
 from typing import Dict, List, Optional
 
 from .blocking import BlockingClient
-from .commands import FieldType, GetBlockInfo, GetFields, Raw, is_multiline_command
+from .commands import FieldInfo, GetBlockInfo, GetFieldInfo, Raw, is_multiline_command
 
 
 def _get_user_input(prompt) -> List[str]:
@@ -40,9 +40,10 @@ class BlockCompleter:
         self._client = client
         self._blocks = self._client.send(GetBlockInfo(), timeout=2)
         self._fields = self._get_fields(list(self._blocks))
+        # TODO: Extend use of _fields now we have more info available?
 
-    def _get_fields(self, blocks: List[str]) -> Dict[str, Dict[str, FieldType]]:
-        fields = self._client.send([GetFields(block) for block in blocks], timeout=2)
+    def _get_fields(self, blocks: List[str]) -> Dict[str, Dict[str, FieldInfo]]:
+        fields = self._client.send([GetFieldInfo(block) for block in blocks], timeout=2)
         return dict(zip(blocks, fields))
 
     def _with_suffixes(self, block: str, numbers: bool) -> List[str]:

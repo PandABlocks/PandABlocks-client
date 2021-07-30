@@ -5,10 +5,10 @@ import pytest
 from pandablocks.commands import (
     BlockInfo,
     CommandException,
-    FieldType,
+    FieldInfo,
     Get,
     GetBlockInfo,
-    GetFields,
+    GetFieldInfo,
     GetPcapBitsLabels,
     GetState,
     Put,
@@ -131,15 +131,15 @@ def test_get_block_info():
 
 def test_get_fields():
     conn = ControlConnection()
-    cmd = GetFields("LUT")
+    cmd = GetFieldInfo("LUT")
     assert conn.send(cmd) == b"LUT.*?\n"
     responses = get_responses(conn, b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n")
     assert responses == [
         (
             cmd,
             dict(
-                INPA=FieldType(type="bit_mux"),
-                TYPEA=FieldType(type="param", subtype="enum"),
+                INPA=FieldInfo(type="bit_mux"),
+                TYPEA=FieldInfo(type="param", subtype="enum"),
             ),
         )
     ]

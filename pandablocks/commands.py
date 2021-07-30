@@ -15,7 +15,7 @@ from typing import (
 )
 
 from ._exchange import Exchange, ExchangeGenerator
-from .responses import Changes, FieldType
+from .responses import Changes, FieldInfo
 
 # Define the public API of this module
 __all__ = [
@@ -27,7 +27,7 @@ __all__ = [
     "Arm",
     "Disarm",
     "GetBlockInfo",
-    "GetFields",
+    "GetFieldInfo",
     "GetPcapBitsLabels",
     "ChangeGroup",
     "GetChanges",
@@ -280,8 +280,8 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
 
 
 @dataclass
-class GetFields(Command[Dict[str, FieldType]]):
-    """Get the fields of a block, returning a `FieldType` for each one, ordered
+class GetFieldInfo(Command[Dict[str, FieldInfo]]):
+    """Get the fields of a block, returning a `FieldInfo` for each one, ordered
     to match the definition order in the PandA
 
     Args:
@@ -289,20 +289,59 @@ class GetFields(Command[Dict[str, FieldType]]):
 
     For example::
 
-        GetFields("LUT") -> {"INPA": FieldType("bit_mux"), ...}
+    GetFieldInfo("LUT") -> {
+        "INPA":
+            FieldInfo(type='bit_mux',
+                      subtype=None,
+                      description='Input A',
+                      label=['TTLIN1.VAL', 'TTLIN2.VAL' ...]),
+        ...}
     """
 
     block: str
 
-    def execute(self) -> ExchangeGenerator[Dict[str, FieldType]]:
+    def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
-        unsorted: Dict[int, Tuple[str, FieldType]] = {}
+        unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
         for line in ex.multiline:
             name, index, type_subtype = line.split(maxsplit=2)
-            unsorted[int(index)] = (name, FieldType(*type_subtype.split()))
+            unsorted[int(index)] = (name, FieldInfo(*type_subtype.split()))
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
+
+        commands: List[Get] = []
+        # Map from an index in the commands list to the associated field name
+        field_mapping: Dict[int, str] = {}
+        field: str
+        field_info: FieldInfo
+        for field, field_info in fields.items():
+            commands.append(Get(f"*DESC.{self.block}.{field}"))
+            field_mapping[len(commands) - 1] = field
+
+            # TODO: enum'ize these strings?
+            if (
+                field_info.type in ("bit_mux", "pos_mux", "ext_out")
+                or field_info.subtype == "enum"
+            ):
+                get_str = f"*ENUMS.{self.block}.{field}"
+                if field_info.type == "ext_out":
+                    get_str += ".CAPTURE"
+                commands.append(Get(get_str))
+                field_mapping[len(commands) - 1] = field
+
+        returned_values = yield from _execute_commands(*commands)
+
+        # Merge the returned information back into the existing fields dictionary
+        for idx, value in enumerate(returned_values):
+            command: Get = commands[idx]
+            field_info = fields[field_mapping[idx]]
+            # TODO: Confirm that there's no way we'll get misaligned index accessing
+            if command.field.startswith("*DESC"):
+                field_info.description = value
+            elif command.field.startswith("*ENUMS"):
+                field_info.label = value
+
         return fields
 
 
@@ -322,6 +361,7 @@ class GetPcapBitsLabels(Command):
             split = line.split()
             if len(split) == 4:
                 field_name, _, field_type, field_subtype = split
+                # TODO: enum'ize these strings?
                 if field_type == "ext_out" and field_subtype == "bits":
                     bits_fields.append("PCAP.%s" % field_name)
 

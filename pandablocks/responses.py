@@ -6,7 +6,7 @@ import numpy as np
 
 # Define the public API of this module
 __all__ = [
-    "FieldType",
+    "FieldInfo",
     "Changes",
     "EndReason",
     "FieldCapture",
@@ -21,17 +21,22 @@ __all__ = [
 
 
 @dataclass
-class FieldType:
-    """Field type and subtype as exposed by TCP server:
+class FieldInfo:
+    """Field type, subtype, description and label as exposed by TCP server:
     https://pandablocks-server.readthedocs.io/en/latest/fields.html#field-types
 
     Attributes:
         type: Field type, like "param", "bit_out", "pos_mux", etc.
         subtype: Some types have subtype, like "uint", "scalar", "lut", etc.
+        description: A description of the field
+        label: A list of the valid values for the field when there is a defined list
+        of valid values, e.g. those with sub-type "enum"
     """
 
     type: str
     subtype: Optional[str] = None
+    description: Optional[str] = None
+    label: Optional[List[str]] = None
 
 
 @dataclass
@@ -125,7 +130,7 @@ class FrameData(Data):
         data: A numpy `Structured Array <structured_arrays>`
 
     Data is structured into complete columns. Each column name is
-    ``<name>.<capture>`` from the corresponding `FieldType`. Data
+    ``<name>.<capture>`` from the corresponding `FieldInfo`. Data
     can be accessed with these column names. For example::
 
         # Table view with 2 captured fields

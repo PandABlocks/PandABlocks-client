@@ -31,7 +31,7 @@ corresponding `ControlConnection` and `DataConnection` objects:
     method returns an iterator of ``(command, response)`` tuples that have now
     completed. The response type will depend on the command. For instance `Get`
     returns `bytes` or a `list` of `bytes` of the field value, and `GetFields`
-    returns a `dict` mapping `str` field name to `FieldType`.
+    returns a `dict` mapping `str` field name to `FieldInfo`.
 
 .. autoclass:: DataConnection
     :noindex:
