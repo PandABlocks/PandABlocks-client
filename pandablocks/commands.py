@@ -16,7 +16,7 @@ from typing import (
 )
 
 from ._exchange import Exchange, ExchangeGenerator
-from .responses import Changes, FieldInfo
+from .responses import BlockInfo, Changes, FieldInfo
 
 # Define the public API of this module
 __all__ = [
@@ -240,12 +240,6 @@ class Disarm(Command[None]):
         assert ex.line == "OK"
 
 
-@dataclass
-class BlockInfo:
-    number: int = 0
-    description: str = ""
-
-
 class GetBlockInfo(Command[Dict[str, BlockInfo]]):
     """Get the name, number, and description of each block type
     in a dictionary, alphabetically ordered
@@ -295,7 +289,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 FieldInfo(type='bit_mux',
                         subtype=None,
                         description='Input A',
-                        label=['TTLIN1.VAL', 'TTLIN2.VAL' ...]),
+                        label=['TTLIN1.VAL', 'TTLIN2.VAL', ...]),
             ...}
     """
 

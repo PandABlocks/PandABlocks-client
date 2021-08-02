@@ -6,6 +6,7 @@ import numpy as np
 
 # Define the public API of this module
 __all__ = [
+    "BlockInfo",
     "FieldInfo",
     "Changes",
     "EndReason",
@@ -18,6 +19,18 @@ __all__ = [
 ]
 
 # Control
+
+
+@dataclass
+class BlockInfo:
+    """Block number and description as exposed by the TCP server
+
+    Attributes:
+        number: The index of this block
+        description: The description for this block"""
+
+    number: int = 0
+    description: str = ""
 
 
 @dataclass

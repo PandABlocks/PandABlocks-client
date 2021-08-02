@@ -3,7 +3,6 @@ from typing import Iterator, OrderedDict
 import pytest
 
 from pandablocks.commands import (
-    BlockInfo,
     CommandException,
     FieldInfo,
     Get,
@@ -20,7 +19,7 @@ from pandablocks.connections import (
     DataConnection,
     NoContextAvailable,
 )
-from pandablocks.responses import Data
+from pandablocks.responses import BlockInfo, Data
 from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE
 
 

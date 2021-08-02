@@ -6,7 +6,6 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetBlockInfo, GetFieldInfo, GetPcapBitsLabels
 
 
-# TODO: Add this to documentation somewhere!
 async def introspect():
     # Create a client and connect the control and data ports
     async with AsyncioClient(sys.argv[1]) as client:
@@ -18,7 +17,7 @@ async def introspect():
             field_info = await client.send(GetFieldInfo(block))
             pprint.pprint({block: field_info})
 
-        # Get the labels for the PCAP.BITS* fields
+        # Get the labels for every PCAP.BITS[n] fields
         labels = await client.send(GetPcapBitsLabels())
         pprint.pprint(labels)
 
