@@ -290,13 +290,13 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     For example::
 
-    GetFieldInfo("LUT") -> {
-        "INPA":
-            FieldInfo(type='bit_mux',
-                      subtype=None,
-                      description='Input A',
-                      label=['TTLIN1.VAL', 'TTLIN2.VAL' ...]),
-        ...}
+        GetFieldInfo("LUT") -> {
+            "INPA":
+                FieldInfo(type='bit_mux',
+                        subtype=None,
+                        description='Input A',
+                        label=['TTLIN1.VAL', 'TTLIN2.VAL' ...]),
+            ...}
     """
 
     block: str
@@ -347,7 +347,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         returned_values = yield from _execute_commands(*commands)
 
-        # Merge the returned information back into the existing fields dictionary
+        # Merge the returned information back into the existing FieldInfo for each field
         for idx, value in enumerate(returned_values):
             command: Get = commands[idx]
             field_info = fields[field_mapping[idx]]

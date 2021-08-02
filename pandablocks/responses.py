@@ -30,7 +30,7 @@ class FieldInfo:
         subtype: Some types have subtype, like "uint", "scalar", "lut", etc.
         description: A description of the field
         label: A list of the valid values for the field when there is a defined list
-        of valid values, e.g. those with sub-type "enum"
+            of valid values, e.g. those with sub-type "enum"
     """
 
     type: str

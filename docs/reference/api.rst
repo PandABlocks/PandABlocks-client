@@ -23,7 +23,7 @@ from code:
     There is a `Command` subclass for every sort of command that can be sent to
     the `ControlConnection` of a PandA. Many common actions can be accomplished
     with a simple `Get` or `Put`, but some convenience commands like
-    `GetBlockInfo`, `GetFields`, etc. are provided that parse output into
+    `GetBlockInfo`, `GetFieldInfo`, etc. are provided that parse output into
     specific classes.
 
 
