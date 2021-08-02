@@ -133,17 +133,44 @@ def test_get_fields():
     conn = ControlConnection()
     cmd = GetFieldInfo("LUT")
     assert conn.send(cmd) == b"LUT.*?\n"
-    responses = get_responses(conn, b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n")
-    assert responses == [
+
+    # First yield, the response to "LUT.*?"
+    assert (
+        conn.receive_bytes(b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n")
+        == b"*DESC.LUT.INPA?\n*ENUMS.LUT.INPA?\n*DESC.LUT.TYPEA?\n*ENUMS.LUT.TYPEA?\n"
+    )
+
+    # Responses to the 2 *DESC and 2 *ENUM commands
+    responses = [
+        b"OK =Input A\n",
+        b"!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n"
+        b"OK =Source of the value of A for calculation\n",
+        b"!Input-Level\n!Pulse-On-Rising-Edge\n.\n",
+    ]
+    for response in responses:
+        assert (
+            conn.receive_bytes(response) == b""
+        )  # None of these trigger further commands
+
+    assert get_responses(conn) == [
         (
             cmd,
-            dict(
-                INPA=FieldInfo(type="bit_mux"),
-                TYPEA=FieldInfo(type="param", subtype="enum"),
-            ),
+            {
+                "INPA": FieldInfo(
+                    type="bit_mux",
+                    subtype=None,
+                    description="Input A",
+                    label=["TTLIN1.VAL", "LVDSIN1.VAL"],
+                ),
+                "TYPEA": FieldInfo(
+                    type="param",
+                    subtype="enum",
+                    description="Source of the value of A for calculation",
+                    label=["Input-Level", "Pulse-On-Rising-Edge"],
+                ),
+            },
         )
     ]
-    assert list(responses[0][1]) == ["INPA", "TYPEA"]
 
 
 def test_get_pcap_bits_labels():

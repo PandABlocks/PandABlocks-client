@@ -7,6 +7,7 @@ from typing import (
     Dict,
     Generic,
     List,
+    Optional,
     OrderedDict,
     Tuple,
     TypeVar,
@@ -306,10 +307,24 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
         for line in ex.multiline:
             name, index, type_subtype = line.split(maxsplit=2)
-            unsorted[int(index)] = (name, FieldInfo(*type_subtype.split()))
+            # Awkward unpacking of the variable-length "type_subtype" variable, instead
+            # of "*type_subtype.split()", to avoid mypy error:
+            # 'Argument 1 to "FieldInfo" has incompatible type "*List[str]";
+            # expected "Optional[List[str]]" '
+            field_type: str
+            subtype: Optional[str]
+            if " " in type_subtype:
+                # We have both a type and sub-type
+                field_type, subtype = type_subtype.split(maxsplit=1)
+            else:
+                field_type = type_subtype
+                subtype = None
+
+            unsorted[int(index)] = (name, FieldInfo(field_type, subtype))
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
+        # Create the list of DESC and ENUM commands to request
         commands: List[Get] = []
         # Map from an index in the commands list to the associated field name
         field_mapping: Dict[int, str] = {}
