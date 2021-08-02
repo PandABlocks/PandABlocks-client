@@ -10,8 +10,9 @@ def dummy_server_with_blocks(dummy_server_in_thread):
         "!PCAP 1\n!LUT 8\n.",
         "OK =Description for PCAP field\nOK =Description for LUT field",
         # TODO: Ask why no \n or '.' at end of above line
-        "!TYPEA 5 param enum\n!TYPEA_INP 1 bit_mux\n.",
-        "!TS_START 6 ext_out timestamp\n!ACTIVE 7 bit_out\n.",
+        "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
+        "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
+        "OK =LUT INPB Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\nOK =LUT TYPEA Desc\n!Input-Level\n!Pulse-On-Rising-Edge\n.\nOK =PCAP GATE Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\nOK =PCAP TRIG_EDGE Desc\n!Rising\n!Falling\n.",
     ]
     yield dummy_server_in_thread
 
@@ -21,14 +22,16 @@ def test_complete_one_block(dummy_server_with_blocks):
         completer = BlockCompleter(client)
         assert completer("PCA", 0) == "PCAP"
         assert completer.matches == ["PCAP"]
-        assert completer("PCAP.", 0) == "PCAP.TS_START"
-        assert completer.matches == ["PCAP.TS_START", "PCAP.ACTIVE"]
+        assert completer("PCAP.", 0) == "PCAP.GATE"
+        assert completer.matches == ["PCAP.GATE", "PCAP.TRIG_EDGE"]
         completer("LU", 0)
         assert completer.matches == [f"LUT{i}" for i in range(1, 9)]
         completer("LUT5.", 0)
-        assert completer.matches == ["LUT5.TYPEA_INP", "LUT5.TYPEA"]
+        assert completer.matches == ["LUT5.INPB", "LUT5.TYPEA"]
         completer("LUT5.TYPEA_IN", 0)
-        assert completer.matches == ["LUT5.TYPEA_INP"]
+        assert completer.matches == []
+        completer("LUT5.TYPE", 0)
+        assert completer.matches == ["LUT5.TYPEA"]
         assert completer("LUT5.TYPEA_INP?", 0) is None
 
 
