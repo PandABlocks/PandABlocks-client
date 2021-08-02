@@ -12,8 +12,14 @@ def dummy_server_with_blocks(dummy_server_in_thread):
         # TODO: Ask why no \n or '.' at end of above line
         "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
-        "OK =LUT INPB Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\nOK =LUT TYPEA Desc\n!Input-Level\n!Pulse-On-Rising-Edge\n.\nOK =PCAP GATE Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\nOK =PCAP TRIG_EDGE Desc\n!Rising\n!Falling\n.",
+        # Next 4 lines deliberately concatenated so they are sent as one long response
+        "OK =LUT INPB Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n"
+        "OK =LUT TYPEA Desc\n!Input-Level\n!Pulse-On-Rising-Edge\n.\n"
+        "OK =PCAP GATE Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n"
+        "OK =PCAP TRIG_EDGE Desc\n!Rising\n!Falling\n.",
     ]
+    # TODO: Ask about DummyServer throwing an exception during these tests -is it still a failure
+    # if that testware server throws exceptions?
     yield dummy_server_in_thread
 
 
@@ -48,7 +54,7 @@ def test_complete_stars(dummy_server_with_blocks):
         ]
         assert completer("*DE", 0) == "*DESC.LUT"
         assert completer.matches == ["*DESC.LUT", "*DESC.PCAP"]
-        assert completer("*DESC.LUT.", 0) == "*DESC.LUT.TYPEA_INP"
-        assert completer.matches == ["*DESC.LUT.TYPEA_INP", "*DESC.LUT.TYPEA"]
+        assert completer("*DESC.LUT.", 0) == "*DESC.LUT.INPB"
+        assert completer.matches == ["*DESC.LUT.INPB", "*DESC.LUT.TYPEA"]
         assert completer("*ENUMS.LU", 0) == "*ENUMS.LUT"
         assert completer.matches == ["*ENUMS.LUT"]
