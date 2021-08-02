@@ -11,14 +11,16 @@ async def introspect():
     # Create a client and connect the control and data ports
     async with AsyncioClient(sys.argv[1]) as client:
 
+        # Get the list of all blocks in the PandA
+        block_info = await client.send(GetBlockInfo())
+        # Find and print all fields for each block
+        for block in block_info:
+            field_info = await client.send(GetFieldInfo(block))
+            pprint.pprint({block: field_info})
+
+        # Get the labels for the PCAP.BITS* fields
         labels = await client.send(GetPcapBitsLabels())
         pprint.pprint(labels)
-
-        block_info = await client.send(GetBlockInfo())
-        pprint.pprint(block_info)
-
-        field_info = await client.send(GetFieldInfo("LUT"))
-        pprint.pprint(field_info)
 
 
 if __name__ == "__main__":
