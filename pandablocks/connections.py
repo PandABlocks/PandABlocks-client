@@ -39,7 +39,7 @@ class NeedMoreData(Exception):
 class NoContextAvailable(Exception):
     """Raised if there were no contexts available for this connection.
     This may result from calling `ControlConnection.receive_bytes()` without calling
-    `ControlConnection.send()` """
+    `ControlConnection.send()`, or if there were unmatched sends/receives """
 
 
 class Buffer:

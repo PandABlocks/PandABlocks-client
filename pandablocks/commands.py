@@ -319,15 +319,14 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             commands.append(Get(f"*DESC.{self.block}.{field}"))
             field_mapping[len(commands) - 1] = field
 
-            # TODO: enum'ize these strings?
             if (
                 field_info.type in ("bit_mux", "pos_mux", "ext_out")
                 or field_info.subtype == "enum"
             ):
-                get_str = f"*ENUMS.{self.block}.{field}"
+                enum_str = f"*ENUMS.{self.block}.{field}"
                 if field_info.type == "ext_out":
-                    get_str += ".CAPTURE"
-                commands.append(Get(get_str))
+                    enum_str += ".CAPTURE"
+                commands.append(Get(enum_str))
                 field_mapping[len(commands) - 1] = field
 
         returned_values = yield from _execute_commands(*commands)
@@ -336,7 +335,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         for idx, value in enumerate(returned_values):
             command: Get = commands[idx]
             field_info = fields[field_mapping[idx]]
-            # TODO: Confirm that there's no way we'll get misaligned index accessing
+
             if command.field.startswith("*DESC"):
                 field_info.description = value
             elif command.field.startswith("*ENUMS"):
@@ -361,9 +360,9 @@ class GetPcapBitsLabels(Command):
             split = line.split()
             if len(split) == 4:
                 field_name, _, field_type, field_subtype = split
-                # TODO: enum'ize these strings?
+
                 if field_type == "ext_out" and field_subtype == "bits":
-                    bits_fields.append("PCAP.%s" % field_name)
+                    bits_fields.append(f"PCAP.{field_name}")
 
         exchanges = [Exchange(f"{field}.BITS?") for field in bits_fields]
         yield exchanges
