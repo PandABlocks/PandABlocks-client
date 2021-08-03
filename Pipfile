@@ -12,6 +12,7 @@ mypy = "*"
 atomicwrites = "*"
 typing-extensions = "*"
 importlib-metadata = "*"
+typed-ast = "*"
 
 # Test and docs dependencies
 pytest-cov = "*"
@@ -26,6 +27,8 @@ sphinx-rtd-theme = "*"
 [packages]
 # All other package requirements from setup.cfg
 pandablocks = {editable = true, extras = ["hdf5"], path = "."}
+# Pins to make lockfile usable on multiple Python versions and platforms
+numpy = "*"
 
 [scripts]
 tests = "python -m pytest"
