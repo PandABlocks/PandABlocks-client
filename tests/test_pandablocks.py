@@ -149,7 +149,7 @@ def test_get_fields():
     for response in responses:
         assert (
             conn.receive_bytes(response) == b""
-        )  # None of these trigger further commands
+        )  # Expect no bytes back as none of these trigger further commands
 
     assert get_responses(conn) == [
         (
@@ -167,6 +167,44 @@ def test_get_fields():
                     description="Source of the value of A for calculation",
                     label=["Input-Level", "Pulse-On-Rising-Edge"],
                 ),
+            },
+        )
+    ]
+
+
+def test_get_fields_type_ext_out():
+    """Test for field type == ext_out, ensuring we add .CAPTURE to the end of the
+    *ENUMS command"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("PCAP")
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    # First yield, the response to "PCAP.*?"
+    assert (
+        conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n")
+        == b"*DESC.PCAP.SAMPLES?\n*ENUMS.PCAP.SAMPLES.CAPTURE?\n"
+    )
+
+    # Responses to the *DESC and *ENUM commands
+    responses = [
+        b"OK =Number of gated samples in the current capture\n",
+        b"!No\n!Value\n.\n",
+    ]
+    for response in responses:
+        assert (
+            conn.receive_bytes(response) == b""
+        )  # Expect no bytes back as none of these trigger further commands
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            {
+                "SAMPLES": FieldInfo(
+                    type="ext_out",
+                    subtype="samples",
+                    description="Number of gated samples in the current capture",
+                    label=["No", "Value"],
+                )
             },
         )
     ]
