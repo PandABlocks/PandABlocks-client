@@ -35,21 +35,21 @@ class BlockInfo:
 
 @dataclass
 class FieldInfo:
-    """Field type, subtype, description and label as exposed by TCP server:
+    """Field type, subtype, description and labels as exposed by TCP server:
     https://pandablocks-server.readthedocs.io/en/latest/fields.html#field-types
 
     Attributes:
         type: Field type, like "param", "bit_out", "pos_mux", etc.
         subtype: Some types have subtype, like "uint", "scalar", "lut", etc.
         description: A description of the field
-        label: A list of the valid values for the field when there is a defined list
+        labels: A list of the valid values for the field when there is a defined list
             of valid values, e.g. those with sub-type "enum"
     """
 
     type: str
     subtype: Optional[str] = None
     description: Optional[str] = None
-    label: Optional[List[str]] = None
+    labels: Optional[List[str]] = None
 
 
 @dataclass

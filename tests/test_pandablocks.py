@@ -203,13 +203,13 @@ def test_get_fields():
                     type="bit_mux",
                     subtype=None,
                     description="Input A",
-                    label=["TTLIN1.VAL", "LVDSIN1.VAL"],
+                    labels=["TTLIN1.VAL", "LVDSIN1.VAL"],
                 ),
                 "TYPEA": FieldInfo(
                     type="param",
                     subtype="enum",
                     description="Source of the value of A for calculation",
-                    label=["Input-Level", "Pulse-On-Rising-Edge"],
+                    labels=["Input-Level", "Pulse-On-Rising-Edge"],
                 ),
             },
         )
@@ -247,7 +247,7 @@ def test_get_fields_type_ext_out():
                     type="ext_out",
                     subtype="samples",
                     description="Number of gated samples in the current capture",
-                    label=["No", "Value"],
+                    labels=["No", "Value"],
                 )
             },
         )

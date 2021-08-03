@@ -299,11 +299,11 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
         for line in ex.multiline:
-            # Append "None" to list below as there isn't always a subtype in line,
-            # so the .split() will sometimes only produce 3 elements. If there is a
-            # subtype in line, *_ will swallow the trailing None.
-            name, index, field_type, subtype, *_ = [*line.split(maxsplit=3), None]
+            name, index, type_subtype = line.split(maxsplit=2)
 
+            # Append "None" to list below so there are always at least 2 elements
+            # so we can always unpack into subtype, even if no split occurs.
+            field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
             unsorted[int(index)] = (name, FieldInfo(field_type, subtype))
 
         # Dict keeps insertion order, so insert in the order the server said
@@ -339,7 +339,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             if command.field.startswith("*DESC"):
                 field_info.description = value
             elif command.field.startswith("*ENUMS"):
-                field_info.label = value
+                field_info.labels = value
 
         return fields
 

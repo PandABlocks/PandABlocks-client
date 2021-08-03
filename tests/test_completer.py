@@ -22,8 +22,6 @@ def dummy_server_with_blocks(dummy_server_in_thread):
         "OK =PCAP TRIG_EDGE Desc",
         "!Rising\n!Falling\n.",
     ]
-    # TODO: Ask about DummyServer throwing an exception during these tests -is it
-    # still a failure if that testware server throws exceptions?
     yield dummy_server_in_thread
 
 
