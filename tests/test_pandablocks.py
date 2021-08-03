@@ -210,6 +210,24 @@ def test_get_fields_type_ext_out():
     ]
 
 
+def test_get_fields_non_existant_field():
+    """Test that querying for an unknown field returns a sensible error"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("FOO")
+    assert conn.send(cmd) == b"FOO.*?\n"
+
+    # Provide the error string the PandA would provide
+    assert conn.receive_bytes(b"ERR No such block\n") == b""
+
+    responses = get_responses(conn)
+    assert len(responses) == 1
+
+    response = responses[0]
+    assert response[0] == cmd
+    assert isinstance(response[1], CommandException)
+    assert response[1].args == ("GetFieldInfo(block='FOO') -> ERR No such block",)
+
+
 def test_get_pcap_bits_labels():
     """Simple working testcase for GetPcapBitsLabels"""
 
