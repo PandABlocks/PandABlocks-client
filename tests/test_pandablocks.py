@@ -104,7 +104,7 @@ def test_get_block_info():
     assert conn.send(cmd) == b"*BLOCKS?\n"
 
     # Respond to first yield, the return from the BLOCKS? command
-    assert conn.receive_bytes(b"!PCAP 1\n!LUT 8\n.\n")
+    assert conn.receive_bytes(b"!PCAP 1\n!LUT 8\n.\n") == b"*DESC.PCAP?\n*DESC.LUT?\n"
 
     # First of the *DESC.{block}? yields
     assert (
@@ -126,6 +126,50 @@ def test_get_block_info():
     assert get_responses(conn, b"OK =Description for LUT field\n") == [
         (cmd, ordered_dict,),
     ]
+
+
+def test_get_block_info_error():
+    """Test that any errors from *BLOCKS command are correctly reported"""
+    conn = ControlConnection()
+    cmd = GetBlockInfo()
+    assert conn.send(cmd) == b"*BLOCKS?\n"
+
+    # Provide error from PandA server
+    assert conn.receive_bytes(b"ERR Cannot read blocks\n") == b""
+
+    responses = get_responses(conn)
+    assert len(responses) == 1
+
+    response = responses[0]
+    assert response[0] == cmd
+    assert isinstance(response[1], CommandException)
+    assert response[1].args == ("GetBlockInfo() -> ERR Cannot read blocks",)
+
+
+def test_get_block_info_desc_err():
+    """Test when the DESC command returns an error"""
+    conn = ControlConnection()
+    cmd = GetBlockInfo()
+    assert conn.send(cmd) == b"*BLOCKS?\n"
+
+    # Respond to first yield, the return from the BLOCKS? command
+    assert conn.receive_bytes(b"!PCAP 1\n.\n") == b"*DESC.PCAP?\n"
+
+    # First of the *DESC.{block}? yields
+    assert (
+        conn.receive_bytes(b"ERR could not get description\n") == b""
+    )  # No data returned as there's still one outstanding request
+
+    responses = get_responses(conn)
+    assert len(responses) == 1
+
+    response = responses[0]
+    assert response[0] == cmd
+    assert isinstance(response[1], CommandException)
+    assert response[1].args == (
+        "GetBlockInfo() -> "
+        "ERR could not get description\nAssertionError:Line did not start with 'OK ='",
+    )
 
 
 def test_get_fields():
