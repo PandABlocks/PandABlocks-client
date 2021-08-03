@@ -8,15 +8,19 @@ from pandablocks.blocking import BlockingClient
 def dummy_server_with_blocks(dummy_server_in_thread):
     dummy_server_in_thread.send += [
         "!PCAP 1\n!LUT 8\n.",
-        "OK =Description for PCAP field\nOK =Description for LUT field",
-        # TODO: Ask why no \n or '.' at end of above line
+        "OK =Description for PCAP block",
+        "OK =Description for LUT block",
         "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
         # Next 4 lines deliberately concatenated so they are sent as one long response
-        "OK =LUT INPB Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n"
-        "OK =LUT TYPEA Desc\n!Input-Level\n!Pulse-On-Rising-Edge\n.\n"
-        "OK =PCAP GATE Desc\n!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n"
-        "OK =PCAP TRIG_EDGE Desc\n!Rising\n!Falling\n.",
+        "OK =LUT INPB Desc",
+        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",
+        "OK =LUT TYPEA Desc",
+        "!Input-Level\n!Pulse-On-Rising-Edge\n.",
+        "OK =PCAP GATE Desc",
+        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",
+        "OK =PCAP TRIG_EDGE Desc",
+        "!Rising\n!Falling\n.",
     ]
     # TODO: Ask about DummyServer throwing an exception during these tests -is it
     # still a failure if that testware server throws exceptions?
