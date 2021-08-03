@@ -301,20 +301,15 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
         for line in ex.multiline:
             name, index, type_subtype = line.split(maxsplit=2)
-            # Awkward unpacking of the variable-length "type_subtype" variable, instead
-            # of "*type_subtype.split()", to avoid mypy error:
-            # 'Argument 1 to "FieldInfo" has incompatible type "*List[str]";
-            # expected "Optional[List[str]]" '
+
             field_type: str
             subtype: Optional[str]
-            if " " in type_subtype:
-                # We have both a type and sub-type
-                field_type, subtype = type_subtype.split(maxsplit=1)
-            else:
-                field_type = type_subtype
-                subtype = None
+            # Append "None" to list below so there are always at least 2 elements
+            # so we can always unpack into subtype, even if no split occurs.
+            field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
 
             unsorted[int(index)] = (name, FieldInfo(field_type, subtype))
+
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
