@@ -39,7 +39,7 @@ class NeedMoreData(Exception):
 class NoContextAvailable(Exception):
     """Raised if there were no contexts available for this connection.
     This may result from calling `ControlConnection.receive_bytes()` without calling
-    `ControlConnection.send()`, or if there were unmatched sends/receives """
+    `ControlConnection.send()`, or if there were unmatched sends/receives"""
 
 
 class Buffer:
@@ -321,7 +321,8 @@ class DataConnection:
                 # sent
                 name, capture = SAMPLES_FIELD.rsplit(".", maxsplit=1)
                 fields.insert(
-                    0, FieldCapture(name, np.dtype("uint32"), capture),
+                    0,
+                    FieldCapture(name, np.dtype("uint32"), capture),
                 )
             self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]

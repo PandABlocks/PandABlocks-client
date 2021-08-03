@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "774f165c59bde4fe89dc0bf353c2664eeafb258a97b9653869ffc14f3d76692b"
+            "sha256": "ddea8dcf3eb3266c7c60c57f7c9089b8666f95ec0688f52a4cf0fe0811e2ec32"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -247,11 +247,11 @@
         },
         "black": {
             "hashes": [
-                "sha256:1b30e59be925fafc1ee4565e5e08abef6b03fe455102883820fe5ee2e4734e0b",
-                "sha256:c2edb73a08e9e0e6f65a0e6af18b059b8b1cdd5bef997d7a0b181df93dc81539"
+                "sha256:1c7aa6ada8ee864db745b22790a32f94b2795c253a75d6d9b5e439ff10d23116",
+                "sha256:c8373c6491de9362e39271630b65b964607bc5c79c83783547d76c839b3aa219"
             ],
             "index": "pypi",
-            "version": "==19.10b0"
+            "version": "==21.7b0"
         },
         "certifi": {
             "hashes": [
@@ -743,6 +743,14 @@
                 "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"
             ],
             "version": "==0.10.2"
+        },
+        "tomli": {
+            "hashes": [
+                "sha256:056f0376bf5a6b182c513f9582c1e5b0487265eb6c48842b69aa9ca1cd5f640a",
+                "sha256:d60e681734099207a6add7a10326bc2ddd1fdc36c1b0f547d00ef73ac63739c2"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==1.2.0"
         },
         "typed-ast": {
             "hashes": [
