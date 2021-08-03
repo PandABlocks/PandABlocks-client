@@ -7,7 +7,6 @@ from typing import (
     Dict,
     Generic,
     List,
-    Optional,
     OrderedDict,
     Tuple,
     TypeVar,
@@ -300,13 +299,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
         for line in ex.multiline:
-            name, index, type_subtype = line.split(maxsplit=2)
-
-            field_type: str
-            subtype: Optional[str]
-            # Append "None" to list below so there are always at least 2 elements
-            # so we can always unpack into subtype, even if no split occurs.
-            field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
+            # Append "None" to list below as there isn't always a subtype in line,
+            # so the .split() will sometimes only produce 3 elements. If there is a
+            # subtype in line, *_ will swallow the trailing None.
+            name, index, field_type, subtype, *_ = [*line.split(maxsplit=3), None]
 
             unsorted[int(index)] = (name, FieldInfo(field_type, subtype))
 
