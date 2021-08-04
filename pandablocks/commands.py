@@ -286,7 +286,7 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
 @dataclass
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     """Get the fields of a block, returning a `FieldInfo` for each one, ordered
-    to match the definition order in the PandA #TODO: Confirm order of variables!
+    to match the definition order in the PandA
 
     Args:
         block: The name of the block type
