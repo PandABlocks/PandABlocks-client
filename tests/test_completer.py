@@ -7,20 +7,14 @@ from pandablocks.blocking import BlockingClient
 @pytest.fixture
 def dummy_server_with_blocks(dummy_server_in_thread):
     dummy_server_in_thread.send += [
-        "!PCAP 1\n!LUT 8\n.",
-        "OK =Description for PCAP block",
-        "OK =Description for LUT block",
+        "!PCAP 1\n!LUT 8\n!SRGATE 2\n.",
         "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
-        # Next 4 lines deliberately concatenated so they are sent as one long response
-        "OK =LUT INPB Desc",
-        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",
-        "OK =LUT TYPEA Desc",
-        "!Input-Level\n!Pulse-On-Rising-Edge\n.",
-        "OK =PCAP GATE Desc",
-        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",
-        "OK =PCAP TRIG_EDGE Desc",
-        "!Rising\n!Falling\n.",
+        "!OUT 1 bit_out\n.",  # SRGATE fields
+        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # LUT.INPB labels
+        "!Input-Level\n!Pulse-On-Rising-Edge\n.",  # LUT.TYPEA labels
+        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # PCAP.GATE labels
+        "!Rising\n!Falling\n.",  # PCAP.TRIG_EDGE labels
     ]
     yield dummy_server_in_thread
 
@@ -55,7 +49,7 @@ def test_complete_stars(dummy_server_with_blocks):
             "*PCAP.DISARM=",
         ]
         assert completer("*DE", 0) == "*DESC.LUT"
-        assert completer.matches == ["*DESC.LUT", "*DESC.PCAP"]
+        assert completer.matches == ["*DESC.LUT", "*DESC.PCAP", "*DESC.SRGATE"]
         assert completer("*DESC.LUT.", 0) == "*DESC.LUT.INPB"
         assert completer.matches == ["*DESC.LUT.INPB", "*DESC.LUT.TYPEA"]
         assert completer("*ENUMS.LU", 0) == "*ENUMS.LUT"

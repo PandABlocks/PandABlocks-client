@@ -146,7 +146,9 @@ def test_get_block_info_error():
     response = responses[0]
     assert response[0] == cmd
     assert isinstance(response[1], CommandException)
-    assert response[1].args == ("GetBlockInfo() -> ERR Cannot read blocks",)
+    assert response[1].args == (
+        "GetBlockInfo(skip_description=False) -> ERR Cannot read blocks",
+    )
 
 
 def test_get_block_info_desc_err():
@@ -170,7 +172,7 @@ def test_get_block_info_desc_err():
     assert response[0] == cmd
     assert isinstance(response[1], CommandException)
     assert response[1].args == (
-        "GetBlockInfo() -> "
+        "GetBlockInfo(skip_description=False) -> "
         "ERR could not get description\nAssertionError:Line did not start with 'OK ='",
     )
 
@@ -272,7 +274,9 @@ def test_get_fields_non_existant_field():
     response = responses[0]
     assert response[0] == cmd
     assert isinstance(response[1], CommandException)
-    assert response[1].args == ("GetFieldInfo(block='FOO') -> ERR No such block",)
+    assert response[1].args == (
+        "GetFieldInfo(block='FOO', skip_description=False) -> ERR No such block",
+    )
 
 
 def test_get_pcap_bits_labels():
