@@ -131,6 +131,22 @@ def test_get_block_info():
     ]
 
 
+def test_get_block_info_skip_description():
+    """Test that the skip_description flag causes GetBlockInfo to not retrieve
+    descriptions"""
+    conn = ControlConnection()
+    cmd = GetBlockInfo(skip_description=True)
+    assert conn.send(cmd) == b"*BLOCKS?\n"
+
+    ordered_dict = OrderedDict(
+        [
+            ("PCAP", BlockInfo(number=1, description=None)),
+        ]
+    )
+    # Only a yield for the BLOCKS.* request, not for description as well
+    assert get_responses(conn, b"!PCAP 1\n.\n") == [(cmd, ordered_dict)]
+
+
 def test_get_block_info_error():
     """Test that any errors from *BLOCKS command are correctly reported"""
     conn = ControlConnection()
@@ -146,9 +162,7 @@ def test_get_block_info_error():
     response = responses[0]
     assert response[0] == cmd
     assert isinstance(response[1], CommandException)
-    assert response[1].args == (
-        "GetBlockInfo(skip_description=False) -> ERR Cannot read blocks",
-    )
+    assert response[1].args == (repr(cmd) + " -> ERR Cannot read blocks",)
 
 
 def test_get_block_info_desc_err():
@@ -172,8 +186,8 @@ def test_get_block_info_desc_err():
     assert response[0] == cmd
     assert isinstance(response[1], CommandException)
     assert response[1].args == (
-        "GetBlockInfo(skip_description=False) -> "
-        "ERR could not get description\nAssertionError:Line did not start with 'OK ='",
+        repr(cmd) + " -> ERR could not get description\n"
+        "AssertionError:Line did not start with 'OK ='",
     )
 
 
@@ -259,6 +273,35 @@ def test_get_fields_type_ext_out():
     ]
 
 
+def test_get_fields_type_skip_description():
+    """Test that the skip_description flag causes no description to be retrieved
+    for the field"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("PCAP", True)
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    assert (
+        conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n")
+        == b"*ENUMS.PCAP.SAMPLES.CAPTURE?\n"
+    )
+
+    assert conn.receive_bytes(b"!No\n!Value\n.\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            {
+                "SAMPLES": FieldInfo(
+                    type="ext_out",
+                    subtype="samples",
+                    description=None,
+                    labels=["No", "Value"],
+                )
+            },
+        )
+    ]
+
+
 def test_get_fields_non_existant_field():
     """Test that querying for an unknown field returns a sensible error"""
     conn = ControlConnection()
@@ -274,9 +317,54 @@ def test_get_fields_non_existant_field():
     response = responses[0]
     assert response[0] == cmd
     assert isinstance(response[1], CommandException)
-    assert response[1].args == (
-        "GetFieldInfo(block='FOO', skip_description=False) -> ERR No such block",
-    )
+    assert response[1].args == (repr(cmd) + " -> ERR No such block",)
+
+
+def test_get_fields_no_enums():
+    """Test that a field that does not have any enum labels does not attempt to
+    retrieve them"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("LVDSIN")
+    assert conn.send(cmd) == b"LVDSIN.*?\n"
+
+    # First yield, the response to "LVDSIN.*?"
+    assert conn.receive_bytes(b"!VAL 0 bit_out\n.\n") == b"*DESC.LVDSIN.VAL?\n"
+
+    assert get_responses(conn, b"OK =LVDS input value\n") == [
+        (
+            cmd,
+            {
+                "VAL": FieldInfo(
+                    type="bit_out",
+                    subtype=None,
+                    description="LVDS input value",
+                    labels=None,
+                ),
+            },
+        )
+    ]
+
+
+def test_get_fields_no_enums_no_description():
+    """Test that a field that does not have any enum labels does not attempt to
+    retrieve them, and also does not retrieve a description."""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("LVDSIN", skip_description=True)
+    assert conn.send(cmd) == b"LVDSIN.*?\n"
+
+    assert get_responses(conn, b"!VAL 0 bit_out\n.\n") == [
+        (
+            cmd,
+            {
+                "VAL": FieldInfo(
+                    type="bit_out",
+                    subtype=None,
+                    description=None,
+                    labels=None,
+                ),
+            },
+        )
+    ]
 
 
 def test_get_pcap_bits_labels():
