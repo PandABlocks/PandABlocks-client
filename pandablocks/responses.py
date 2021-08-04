@@ -30,7 +30,7 @@ class BlockInfo:
         description: The description for this block"""
 
     number: int = 0
-    description: str = ""
+    description: Optional[str] = None
 
 
 @dataclass

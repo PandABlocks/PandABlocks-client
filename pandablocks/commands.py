@@ -239,9 +239,14 @@ class Disarm(Command[None]):
         assert ex.line == "OK"
 
 
+@dataclass
 class GetBlockInfo(Command[Dict[str, BlockInfo]]):
     """Get the name, number, and description of each block type
     in a dictionary, alphabetically ordered
+
+    Args:
+        skip_description: If `True`, prevents retrieving the description
+            for each Block. This will reduce network calls.
 
     For example::
 
@@ -253,6 +258,8 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
              }
     """
 
+    skip_description: bool = False
+
     def execute(self) -> ExchangeGenerator[Dict[str, BlockInfo]]:
         ex = Exchange("*BLOCKS?")
         yield ex
@@ -263,7 +270,10 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
             blocks_list.append((block, int(num)))
             commands.append(Get(f"*DESC.{block}"))
 
-        description_values = yield from _execute_commands(*commands)
+        if self.skip_description:
+            description_values = tuple(None for _ in range(len(commands)))
+        else:
+            description_values = yield from _execute_commands(*commands)
 
         blocks_info = {
             block[0]: BlockInfo(number=block[1], description=desc)
@@ -276,10 +286,12 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
 @dataclass
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     """Get the fields of a block, returning a `FieldInfo` for each one, ordered
-    to match the definition order in the PandA
+    to match the definition order in the PandA #TODO: Confirm order of variables!
 
     Args:
         block: The name of the block type
+        skip_description: If `True`, prevents retrieving the description
+            for each Field. This will reduce network calls.
 
     For example::
 
@@ -293,6 +305,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     """
 
     block: str
+    skip_description: bool = False
 
     def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
@@ -316,8 +329,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field: str
         field_info: FieldInfo
         for field, field_info in fields.items():
-            commands.append(Get(f"*DESC.{self.block}.{field}"))
-            field_mapping[len(commands) - 1] = field
+
+            if not self.skip_description:
+                commands.append(Get(f"*DESC.{self.block}.{field}"))
+                field_mapping[len(commands) - 1] = field
 
             if (
                 field_info.type in ("bit_mux", "pos_mux", "ext_out")

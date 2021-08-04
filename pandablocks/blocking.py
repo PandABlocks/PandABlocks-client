@@ -97,9 +97,13 @@ class BlockingClient:
             to_send = self._ctrl_connection.receive_bytes(received)
             s.sendall(to_send)
             responses += list(self._ctrl_connection.responses())
-        assert all(
-            c == r[0] for c, r in zip(commands, responses)
-        ), f"Mismatched {commands} and {responses}"
+        # assert all(
+        #     c == r[0] for c, r in zip(commands, responses)
+        # ), f"Mismatched {commands} and {responses}"
+
+        for c, r in zip(commands, responses):
+            assert c == r[0], f"Mismatched {c} and {r}"
+
         for _, response in responses:
             if isinstance(response, Exception):
                 raise response

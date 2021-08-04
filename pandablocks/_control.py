@@ -38,12 +38,15 @@ class BlockCompleter:
     def __init__(self, client: BlockingClient):
         self.matches: List[str] = []
         self._client = client
-        self._blocks = self._client.send(GetBlockInfo(), timeout=2)
+        self._blocks = self._client.send(GetBlockInfo(True), timeout=2)
         self._fields = self._get_fields(list(self._blocks))
-        # TODO: Extend use of _fields now we have more info available?
+        # TODO: Extend use of _fields now we have enum labels available?
 
     def _get_fields(self, blocks: List[str]) -> Dict[str, Dict[str, FieldInfo]]:
-        fields = self._client.send([GetFieldInfo(block) for block in blocks], timeout=2)
+        fields = self._client.send(
+            [GetFieldInfo(block, True) for block in blocks],
+            timeout=2,
+        )
         return dict(zip(blocks, fields))
 
     def _with_suffixes(self, block: str, numbers: bool) -> List[str]:
