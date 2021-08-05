@@ -180,7 +180,7 @@ class Get(Command[Union[str, List[str]]]):
         else:
             # We got OK =value
             line = ex.line
-            assert line.startswith("OK ="), f"'{line}' does not start with 'OK ='"
+            assert line.startswith("OK =")
             return line[4:]
 
 

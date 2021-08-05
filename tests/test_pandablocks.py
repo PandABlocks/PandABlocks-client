@@ -156,13 +156,14 @@ def test_get_block_info_error():
     # Provide error from PandA server
     assert conn.receive_bytes(b"ERR Cannot read blocks\n") == b""
 
-    responses = get_responses(conn)
-    assert len(responses) == 1
-
-    response = responses[0]
-    assert response[0] == cmd
-    assert isinstance(response[1], CommandException)
-    assert response[1].args == (repr(cmd) + " -> ERR Cannot read blocks",)
+    assert get_responses(conn) == [
+        (
+            cmd,
+            ACommandException(
+                "GetBlockInfo(skip_description=False) -> ERR Cannot read blocks"
+            ),
+        )
+    ]
 
 
 def test_get_block_info_desc_err():
@@ -179,16 +180,14 @@ def test_get_block_info_desc_err():
         conn.receive_bytes(b"ERR could not get description\n") == b""
     )  # No data returned as there's still one outstanding request
 
-    responses = get_responses(conn)
-    assert len(responses) == 1
-
-    response = responses[0]
-    assert response[0] == cmd
-    assert isinstance(response[1], CommandException)
-    assert response[1].args == (
-        repr(cmd) + " -> ERR could not get description\n"
-        "AssertionError:'ERR could not get description' does not start with 'OK ='",
-    )
+    assert get_responses(conn) == [
+        (
+            cmd,
+            ACommandException(
+                "GetBlockInfo(skip_description=False) -> ERR could not get description"
+            ),
+        )
+    ]
 
 
 def test_get_fields():
@@ -311,13 +310,14 @@ def test_get_fields_non_existant_field():
     # Provide the error string the PandA would provide
     assert conn.receive_bytes(b"ERR No such block\n") == b""
 
-    responses = get_responses(conn)
-    assert len(responses) == 1
-
-    response = responses[0]
-    assert response[0] == cmd
-    assert isinstance(response[1], CommandException)
-    assert response[1].args == (repr(cmd) + " -> ERR No such block",)
+    assert get_responses(conn) == [
+        (
+            cmd,
+            ACommandException(
+                "GetFieldInfo(block='FOO', skip_description=False) -> ERR No such block"
+            ),
+        )
+    ]
 
 
 def test_get_fields_no_enums():
