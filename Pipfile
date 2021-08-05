@@ -26,7 +26,7 @@ sphinx-rtd-theme = "*"
 
 [packages]
 # All other package requirements from setup.cfg
-pandablocks = {editable = true, extras = ["hdf5"], path = "."}
+pandablocks = {editable = true, extras = ["hdf5", "softioc"], path = "."}
 # Pins to make lockfile usable on multiple Python versions and platforms
 numpy = "*"
 
