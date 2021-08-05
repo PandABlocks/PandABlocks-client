@@ -2,17 +2,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    List,
-    OrderedDict,
-    Tuple,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
 
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import BlockInfo, Changes, FieldInfo
@@ -102,8 +92,8 @@ def _execute_commands(*commands: Command[Any]) -> ExchangeGenerator[Tuple[Any, .
 
 def _execute_commands(*commands):
     """Call the `Command.execute` method on each of the commands to produce
-    some `Exchange` generators. , then
-    zip together the  to produce a"""
+    some `Exchange` generators, which are yielded back to the connection,
+    then zip together the responses to those exchanges into a tuple"""
     # If we add type annotations to this function then mypy complains:
     # Overloaded function implementation does not accept all possible arguments
     # As we want to type check this, we put the logic in _zip_with_return
@@ -190,7 +180,7 @@ class Get(Command[Union[str, List[str]]]):
         else:
             # We got OK =value
             line = ex.line
-            assert line.startswith("OK ="), f"{line} does not start with 'OK ='"
+            assert line.startswith("OK ="), f"'{line}' does not start with 'OK ='"
             return line[4:]
 
 
@@ -271,7 +261,8 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
             commands.append(Get(f"*DESC.{block}"))
 
         if self.skip_description:
-            description_values = [None for _ in commands]
+            # Must use tuple() to match type returned by _execute_commands
+            description_values = tuple(None for _ in commands)
         else:
             description_values = yield from _execute_commands(*commands)
 

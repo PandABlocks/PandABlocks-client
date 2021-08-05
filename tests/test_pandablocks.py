@@ -187,7 +187,7 @@ def test_get_block_info_desc_err():
     assert isinstance(response[1], CommandException)
     assert response[1].args == (
         repr(cmd) + " -> ERR could not get description\n"
-        "AssertionError:Line did not start with 'OK ='",
+        "AssertionError:'ERR could not get description' does not start with 'OK ='",
     )
 
 
