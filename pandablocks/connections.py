@@ -189,7 +189,7 @@ class ControlConnection:
         # No Exchanges when a Command's yield is empty e.g. unexpected/unparseable data
         # received from PandA
         if len(exchanges) == 0:
-            return ""
+            return
         for ex in exchanges:
             context = _ExchangeContext(ex, command)
             self._contexts.append(context)

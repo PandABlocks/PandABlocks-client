@@ -190,7 +190,7 @@ class Get(Command[Union[str, List[str]]]):
         else:
             # We got OK =value
             line = ex.line
-            assert line.startswith("OK ="), "Line did not start with 'OK ='"
+            assert line.startswith("OK ="), f"{line} does not start with 'OK ='"
             return line[4:]
 
 
@@ -271,16 +271,16 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
             commands.append(Get(f"*DESC.{block}"))
 
         if self.skip_description:
-            description_values = tuple(None for _ in range(len(commands)))
+            description_values = [None for _ in commands]
         else:
             description_values = yield from _execute_commands(*commands)
 
-        blocks_info = {
-            block[0]: BlockInfo(number=block[1], description=desc)
-            for block, desc in zip(blocks_list, description_values)
+        block_infos = {
+            block: BlockInfo(number=num, description=desc)
+            for (block, num), desc in sorted(zip(blocks_list, description_values))
         }
 
-        return OrderedDict(sorted(blocks_info.items()))
+        return block_infos
 
 
 @dataclass
