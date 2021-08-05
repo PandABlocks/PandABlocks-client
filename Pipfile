@@ -5,13 +5,14 @@ verify_ssl = true
 
 [dev-packages]
 # Pinning black stops us having to allow pre-releases globally
-black = "==19.10b0"
+black = "==21.7b0"
 
 # Pins to make lockfile usable on multiple Python versions and platforms
 mypy = "*"
 atomicwrites = "*"
 typing-extensions = "*"
 importlib-metadata = "*"
+typed-ast = "*"
 
 # Test and docs dependencies
 pytest-cov = "*"
@@ -26,6 +27,8 @@ sphinx-rtd-theme = "*"
 [packages]
 # All other package requirements from setup.cfg
 pandablocks = {editable = true, extras = ["hdf5"], path = "."}
+# Pins to make lockfile usable on multiple Python versions and platforms
+numpy = "*"
 
 [scripts]
 tests = "python -m pytest"

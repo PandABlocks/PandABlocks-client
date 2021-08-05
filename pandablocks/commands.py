@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
 
 from ._exchange import Exchange, ExchangeGenerator
-from .responses import Changes, FieldType
+from .responses import BlockInfo, Changes, FieldInfo
 
 # Define the public API of this module
 __all__ = [
@@ -16,8 +16,8 @@ __all__ = [
     "Put",
     "Arm",
     "Disarm",
-    "GetBlockNumbers",
-    "GetFields",
+    "GetBlockInfo",
+    "GetFieldInfo",
     "GetPcapBitsLabels",
     "ChangeGroup",
     "GetChanges",
@@ -92,8 +92,8 @@ def _execute_commands(*commands: Command[Any]) -> ExchangeGenerator[Tuple[Any, .
 
 def _execute_commands(*commands):
     """Call the `Command.execute` method on each of the commands to produce
-    some `Exchange` generators. , then
-    zip together the  to produce a """
+    some `Exchange` generators, which are yielded back to the connection,
+    then zip together the responses to those exchanges into a tuple"""
     # If we add type annotations to this function then mypy complains:
     # Overloaded function implementation does not accept all possible arguments
     # As we want to type check this, we put the logic in _zip_with_return
@@ -229,49 +229,124 @@ class Disarm(Command[None]):
         assert ex.line == "OK"
 
 
-class GetBlockNumbers(Command[Dict[str, int]]):
-    """Get the name and number of each block type in a dictionary,
-    alphabetically ordered
+@dataclass
+class GetBlockInfo(Command[Dict[str, BlockInfo]]):
+    """Get the name, number, and description of each block type
+    in a dictionary, alphabetically ordered
+
+    Args:
+        skip_description: If `True`, prevents retrieving the description
+            for each Block. This will reduce network calls.
 
     For example::
 
-        GetBlockNumbers() -> {"LUT": 8, "PCAP": 1, ...}
+         GetBlockInfo() ->
+             {
+                 "LUT": BlockInfo(number=8, description="Lookup table"),
+                 "PCAP": BlockInfo(number=1, description="Position capture control"),
+                 ...
+             }
     """
 
-    def execute(self) -> ExchangeGenerator[Dict[str, int]]:
+    skip_description: bool = False
+
+    def execute(self) -> ExchangeGenerator[Dict[str, BlockInfo]]:
         ex = Exchange("*BLOCKS?")
         yield ex
-        blocks_list = []
+
+        blocks_list, commands = [], []
         for line in ex.multiline:
             block, num = line.split()
             blocks_list.append((block, int(num)))
-        return dict(sorted(blocks_list))
+            commands.append(Get(f"*DESC.{block}"))
+
+        if self.skip_description:
+            # Must use tuple() to match type returned by _execute_commands
+            description_values = tuple(None for _ in commands)
+        else:
+            description_values = yield from _execute_commands(*commands)
+
+        block_infos = {
+            block: BlockInfo(number=num, description=desc)
+            for (block, num), desc in sorted(zip(blocks_list, description_values))
+        }
+
+        return block_infos
 
 
 @dataclass
-class GetFields(Command[Dict[str, FieldType]]):
-    """Get the fields of a block, returning a `FieldType` for each one, ordered
+class GetFieldInfo(Command[Dict[str, FieldInfo]]):
+    """Get the fields of a block, returning a `FieldInfo` for each one, ordered
     to match the definition order in the PandA
 
     Args:
         block: The name of the block type
+        skip_description: If `True`, prevents retrieving the description
+            for each Field. This will reduce network calls.
 
     For example::
 
-        GetFields("LUT") -> {"INPA": FieldType("bit_mux"), ...}
+        GetFieldInfo("LUT") -> {
+            "INPA":
+                FieldInfo(type='bit_mux',
+                        subtype=None,
+                        description='Input A',
+                        label=['TTLIN1.VAL', 'TTLIN2.VAL', ...]),
+            ...}
     """
 
     block: str
+    skip_description: bool = False
 
-    def execute(self) -> ExchangeGenerator[Dict[str, FieldType]]:
+    def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
-        unsorted: Dict[int, Tuple[str, FieldType]] = {}
+        unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
         for line in ex.multiline:
             name, index, type_subtype = line.split(maxsplit=2)
-            unsorted[int(index)] = (name, FieldType(*type_subtype.split()))
+
+            # Append "None" to list below so there are always at least 2 elements
+            # so we can always unpack into subtype, even if no split occurs.
+            field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
+            unsorted[int(index)] = (name, FieldInfo(field_type, subtype))
+
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
+
+        # Create the list of DESC and ENUM commands to request
+        commands: List[Get] = []
+        # Map from an index in the commands list to the associated field name
+        field_mapping: Dict[int, str] = {}
+        field: str
+        field_info: FieldInfo
+        for field, field_info in fields.items():
+
+            if not self.skip_description:
+                commands.append(Get(f"*DESC.{self.block}.{field}"))
+                field_mapping[len(commands) - 1] = field
+
+            if (
+                field_info.type in ("bit_mux", "pos_mux", "ext_out")
+                or field_info.subtype == "enum"
+            ):
+                enum_str = f"*ENUMS.{self.block}.{field}"
+                if field_info.type == "ext_out":
+                    enum_str += ".CAPTURE"
+                commands.append(Get(enum_str))
+                field_mapping[len(commands) - 1] = field
+
+        returned_values = yield from _execute_commands(*commands)
+
+        # Merge the returned information back into the existing FieldInfo for each field
+        for idx, value in enumerate(returned_values):
+            command: Get = commands[idx]
+            field_info = fields[field_mapping[idx]]
+
+            if command.field.startswith("*DESC"):
+                field_info.description = value
+            elif command.field.startswith("*ENUMS"):
+                field_info.labels = value
+
         return fields
 
 
@@ -280,8 +355,25 @@ class GetPcapBitsLabels(Command):
 
     For example::
 
-        GetPcapBitsLabels() -> PcapBitsLabels()
+        GetPcapBitsLabels() -> {"BITS0" : ["TTLIN1.VAL", "TTLIN2.VAL", ...], ...}
     """
+
+    def execute(self) -> ExchangeGenerator[Dict[str, List[str]]]:
+        ex = Exchange("PCAP.*?")
+        yield ex
+        bits_fields = []
+        for line in ex.multiline:
+            split = line.split()
+            if len(split) == 4:
+                field_name, _, field_type, field_subtype = split
+
+                if field_type == "ext_out" and field_subtype == "bits":
+                    bits_fields.append(f"PCAP.{field_name}")
+
+        exchanges = [Exchange(f"{field}.BITS?") for field in bits_fields]
+        yield exchanges
+        bits = {field: ex.multiline for field, ex in zip(bits_fields, exchanges)}
+        return bits
 
 
 class ChangeGroup(Enum):

@@ -1,20 +1,25 @@
-from typing import Iterator
+from typing import Iterator, OrderedDict
 
 import pytest
 
 from pandablocks.commands import (
     CommandException,
-    FieldType,
+    FieldInfo,
     Get,
-    GetBlockNumbers,
-    GetFields,
+    GetBlockInfo,
+    GetFieldInfo,
+    GetPcapBitsLabels,
     GetState,
     Put,
     SetState,
     is_multiline_command,
 )
-from pandablocks.connections import ControlConnection, DataConnection
-from pandablocks.responses import Data
+from pandablocks.connections import (
+    ControlConnection,
+    DataConnection,
+    NoContextAvailable,
+)
+from pandablocks.responses import BlockInfo, Data
 from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE
 
 
@@ -93,30 +98,362 @@ def test_connect_put_multi_line():
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
 
 
-def test_get_block_numbers():
+def test_get_block_info():
     conn = ControlConnection()
-    cmd = GetBlockNumbers()
+    cmd = GetBlockInfo()
     assert conn.send(cmd) == b"*BLOCKS?\n"
-    responses = get_responses(conn, b"!PCAP 1\n!LUT 8\n.\n")
-    assert responses == [(cmd, {"PCAP": 1, "LUT": 8})]
-    assert list(responses[0][1]) == ["LUT", "PCAP"]
+
+    # Respond to first yield, the return from the BLOCKS? command
+    assert conn.receive_bytes(b"!PCAP 1\n!LUT 8\n.\n") == b"*DESC.PCAP?\n*DESC.LUT?\n"
+
+    # First of the *DESC.{block}? yields
+    assert (
+        conn.receive_bytes(b"OK =Description for PCAP field\n") == b""
+    )  # No data returned as there's still one outstanding request
+
+    # Create an OrderedDict of the output to test key order - that won't happen
+    # with a regular dict
+    ordered_dict = OrderedDict(
+        [
+            ("LUT", BlockInfo(number=8, description="Description for LUT field")),
+            ("PCAP", BlockInfo(number=1, description="Description for PCAP field")),
+        ]
+    )
+
+    # Second and last of the *DESC.{block}? yields - as this is the last response we
+    # can call get_responses to also get the overall result
+    assert not get_responses(conn)
+    assert get_responses(conn, b"OK =Description for LUT field\n") == [
+        (
+            cmd,
+            ordered_dict,
+        ),
+    ]
+
+
+def test_get_block_info_skip_description():
+    """Test that the skip_description flag causes GetBlockInfo to not retrieve
+    descriptions"""
+    conn = ControlConnection()
+    cmd = GetBlockInfo(skip_description=True)
+    assert conn.send(cmd) == b"*BLOCKS?\n"
+
+    ordered_dict = OrderedDict(
+        [
+            ("PCAP", BlockInfo(number=1, description=None)),
+        ]
+    )
+    # Only a yield for the BLOCKS.* request, not for description as well
+    assert get_responses(conn, b"!PCAP 1\n.\n") == [(cmd, ordered_dict)]
+
+
+def test_get_block_info_error():
+    """Test that any errors from *BLOCKS command are correctly reported"""
+    conn = ControlConnection()
+    cmd = GetBlockInfo()
+    assert conn.send(cmd) == b"*BLOCKS?\n"
+
+    # Provide error from PandA server
+    assert conn.receive_bytes(b"ERR Cannot read blocks\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            ACommandException(
+                "GetBlockInfo(skip_description=False) -> ERR Cannot read blocks"
+            ),
+        )
+    ]
+
+
+def test_get_block_info_desc_err():
+    """Test when the DESC command returns an error"""
+    conn = ControlConnection()
+    cmd = GetBlockInfo()
+    assert conn.send(cmd) == b"*BLOCKS?\n"
+
+    # Respond to first yield, the return from the BLOCKS? command
+    assert conn.receive_bytes(b"!PCAP 1\n.\n") == b"*DESC.PCAP?\n"
+
+    # First of the *DESC.{block}? yields
+    assert (
+        conn.receive_bytes(b"ERR could not get description\n") == b""
+    )  # No data returned as there's still one outstanding request
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            ACommandException(
+                "GetBlockInfo(skip_description=False) -> ERR could not get description"
+            ),
+        )
+    ]
 
 
 def test_get_fields():
     conn = ControlConnection()
-    cmd = GetFields("LUT")
+    cmd = GetFieldInfo("LUT")
     assert conn.send(cmd) == b"LUT.*?\n"
-    responses = get_responses(conn, b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n")
-    assert responses == [
+
+    # First yield, the response to "LUT.*?"
+    assert (
+        conn.receive_bytes(b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n")
+        == b"*DESC.LUT.INPA?\n*ENUMS.LUT.INPA?\n*DESC.LUT.TYPEA?\n*ENUMS.LUT.TYPEA?\n"
+    )
+
+    # Responses to the 2 *DESC and 2 *ENUM commands
+    responses = [
+        b"OK =Input A\n",
+        b"!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n"
+        b"OK =Source of the value of A for calculation\n",
+        b"!Input-Level\n!Pulse-On-Rising-Edge\n.\n",
+    ]
+    for response in responses:
+        assert (
+            conn.receive_bytes(response) == b""
+        )  # Expect no bytes back as none of these trigger further commands
+
+    assert get_responses(conn) == [
         (
             cmd,
-            dict(
-                INPA=FieldType(type="bit_mux"),
-                TYPEA=FieldType(type="param", subtype="enum"),
+            {
+                "INPA": FieldInfo(
+                    type="bit_mux",
+                    subtype=None,
+                    description="Input A",
+                    labels=["TTLIN1.VAL", "LVDSIN1.VAL"],
+                ),
+                "TYPEA": FieldInfo(
+                    type="param",
+                    subtype="enum",
+                    description="Source of the value of A for calculation",
+                    labels=["Input-Level", "Pulse-On-Rising-Edge"],
+                ),
+            },
+        )
+    ]
+
+
+def test_get_fields_type_ext_out():
+    """Test for field type == ext_out, ensuring we add .CAPTURE to the end of the
+    *ENUMS command"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("PCAP")
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    # First yield, the response to "PCAP.*?"
+    assert (
+        conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n")
+        == b"*DESC.PCAP.SAMPLES?\n*ENUMS.PCAP.SAMPLES.CAPTURE?\n"
+    )
+
+    # Responses to the *DESC and *ENUM commands
+    responses = [
+        b"OK =Number of gated samples in the current capture\n",
+        b"!No\n!Value\n.\n",
+    ]
+    for response in responses:
+        assert (
+            conn.receive_bytes(response) == b""
+        )  # Expect no bytes back as none of these trigger further commands
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            {
+                "SAMPLES": FieldInfo(
+                    type="ext_out",
+                    subtype="samples",
+                    description="Number of gated samples in the current capture",
+                    labels=["No", "Value"],
+                )
+            },
+        )
+    ]
+
+
+def test_get_fields_type_skip_description():
+    """Test that the skip_description flag causes no description to be retrieved
+    for the field"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("PCAP", True)
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    assert (
+        conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n")
+        == b"*ENUMS.PCAP.SAMPLES.CAPTURE?\n"
+    )
+
+    assert conn.receive_bytes(b"!No\n!Value\n.\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            {
+                "SAMPLES": FieldInfo(
+                    type="ext_out",
+                    subtype="samples",
+                    description=None,
+                    labels=["No", "Value"],
+                )
+            },
+        )
+    ]
+
+
+def test_get_fields_non_existant_field():
+    """Test that querying for an unknown field returns a sensible error"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("FOO")
+    assert conn.send(cmd) == b"FOO.*?\n"
+
+    # Provide the error string the PandA would provide
+    assert conn.receive_bytes(b"ERR No such block\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            ACommandException(
+                "GetFieldInfo(block='FOO', skip_description=False) -> ERR No such block"
             ),
         )
     ]
-    assert list(responses[0][1]) == ["INPA", "TYPEA"]
+
+
+def test_get_fields_no_enums():
+    """Test that a field that does not have any enum labels does not attempt to
+    retrieve them"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("LVDSIN")
+    assert conn.send(cmd) == b"LVDSIN.*?\n"
+
+    # First yield, the response to "LVDSIN.*?"
+    assert conn.receive_bytes(b"!VAL 0 bit_out\n.\n") == b"*DESC.LVDSIN.VAL?\n"
+
+    assert get_responses(conn, b"OK =LVDS input value\n") == [
+        (
+            cmd,
+            {
+                "VAL": FieldInfo(
+                    type="bit_out",
+                    subtype=None,
+                    description="LVDS input value",
+                    labels=None,
+                ),
+            },
+        )
+    ]
+
+
+def test_get_fields_no_enums_no_description():
+    """Test that a field that does not have any enum labels does not attempt to
+    retrieve them, and also does not retrieve a description."""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("LVDSIN", skip_description=True)
+    assert conn.send(cmd) == b"LVDSIN.*?\n"
+
+    assert get_responses(conn, b"!VAL 0 bit_out\n.\n") == [
+        (
+            cmd,
+            {
+                "VAL": FieldInfo(
+                    type="bit_out",
+                    subtype=None,
+                    description=None,
+                    labels=None,
+                ),
+            },
+        )
+    ]
+
+
+def test_get_pcap_bits_labels():
+    """Simple working testcase for GetPcapBitsLabels"""
+
+    # PandA's return data when it receives "PCAP.*?"
+    PCAP_RETURN = [
+        "!BITS2 12 ext_out bits",
+        "!SHIFT_SUM 4 param uint",
+        "!BITS0 10 ext_out bits",
+        ".",
+    ]
+
+    # PandA's return data when it receives "PCAP.BITS2.BITS?"
+    BITS2_RETURN = ["!PCOMP2.OUT", "!PGEN1.ACTIVE", "!PGEN2.ACTIVE", "!PULSE1.OUT", "."]
+
+    # PandA's return data when it receives "PCAP.BITS0.BITS?"
+    BITS0_RETURN = [
+        "!SFP3_SYNC_IN.BIT8",
+        "!SFP3_SYNC_IN.BIT9",
+        "!SFP3_SYNC_IN.BIT10",
+        ".",
+    ]
+
+    conn = ControlConnection()
+    cmd = GetPcapBitsLabels()
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    # First yield, requesting response for PCAP.*?
+    response_bytes = "\n".join(PCAP_RETURN).encode() + b"\n"
+    assert conn.receive_bytes(response_bytes) == b"PCAP.BITS2.BITS?\nPCAP.BITS0.BITS?\n"
+
+    # First of the .BITS? yields
+    response_bytes = "\n".join(BITS2_RETURN).encode() + b"\n"
+    assert (
+        conn.receive_bytes(response_bytes) == b""
+    )  # No data returned as there's still one outstanding request
+
+    # Second of the .BITS? yields - as this is the last response we can call
+    # get_responses to also get the overall result
+    response_bytes = "\n".join(BITS0_RETURN).encode() + b"\n"
+
+    assert not get_responses(conn)
+    assert get_responses(conn, response_bytes) == [
+        (
+            cmd,
+            {
+                "PCAP.BITS0": [
+                    "SFP3_SYNC_IN.BIT8",
+                    "SFP3_SYNC_IN.BIT9",
+                    "SFP3_SYNC_IN.BIT10",
+                ],
+                "PCAP.BITS2": [
+                    "PCOMP2.OUT",
+                    "PGEN1.ACTIVE",
+                    "PGEN2.ACTIVE",
+                    "PULSE1.OUT",
+                ],
+            },
+        )
+    ]
+
+
+def test_get_pcap_bits_labels_no_bits_fields():
+    """Test we get no response when no BITS fields are returned by the PandA"""
+
+    # PandA's return data when it receives "PCAP.*?"
+    PCAP_RETURN = [
+        "!SHIFT_SUM 4 param uint",
+        "!ACTIVE 5 bit_out",
+        "!ENABLE 0 bit_mux",
+        ".",
+    ]
+    conn = ControlConnection()
+    cmd = GetPcapBitsLabels()
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    # As there are no BITS fields in the PCAP return, expect no response
+    response_bytes = "\n".join(PCAP_RETURN).encode() + b"\n"
+    assert conn.receive_bytes(response_bytes) == b""
+
+
+def test_expected_exception_when_receive_without_send():
+    """Test that calling receive_bytes() without first calling send() raises the
+    expected exception"""
+
+    conn = ControlConnection()
+    with pytest.raises(NoContextAvailable):
+        conn.receive_bytes(b"abc\n")
 
 
 def test_save():
@@ -128,11 +465,11 @@ def test_save():
     )
     response_bytes = "\n".join(STATE_RESPONSES).encode() + b"\n"
     assert (
-        conn.receive_bytes(response_bytes[:109])
+        conn.receive_bytes(response_bytes[:107])
         == b"Table.B?\nMultiLineMeta1?\nMultiLineMeta2?\n"
     )
     assert not get_responses(conn)
-    assert get_responses(conn, response_bytes[109:]) == [(cmd, STATE_SAVEFILE)]
+    assert get_responses(conn, response_bytes[107:]) == [(cmd, STATE_SAVEFILE)]
 
 
 def test_load():

@@ -86,7 +86,10 @@ class HDFWriter(Pipeline):
             # No processor, datatype passed through
             dtype = field.type
         return self.hdf_file.create_dataset(
-            f"/{field.name}.{field.capture}", dtype=dtype, shape=(0,), maxshape=(None,),
+            f"/{field.name}.{field.capture}",
+            dtype=dtype,
+            shape=(0,),
+            maxshape=(None,),
         )
 
     def open_file(self, data: StartData):

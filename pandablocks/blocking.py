@@ -1,5 +1,5 @@
 import socket
-from typing import Any, Iterable, Iterator, List, Optional, Tuple, Union, overload
+from typing import Iterable, Iterator, List, Optional, Union, overload
 
 from .commands import Command, T
 from .connections import ControlConnection, DataConnection
@@ -91,22 +91,23 @@ class BlockingClient:
         for command in commands:
             to_send = self._ctrl_connection.send(command)
             s.sendall(to_send)
-        responses: List[Tuple[Command, Any]] = []
-        while len(responses) < len(commands):
+        # Rely on dicts being ordered, Ellipsis is shorthand for "no response yet"
+        cr = {id(command): ... for command in commands}
+        while ... in cr.values():
             received = s.recv(4096)
             to_send = self._ctrl_connection.receive_bytes(received)
             s.sendall(to_send)
-            responses += list(self._ctrl_connection.responses())
-        assert all(
-            c == r[0] for c, r in zip(commands, responses)
-        ), f"Mismatched {commands} and {responses}"
-        for _, response in responses:
+            for command, response in self._ctrl_connection.responses():
+                assert cr[id(command)] is ..., "Already got response for {command}"
+                cr[id(command)] = response
+        responses = list(cr.values())
+        for response in responses:
             if isinstance(response, Exception):
                 raise response
         if len(responses) == 1:
-            return responses[0][1]
+            return responses[0]
         else:
-            return [r[1] for r in responses]
+            return responses
 
     def data(self, scaled: bool = True, frame_timeout: int = None) -> Iterator[Data]:
         """Connect to data port and yield data frames

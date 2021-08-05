@@ -35,6 +35,7 @@ Practical step-by-step guides for the more experienced user.
 
     how-to/library-hdf
     how-to/poll-changes
+    how-to/introspect-panda
 
 .. rst-class:: columns
 
