@@ -22,9 +22,7 @@ def test_blocking_bad_put_raises(dummy_server_in_thread):
 
 
 def test_blocking_data(
-    dummy_server_in_thread,
-    slow_dump,
-    slow_dump_expected,
+    dummy_server_in_thread, slow_dump, slow_dump_expected,
 ):
     dummy_server_in_thread.data = slow_dump
     events = []

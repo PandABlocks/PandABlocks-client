@@ -30,8 +30,8 @@ corresponding `ControlConnection` and `DataConnection` objects:
     bytes that should be send back. The :meth:`~ControlConnection.responses`
     method returns an iterator of ``(command, response)`` tuples that have now
     completed. The response type will depend on the command. For instance `Get`
-    returns `bytes` or a `list` of `bytes` of the field value, and `GetFieldInfo`
-    returns a `dict` mapping `str` field name to `FieldInfo`.
+    returns `bytes` or a `list` of `bytes` of the field value, and `GetFields`
+    returns a `dict` mapping `str` field name to `FieldType`.
 
 .. autoclass:: DataConnection
     :noindex:

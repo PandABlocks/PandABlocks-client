@@ -22,7 +22,6 @@ from .responses import (
 # Define the public API of this module
 __all__ = [
     "NeedMoreData",
-    "NoContextAvailable",
     "Buffer",
     "ControlConnection",
     "DataConnection",
@@ -34,12 +33,6 @@ SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 class NeedMoreData(Exception):
     """Raised if the `Buffer` isn't full enough to return the requested bytes"""
-
-
-class NoContextAvailable(Exception):
-    """Raised if there were no contexts available for this connection.
-    This may result from calling `ControlConnection.receive_bytes()` without calling
-    `ControlConnection.send()`, or if there were unmatched sends/receives"""
 
 
 class Buffer:
@@ -156,8 +149,6 @@ class ControlConnection:
 
     def _update_contexts(self, lines: List[str], is_multiline=False) -> bytes:
         to_send = b""
-        if len(self._contexts) == 0:
-            raise NoContextAvailable()
         context = self._contexts.popleft()
         # Update the exchange with what we've got
         context.exchange.received = lines
@@ -186,10 +177,6 @@ class ControlConnection:
     ) -> Iterator[bytes]:
         if not isinstance(exchanges, list):
             exchanges = [exchanges]
-        # No Exchanges when a Command's yield is empty e.g. unexpected/unparseable data
-        # received from PandA
-        if len(exchanges) == 0:
-            return
         for ex in exchanges:
             context = _ExchangeContext(ex, command)
             self._contexts.append(context)
@@ -321,8 +308,7 @@ class DataConnection:
                 # sent
                 name, capture = SAMPLES_FIELD.rsplit(".", maxsplit=1)
                 fields.insert(
-                    0,
-                    FieldCapture(name, np.dtype("uint32"), capture),
+                    0, FieldCapture(name, np.dtype("uint32"), capture),
                 )
             self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]

@@ -2,10 +2,15 @@ from string import digits
 from typing import Dict, List, Optional
 
 from .blocking import BlockingClient
-from .commands import FieldInfo, GetBlockInfo, GetFieldInfo, Raw, is_multiline_command
+from .commands import FieldType, GetBlockNumbers, GetFields, Raw, is_multiline_command
 
-# Timeout for commands to PandA
-TIMEOUT = 2
+
+def _get_user_input(prompt) -> List[str]:
+    lines = [input(prompt)]
+    if is_multiline_command(lines[0]):
+        while lines[-1]:
+            lines.append(input(prompt))
+    return lines
 
 
 STATIC_STAR_COMMANDS = [
@@ -25,14 +30,6 @@ for suff in ("", ".CONFIG", ".BITS", ".POSN", ".READ", ".ATTR", ".TABLE"):
     STATIC_STAR_COMMANDS.append(f"*CHANGES{suff}=")  # Reset reported changes
 
 
-def _get_user_input(prompt) -> List[str]:
-    lines = [input(prompt)]
-    if is_multiline_command(lines[0]):
-        while lines[-1]:
-            lines.append(input(prompt))
-    return lines
-
-
 def text_matches(t1, t2):
     return t1.startswith(t2) or t2.startswith(t1)
 
@@ -41,22 +38,15 @@ class BlockCompleter:
     def __init__(self, client: BlockingClient):
         self.matches: List[str] = []
         self._client = client
-        self._blocks = self._client.send(
-            GetBlockInfo(skip_description=True), timeout=TIMEOUT
-        )
+        self._blocks = self._client.send(GetBlockNumbers(), timeout=2)
         self._fields = self._get_fields(list(self._blocks))
-        # TODO: Extend use of _fields now we have enum labels available?
 
-    def _get_fields(self, blocks: List[str]) -> Dict[str, Dict[str, FieldInfo]]:
-        fields = self._client.send(
-            [GetFieldInfo(block, skip_description=True) for block in blocks],
-            timeout=TIMEOUT,
-        )
+    def _get_fields(self, blocks: List[str]) -> Dict[str, Dict[str, FieldType]]:
+        fields = self._client.send([GetFields(block) for block in blocks], timeout=2)
         return dict(zip(blocks, fields))
 
     def _with_suffixes(self, block: str, numbers: bool) -> List[str]:
-        block_info = self._blocks[block]
-        num = block_info.number
+        num = self._blocks[block]
         if numbers and num > 1:
             return [f"{block}{i}" for i in range(1, num + 1)]
         else:

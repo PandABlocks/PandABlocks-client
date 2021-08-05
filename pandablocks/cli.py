@@ -50,10 +50,7 @@ def cli(ctx, log_level: str):
 
 @cli.command()
 @click.option(
-    "--num",
-    help="Number of collections to capture",
-    default=1,
-    show_default=True,
+    "--num", help="Number of collections to capture", default=1, show_default=True,
 )
 @click.option(
     "--arm",
@@ -86,9 +83,7 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
 @cli.command()
 @click.option("--prompt", help="Prompt character", default=PROMPT, show_default=True)
 @click.option(
-    "--no-readline",
-    help="Disable readline history and completion",
-    is_flag=True,
+    "--no-readline", help="Disable readline history and completion", is_flag=True,
 )
 @click.argument("host", type=str)
 def control(host: str, prompt: str, no_readline: bool):
