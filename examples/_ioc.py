@@ -92,7 +92,7 @@ def make_boolin(block: str, block_info: BlockInfo, field: str, values: Dict[str,
 
         # values dict uses "." as its separator, as that's what PandA uses.
         values_key = record_name.replace(":", ".")
-        rec = builder.boolIn(
+        builder.boolIn(
             record_name, ZNAM="0", ONAM="1", initial_value=int(values[values_key])
         )
 
