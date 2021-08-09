@@ -28,15 +28,57 @@ class PandaInfo:
     block_info: BlockInfo
     fields: Dict[str, FieldInfo]
     values: Dict[str, str]
-    """The keys use \":\" as separator, not PandA's \".\""""  # TODO: Re-word this
+    # See `create_values_key` to create key for Dict from keys returned from GetChanges
 
 
-async def create_softioc():
-    """Main function of this file"""
-    async with AsyncioClient(sys.argv[1]) as client:
-        panda_dict = await introspect_panda(client)
+# TODO: Be really fancy and create a custom type for the key
+def create_values_key(field_name: str) -> str:
+    """Convert the dictionary key style used in `GetChanges.values` to that used
+    throughout this application"""
+    # EPICS record names use ":" as separators rather than PandA's ".".
+    # GraphQL doesn't care, so we'll standardise on EPICS version.
+    return field_name.replace(".", ":")
 
-        create_records(client, panda_dict)
+
+def create_softioc():
+    """Main function of this file. Queries the PandA and creates records from it"""
+    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
+
+    client = AsyncioClient(sys.argv[1])
+    # TODO: Either re-insert the `with` block, or clean this up manually
+    asyncio.run_coroutine_threadsafe(client.connect(), dispatcher.loop).result(TIMEOUT)
+
+    panda_dict = asyncio.run_coroutine_threadsafe(
+        introspect_panda(client), dispatcher.loop
+    ).result()  # TODO add TIMEOUT and exception handling
+
+    all_records = asyncio.run_coroutine_threadsafe(
+        create_records(client, dispatcher, panda_dict), dispatcher.loop
+    ).result()  # TODO add TIMEOUT and exception handling
+
+    async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
+        """Query the PandA at regular intervals for any changes fields, and update
+        the records accordingly"""
+        while True:
+
+            changes = await client.send(GetChanges(ChangeGroup.ALL))
+            if changes.in_error:
+                raise Exception("Problem here!")
+                # TODO: Combine with getChanges error handling in introspect_panda?
+
+            for field, value in changes.values.items():
+                field = create_values_key(field)
+                if field not in all_records:
+                    raise Exception("Unknown record returned from GetChanges")
+
+                record = all_records[field]
+                record.set(value)
+            await asyncio.sleep(1)
+
+    asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
+
+    # Temporarily leave this running forever to aid debugging
+    softioc.interactive_ioc(globals())
 
 
 async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
@@ -56,15 +98,14 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
 
     if changes.in_error:
         raise Exception("TODO: Some better error handling")
+    # TODO: Do something with changes.no_value ?
 
     values: Dict[str, Dict[str, str]] = {}
     for field_name, value in changes.values.items():
         block_name_number, subfield_name = field_name.split(".", maxsplit=1)
         block_name = block_name_number.rstrip(digits)
 
-        # EPICS record names use ":" as separators rather than PandA's ".".
-        # GraphQL doesn't care, so we'll standardise on EPICS version.
-        field_name = field_name.replace(".", ":")
+        field_name = create_values_key(field_name)
 
         if block_name not in values:
             values[block_name] = {}
@@ -103,7 +144,13 @@ _field_record_mapping: Dict[
 }
 
 
-def create_records(client: AsyncioClient, panda_dict: Dict[str, PandaInfo]):
+async def create_records(
+    client: AsyncioClient,
+    dispatcher: asyncio_dispatcher.AsyncioDispatcher,
+    panda_dict: Dict[str, PandaInfo],
+) -> Dict[
+    str, RecordWrapper
+]:  # TODO: RecordWrapper doesn't exist for GraphQL, will need to change
     """Create the relevant records from the given block_dict"""
 
     # Set the record prefix
@@ -142,34 +189,12 @@ def create_records(client: AsyncioClient, panda_dict: Dict[str, PandaInfo]):
                 all_records[record_name] = record
 
     # Boilerplate get the IOC started
-    # Create an asyncio dispatcher, the event loop is now running
-    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
+    # TODO: Move these lines somewhere else - having them here won't work for GraphQL
     builder.LoadDatabase()
     softioc.iocInit(dispatcher)
 
-    async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
-        """Query the PandA at regular intervals for any changes fields, and update
-        the records accordingly"""
-        while True:
-            changes = await client.send(GetChanges(ChangeGroup.ALL))
-            if changes.in_error:
-                raise Exception("Problem here!")
-                # TODO: Combine with getChanges error handling in introspect_panda?
-
-            for field, value in changes.values.items():
-                if field not in all_records:
-                    raise Exception("Unknown record returned from GetChanges")
-
-                record = all_records[field]
-                record.set(value)
-            await asyncio.sleep(1)
-
-    asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
-
-    # Temorary leave running forever
-    softioc.interactive_ioc(globals())
+    return all_records
 
 
 if __name__ == "__main__":
-    # One-shot run of a co-routine
-    asyncio.run(create_softioc())
+    create_softioc()
