@@ -48,7 +48,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
 
     # Concurrently request info for all fields of all blocks
     field_infos = await asyncio.gather(
-        *[client.send(GetFieldInfo(block), timeout=TIMEOUT) for block in block_dict]
+        *[client.send(GetFieldInfo(block)) for block in block_dict]
     )
 
     # Request initial value of all fields
