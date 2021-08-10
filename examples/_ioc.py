@@ -10,7 +10,13 @@ from softioc import asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import ChangeGroup, GetBlockInfo, GetChanges, GetFieldInfo
+from pandablocks.commands import (
+    ChangeGroup,
+    Get,
+    GetBlockInfo,
+    GetChanges,
+    GetFieldInfo,
+)
 from pandablocks.responses import BlockInfo, FieldInfo
 
 # Define the public API of this module
@@ -102,64 +108,99 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
     return panda_dict
 
 
-def make_time(
-    record_name: str, values: Dict[str, str], record_creation_func: Callable
-) -> Dict[str, RecordWrapper]:
-    assert len(values) == 2, "Incorrect number of values passed, expected 2"
-    # TODO: add more info?
+class IocRecordFactory:
+    _client: AsyncioClient
+    _dispatcher: asyncio_dispatcher.AsyncioDispatcher = (
+        asyncio_dispatcher.AsyncioDispatcher()
+    )
 
-    rec1 = record_creation_func(record_name, initial_value=float(values[record_name]))
-    units_record = record_name + ":UNITS"
-    # TODO: Does this need tobe stringIn for read fields?
-    # rec2 = builder.stringOut(units_record, initial_value=values[units_record])
+    def __init__(self, client: AsyncioClient):
+        self._client = client
 
-    valid_units = ["s", "ms", "us"]
-    initial_unit = valid_units.index(values[units_record])
+    def _make_time(
+        self, record_name: str, values: Dict[str, str], record_creation_func: Callable
+    ) -> Dict[str, RecordWrapper]:
+        assert len(values) == 2, "Incorrect number of values passed, expected 2"
+        # TODO: add more info?
 
-    rec2 = builder.mbbIn(units_record, *valid_units, initial_value=initial_unit)
-    return {record_name: rec1, units_record: rec2}
-    # TODO: pandablockscontroller L272 gives this array of valid values:
-    # ["s", "ms", "us"]. How do I do this with EPICS records?
-
-
-def make_time_write(
-    record_name: str, values: Dict[str, str]
-) -> Dict[str, RecordWrapper]:
-    """Make one writeable record for the timer itself, and a sub-record for its units"""
-    return make_time(record_name, values, builder.aOut)
-
-
-def make_time_read(
-    record_name: str, values: Dict[str, str]
-) -> Dict[str, RecordWrapper]:
-    """Make one readable record for the timer itself, and a sub-record for its units"""
-    return make_time(record_name, values, builder.aIn)
-
-
-def make_boolin(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWrapper]:
-
-    return {
-        record_name: builder.boolIn(
-            record_name, ZNAM="0", ONAM="1", initial_value=int(values[record_name])
+        rec1 = record_creation_func(
+            record_name, initial_value=float(values[record_name])
         )
+        units_record = record_name + ":UNITS"
+        # TODO: Does this need tobe stringIn for read fields?
+        # rec2 = builder.stringOut(units_record, initial_value=values[units_record])
+
+        valid_units = ["s", "ms", "us"]
+        initial_unit = valid_units.index(values[units_record])
+
+        rec2 = builder.mbbIn(units_record, *valid_units, initial_value=initial_unit)
+        return {record_name: rec1, units_record: rec2}
+        # TODO: pandablockscontroller L272 gives this array of valid values:
+        # ["s", "ms", "us"]. How do I do this with EPICS records?
+
+    def _make_time_write(
+        self, record_name: str, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        """Make one writeable record for the timer itself, and a sub-record for its
+        units"""
+        return self._make_time(record_name, values, builder.aOut)
+
+    def _make_time_read(
+        self, record_name: str, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        """Make one readable record for the timer itself, and a sub-record for its
+        units"""
+        return self._make_time(record_name, values, builder.aIn)
+
+    def _make_boolin(
+        self, record_name: str, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return {
+            record_name: builder.boolIn(
+                record_name, ZNAM="0", ONAM="1", initial_value=int(values[record_name])
+            )
+        }
+
+    def _make_action(
+        self, record_name: str, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return {record_name: builder.boolOut(record_name, ZNAM="0", ONAM="1")}
+
+    def _make_param_uint(
+        self, record_name: str, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        rec1 = builder.aOut(record_name, initial_value=int(values[record_name]))
+        max_record_name = record_name + ":MAX"
+        # TODO: Why doesn't the MAX value come back with *CHANGES?
+        max_value = asyncio.run_coroutine_threadsafe(
+            self._client.send(Get(max_record_name.replace(":", "."))),
+            self._dispatcher.loop,
+        ).result()
+        rec2 = builder.aOut(max_record_name, initial_value=max_value)
+        return {record_name: rec1, max_record_name: rec2}
+
+    def create_record(
+        self, record_name: str, field_info: FieldInfo, field_values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        """Create the record (and any child records) for the given parameters.
+        TODO: Argument documentation?"""
+        key = (field_info.type, field_info.subtype)
+        if key not in self._field_record_mapping:
+            return {}  # TODO: Eventually make this into an exception
+        return self._field_record_mapping[key](self, record_name, field_values)
+
+    # Map a field's (type, subtype) to a function that creates and returns record(s)
+    _field_record_mapping: Dict[
+        Tuple[str, Optional[str]],
+        Callable[["IocRecordFactory", str, Dict[str, str]], Dict[str, RecordWrapper]],
+    ] = {
+        ("time", None): _make_time_write,
+        ("param", "time"): _make_time_write,
+        ("read", "time"): _make_time_read,
+        ("bit_out", None): _make_boolin,
+        ("write", "action"): _make_action,
+        ("param", "uint"): _make_param_uint,
     }
-
-
-def make_action(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWrapper]:
-    return {record_name: builder.boolOut(record_name, ZNAM="0", ONAM="1")}
-
-
-# Map a field's (type, subtype) to a function that creates and returns record(s)
-_field_record_mapping: Dict[
-    Tuple[str, Optional[str]],
-    Callable[[str, Dict[str, str]], Dict[str, RecordWrapper]],
-] = {
-    ("time", None): make_time_write,
-    ("param", "time"): make_time_write,
-    ("read", "time"): make_time_read,
-    ("bit_out", None): make_boolin,
-    ("write", "action"): make_action,
-}
 
 
 async def create_records(
@@ -177,17 +218,14 @@ async def create_records(
     # Dictionary containing every record of every type
     all_records: Dict[str, RecordWrapper] = {}
 
+    record_factory = IocRecordFactory(client)
+
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
         block_info = panda_info.block_info
         values = panda_info.values
 
         for field, field_info in panda_info.fields.items():
-
-            key = (field_info.type, field_info.subtype)
-            if key not in _field_record_mapping:
-                continue  # TODO: Eventually make this into an exception
-            create_record_func = _field_record_mapping[key]
 
             for block_num in range(block_info.number):
                 # ":" separator for EPICS Record names, unlike PandA's "."
@@ -204,7 +242,10 @@ async def create_records(
                     for field, value in values.items()
                     if field.startswith(record_name)
                 }
-                records = create_record_func(record_name, field_values)
+
+                records = record_factory.create_record(
+                    record_name, field_info, field_values
+                )
 
                 for new_record in records:
                     if new_record in all_records:
