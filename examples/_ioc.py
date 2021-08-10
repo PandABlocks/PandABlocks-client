@@ -56,28 +56,6 @@ def create_softioc():
         create_records(client, dispatcher, panda_dict), dispatcher.loop
     ).result()  # TODO add TIMEOUT and exception handling
 
-    async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
-        """Query the PandA at regular intervals for any changes fields, and update
-        the records accordingly"""
-        while True:
-
-            changes = await client.send(GetChanges(ChangeGroup.ALL))
-            if changes.in_error:
-                raise Exception("Problem here!")
-                # TODO: Combine with getChanges error handling in introspect_panda?
-                # TODO: Use changes.no_value?
-
-            for field, value in changes.values.items():
-                field = create_values_key(field)
-                if field not in all_records:
-                    raise Exception(
-                        "Unknown record returned from GetChanges during update"
-                    )
-
-                record = all_records[field]
-                record.set(value)
-            await asyncio.sleep(1)
-
     asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
     # TODO: Check return from line above periodically to see if there was an exception
 
@@ -124,20 +102,38 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
     return panda_dict
 
 
-def make_time(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWrapper]:
-    """Make one record for the timer itself, and a sub-record for its units"""
-
-    assert (
-        len(values) == 2
-    ), "Incorrect number of values passed to make_time, expected 2"
+def make_time(
+    record_name: str, values: Dict[str, str], record_creation_func: Callable
+) -> Dict[str, RecordWrapper]:
+    assert len(values) == 2, "Incorrect number of values passed, expected 2"
     # TODO: add more info?
 
-    rec1 = builder.aOut(record_name, initial_value=float(values[record_name]))
+    rec1 = record_creation_func(record_name, initial_value=float(values[record_name]))
     units_record = record_name + ":UNITS"
-    rec2 = builder.aOut(units_record, initial_value=values[units_record])
+    # TODO: Does this need tobe stringIn for read fields?
+    # rec2 = builder.stringOut(units_record, initial_value=values[units_record])
+
+    valid_units = ["s", "ms", "us"]
+    initial_unit = valid_units.index(values[units_record])
+
+    rec2 = builder.mbbIn(units_record, *valid_units, initial_value=initial_unit)
     return {record_name: rec1, units_record: rec2}
     # TODO: pandablockscontroller L272 gives this array of valid values:
     # ["s", "ms", "us"]. How do I do this with EPICS records?
+
+
+def make_time_write(
+    record_name: str, values: Dict[str, str]
+) -> Dict[str, RecordWrapper]:
+    """Make one writeable record for the timer itself, and a sub-record for its units"""
+    return make_time(record_name, values, builder.aOut)
+
+
+def make_time_read(
+    record_name: str, values: Dict[str, str]
+) -> Dict[str, RecordWrapper]:
+    """Make one readable record for the timer itself, and a sub-record for its units"""
+    return make_time(record_name, values, builder.aIn)
 
 
 def make_boolin(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWrapper]:
@@ -147,8 +143,10 @@ def make_boolin(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWra
             record_name, ZNAM="0", ONAM="1", initial_value=int(values[record_name])
         )
     }
-    # TODO: Keep a link to the record, so that we can update it using
-    # GetChanges somehow
+
+
+def make_action(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWrapper]:
+    return {record_name: builder.boolOut(record_name, ZNAM="0", ONAM="1")}
 
 
 # Map a field's (type, subtype) to a function that creates and returns record(s)
@@ -156,10 +154,11 @@ _field_record_mapping: Dict[
     Tuple[str, Optional[str]],
     Callable[[str, Dict[str, str]], Dict[str, RecordWrapper]],
 ] = {
-    ("time", None): make_time,
-    ("param", "time"): make_time,
-    # ("read", "time"): make_time, #TODO: Use different function for "read" aspect
+    ("time", None): make_time_write,
+    ("param", "time"): make_time_write,
+    ("read", "time"): make_time_read,
     ("bit_out", None): make_boolin,
+    ("write", "action"): make_action,
 }
 
 
@@ -222,6 +221,28 @@ async def create_records(
     softioc.iocInit(dispatcher)
 
     return all_records
+
+
+async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
+    """Query the PandA at regular intervals for any changed fields, and update
+    the records accordingly"""
+    while True:
+
+        changes = await client.send(GetChanges(ChangeGroup.ALL))
+        if changes.in_error:
+            raise Exception("Problem here!")
+            # TODO: Combine with getChanges error handling in introspect_panda?
+            # TODO: Use changes.no_value?
+
+        for field, value in changes.values.items():
+            field = create_values_key(field)
+            if field not in all_records:
+                # TODO: uncomment when we have all fields
+                # raise Exception("Unknown record returned from GetChanges")
+                pass
+            record = all_records[field]
+            record.set(value)
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
