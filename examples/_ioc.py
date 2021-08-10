@@ -45,7 +45,7 @@ def create_softioc():
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()
 
     client = AsyncioClient(sys.argv[1])
-    # TODO: Either re-insert the `with` block, or clean this up manually
+    # TODO: Either re-insert the `with` block, or clean the client up manually
     asyncio.run_coroutine_threadsafe(client.connect(), dispatcher.loop).result(TIMEOUT)
 
     panda_dict = asyncio.run_coroutine_threadsafe(
@@ -65,17 +65,21 @@ def create_softioc():
             if changes.in_error:
                 raise Exception("Problem here!")
                 # TODO: Combine with getChanges error handling in introspect_panda?
+                # TODO: Use changes.no_value?
 
             for field, value in changes.values.items():
                 field = create_values_key(field)
                 if field not in all_records:
-                    raise Exception("Unknown record returned from GetChanges")
+                    raise Exception(
+                        "Unknown record returned from GetChanges during update"
+                    )
 
                 record = all_records[field]
                 record.set(value)
             await asyncio.sleep(1)
 
     asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
+    # TODO: Check return from line above periodically to see if there was an exception
 
     # Temporarily leave this running forever to aid debugging
     softioc.interactive_ioc(globals())
@@ -120,26 +124,41 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
     return panda_dict
 
 
-# def make_time(block: str, block_info: BlockInfo, field: str, values: Dict[str, str]):
-#     pass
+def make_time(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWrapper]:
+    """Make one record for the timer itself, and a sub-record for its units"""
+
+    assert (
+        len(values) == 2
+    ), "Incorrect number of values passed to make_time, expected 2"
+    # TODO: add more info?
+
+    rec1 = builder.aOut(record_name, initial_value=float(values[record_name]))
+    units_record = record_name + ":UNITS"
+    rec2 = builder.aOut(units_record, initial_value=values[units_record])
+    return {record_name: rec1, units_record: rec2}
+    # TODO: pandablockscontroller L272 gives this array of valid values:
+    # ["s", "ms", "us"]. How do I do this with EPICS records?
 
 
-def make_boolin(record_name: str, value: str) -> RecordWrapper:
+def make_boolin(record_name: str, values: Dict[str, str]) -> Dict[str, RecordWrapper]:
 
-    return builder.boolIn(record_name, ZNAM="0", ONAM="1", initial_value=int(value))
+    return {
+        record_name: builder.boolIn(
+            record_name, ZNAM="0", ONAM="1", initial_value=int(values[record_name])
+        )
+    }
     # TODO: Keep a link to the record, so that we can update it using
     # GetChanges somehow
 
 
-# Map a field's (type, subtype) to a function used to create a record for it.
-# That function will return the PandA field name and the record itself.
+# Map a field's (type, subtype) to a function that creates and returns record(s)
 _field_record_mapping: Dict[
     Tuple[str, Optional[str]],
-    Callable[[str, str], RecordWrapper],
+    Callable[[str, Dict[str, str]], Dict[str, RecordWrapper]],
 ] = {
-    # ("time", None): make_time,
-    # ("param", "time"): make_time,
-    # ("read", "time"): make_time,
+    ("time", None): make_time,
+    ("param", "time"): make_time,
+    # ("read", "time"): make_time, #TODO: Use different function for "read" aspect
     ("bit_out", None): make_boolin,
 }
 
@@ -180,13 +199,22 @@ async def create_records(
                     # Note PandA block counter is 1-indexed, hence +1
                     record_name = record_name.replace(block, block + str(block_num + 1))
 
-                record = create_record_func(record_name, values[record_name])
+                # Get the value of the field and all its sub-fields
+                field_values = {
+                    field: value
+                    for field, value in values.items()
+                    if field.startswith(record_name)
+                }
+                records = create_record_func(record_name, field_values)
 
-                if record_name in all_records:
-                    raise Exception(
-                        "Duplicate record names detected! TODO: more explanation here"
-                    )
-                all_records[record_name] = record
+                for new_record in records:
+                    if new_record in all_records:
+                        raise Exception(
+                            f"Duplicate record name {new_record} detected!"
+                            # TODO: More explanation here?
+                        )
+
+                all_records.update(records)
 
     # Boilerplate get the IOC started
     # TODO: Move these lines somewhere else - having them here won't work for GraphQL
