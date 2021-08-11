@@ -4,19 +4,13 @@ import asyncio
 import sys
 from dataclasses import dataclass
 from string import digits
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from softioc import asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import (
-    ChangeGroup,
-    Get,
-    GetBlockInfo,
-    GetChanges,
-    GetFieldInfo,
-)
+from pandablocks.commands import ChangeGroup, GetBlockInfo, GetChanges, GetFieldInfo
 from pandablocks.responses import BlockInfo, FieldInfo
 
 # Define the public API of this module
@@ -108,91 +102,191 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
     return panda_dict
 
 
+# TODO: Is this actually a Factory? Might be more of a Builder...
 class IocRecordFactory:
     _client: AsyncioClient
     _dispatcher: asyncio_dispatcher.AsyncioDispatcher = (
         asyncio_dispatcher.AsyncioDispatcher()
     )
+    """Class to handle creating PythonSoftIOC records for a given field defined in 
+    a PandA"""
+
+    # Constants used in multiple records
+    ZNAM_STR: str = "0"
+    ONAM_STR: str = "1"
 
     def __init__(self, client: AsyncioClient):
         self._client = client
 
+    def _get_enum_index_value(self, labels: Optional[List[str]], record_value: str):
+        """Find the index of `record_value` in the `labels` list, suitable for
+        use in an `initial_value=` argument during record creation.
+        Raises ValueError if `record_value` not found in `labels`."""
+        assert labels
+        assert len(labels) > 0
+        return labels.index(record_value)
+
     def _make_time(
-        self, record_name: str, values: Dict[str, str], record_creation_func: Callable
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+        record_creation_func: Callable,
     ) -> Dict[str, RecordWrapper]:
         assert len(values) == 2, "Incorrect number of values passed, expected 2"
         # TODO: add more info?
+        # TODO: Add similar asserts to every function?
 
         rec1 = record_creation_func(
             record_name, initial_value=float(values[record_name])
         )
         units_record = record_name + ":UNITS"
-        # TODO: Does this need tobe stringIn for read fields?
-        # rec2 = builder.stringOut(units_record, initial_value=values[units_record])
 
+        # TODO: This list should be retrieved from the *ENUMS.<field>.UNITS command!
+        # This list isn't right as some of the fields define minutes, "min", as valid
         valid_units = ["s", "ms", "us"]
         initial_unit = valid_units.index(values[units_record])
 
         rec2 = builder.mbbIn(units_record, *valid_units, initial_value=initial_unit)
         return {record_name: rec1, units_record: rec2}
-        # TODO: pandablockscontroller L272 gives this array of valid values:
-        # ["s", "ms", "us"]. How do I do this with EPICS records?
 
     def _make_time_write(
-        self, record_name: str, values: Dict[str, str]
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
         """Make one writeable record for the timer itself, and a sub-record for its
         units"""
-        return self._make_time(record_name, values, builder.aOut)
+        return self._make_time(record_name, field_info, values, builder.aOut)
 
     def _make_time_read(
-        self, record_name: str, values: Dict[str, str]
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
         """Make one readable record for the timer itself, and a sub-record for its
         units"""
-        return self._make_time(record_name, values, builder.aIn)
+        return self._make_time(record_name, field_info, values, builder.aIn)
 
     def _make_boolin(
-        self, record_name: str, values: Dict[str, str]
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
         return {
             record_name: builder.boolIn(
-                record_name, ZNAM="0", ONAM="1", initial_value=int(values[record_name])
+                record_name,
+                ZNAM=self.ZNAM_STR,
+                ONAM=self.ONAM_STR,
+                initial_value=int(values[record_name]),
             )
         }
 
     def _make_action(
-        self, record_name: str, values: Dict[str, str]
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
-        return {record_name: builder.boolOut(record_name, ZNAM="0", ONAM="1")}
+        return {
+            record_name: builder.boolOut(
+                record_name, ZNAM=self.ZNAM_STR, ONAM=self.ONAM_STR
+            )
+        }
 
     def _make_param_uint(
-        self, record_name: str, values: Dict[str, str]
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
         rec1 = builder.aOut(record_name, initial_value=int(values[record_name]))
-        max_record_name = record_name + ":MAX"
+        return {record_name: rec1}
+        # TODO: Make MAX field record?
+        # max_record_name = record_name + ":MAX"
         # TODO: Why doesn't the MAX value come back with *CHANGES?
-        max_value = asyncio.run_coroutine_threadsafe(
-            self._client.send(Get(max_record_name.replace(":", "."))),
-            self._dispatcher.loop,
-        ).result()
-        rec2 = builder.aOut(max_record_name, initial_value=max_value)
-        return {record_name: rec1, max_record_name: rec2}
+        # TODO: below code just doesn't work, probably becuase we're already in
+        # an asyncio loop.
+        # max_value = asyncio.run_coroutine_threadsafe(
+        #     self._client.send(Get(max_record_name.replace(":", "."))),
+        #     self._dispatcher.loop,
+        # ).result()
+        # rec2 = builder.aOut(max_record_name, initial_value=max_value)
+        # return {record_name: rec1, max_record_name: rec2}
+
+    def _make_param_int(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return {
+            record_name: builder.aOut(
+                record_name, initial_value=int(values[record_name])
+            )
+        }
+
+    def _make_param_scalar(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        # TODO: Create any/all of the child attributes?
+        # UNITS, RAW, OFFSET, SCALE, INFO.
+        # Would need a lot of GETs for all the initial values.
+        return {
+            record_name: builder.aOut(
+                record_name, initial_value=float(values[record_name])
+            )
+        }
+
+    def _make_param_bit(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return {
+            record_name: builder.boolOut(
+                record_name,
+                ZNAM=self.ZNAM_STR,
+                ONAM=self.ONAM_STR,
+                initial_value=int(values[record_name]),
+            )
+        }
+
+    def _make_param_action(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        raise Exception(
+            "Documentation says this field isn't useful for non-write types"
+        )  # TODO: What am I supposed to do here? Could delete this and let
+        # create_record throw an exception when the mapping isn't in the dict
+
+    def _make_param_lut(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+
+        rec1 = builder.stringOut(record_name, initial_value=values[record_name])
+        # TODO: Create the RAW attribute record?
+        # raw_name = record_name + ":RAW"
+        # raw_rec = builder.aOut(raw_name, initial_value=int(value, 16))
+        return {
+            record_name: rec1,
+        }
+
+    def _make_param_enum(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        index_value = self._get_enum_index_value(field_info.labels, values[record_name])
+        return {
+            record_name: builder.mbbIn(
+                record_name,
+                *field_info.labels,
+                initial_value=index_value,
+            )
+        }
 
     def create_record(
         self, record_name: str, field_info: FieldInfo, field_values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
-        """Create the record (and any child records) for the given parameters.
+        """Create the record (and any child records) for the PandA field specified in
+        the parameters.
         TODO: Argument documentation?"""
         key = (field_info.type, field_info.subtype)
         if key not in self._field_record_mapping:
             return {}  # TODO: Eventually make this into an exception
-        return self._field_record_mapping[key](self, record_name, field_values)
+        return self._field_record_mapping[key](
+            self, record_name, field_info, field_values
+        )
 
     # Map a field's (type, subtype) to a function that creates and returns record(s)
     _field_record_mapping: Dict[
         Tuple[str, Optional[str]],
-        Callable[["IocRecordFactory", str, Dict[str, str]], Dict[str, RecordWrapper]],
+        Callable[
+            ["IocRecordFactory", str, FieldInfo, Dict[str, str]],
+            Dict[str, RecordWrapper],
+        ],
     ] = {
         ("time", None): _make_time_write,
         ("param", "time"): _make_time_write,
@@ -200,6 +294,14 @@ class IocRecordFactory:
         ("bit_out", None): _make_boolin,
         ("write", "action"): _make_action,
         ("param", "uint"): _make_param_uint,
+        ("param", "int"): _make_param_int,
+        ("param", "scalar"): _make_param_scalar,
+        # ("read", "scalar"): _make_param_scalar,
+        # ("write", "scalar"): _make_param_scalar,
+        ("param", "bit"): _make_param_bit,
+        ("param", "action"): _make_param_action,
+        ("param", "lut"): _make_param_lut,
+        ("param", "enum"): _make_param_enum,
     }
 
 
@@ -243,6 +345,9 @@ async def create_records(
                     if field.startswith(record_name)
                 }
 
+                # TODO: It seems that some record creation requires additional network
+                # calls. So we should probably make this into a set of simultaneous
+                # async tasks, rather than sequential for loops.
                 records = record_factory.create_record(
                     record_name, field_info, field_values
                 )
