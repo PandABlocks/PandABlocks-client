@@ -278,6 +278,7 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     """Get the fields of a block, returning a `FieldInfo` for each one, ordered
     to match the definition order in the PandA
+    TODO: Update this!
 
     Args:
         block: The name of the block type
@@ -314,33 +315,50 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
         # Create the list of DESC and ENUM commands to request
-        commands: List[Get] = []
+        self._commands: List[Get] = []
         # Map from an index in the commands list to the associated field name
-        field_mapping: Dict[int, str] = {}
+        self._field_mapping: Dict[int, str] = {}
         field: str
         field_info: FieldInfo
         for field, field_info in fields.items():
 
+            field_type = field_info.type
+            field_subtype = field_info.subtype
+
             if not self.skip_description:
-                commands.append(Get(f"*DESC.{self.block}.{field}"))
-                field_mapping[len(commands) - 1] = field
+                self._add_command(Get(f"*DESC.{self.block}.{field}"), field)
 
             if (
-                field_info.type in ("bit_mux", "pos_mux", "ext_out")
-                or field_info.subtype == "enum"
+                field_type in ("bit_mux", "pos_mux", "ext_out")
+                or field_subtype == "enum"
             ):
                 enum_str = f"*ENUMS.{self.block}.{field}"
-                if field_info.type == "ext_out":
+                if field_type == "ext_out":
                     enum_str += ".CAPTURE"
-                commands.append(Get(enum_str))
-                field_mapping[len(commands) - 1] = field
+                self._add_command(Get(enum_str), field)
 
-        returned_values = yield from _execute_commands(*commands)
+            # Query for various attributes, depending on field type and subtype.
+            # Note some of these must query an instance of a block, but this is okay
+            # as the value is static and shared between them all
+            # TODO: Confirm this statement is true for all attributes!
+            if field_type == "param" and field_subtype == "uint":
+                self._add_command(Get(f"{self.block}1.{field}.MAX"), field)
+
+            if field_type in ("param", "read", "write") and field_subtype == "scalar":
+                self._add_command(
+                    Get(f"{self.block}.{field}.UNITS"),
+                    field
+                    # NOTE: Multiple different fields have a "UNITS" attribute...
+                )
+                self._add_command(Get(f"{self.block}.{field}.SCALE"), field)
+                self._add_command(Get(f"{self.block}.{field}.OFFSET"), field)
+
+        returned_values = yield from _execute_commands(*self._commands)
 
         # Merge the returned information back into the existing FieldInfo for each field
         for idx, value in enumerate(returned_values):
-            command: Get = commands[idx]
-            field_info = fields[field_mapping[idx]]
+            command: Get = self._commands[idx]
+            field_info = fields[self._field_mapping[idx]]
 
             if command.field.startswith("*DESC"):
                 field_info.description = value
@@ -348,6 +366,16 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 field_info.labels = value
 
         return fields
+
+    def _add_command(
+        self,
+        command: Get,
+        field: str,
+    ):
+        """Helper function to add a new `command` to the `commands` list and update
+        the `field_mapping` appropriately"""
+        self._commands.append(command)
+        self._field_mapping[len(self._commands) - 1] = field
 
 
 class GetPcapBitsLabels(Command):
