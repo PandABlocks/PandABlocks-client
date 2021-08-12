@@ -362,7 +362,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 # TODO: type of UNITS changes - for param - scalar it's just a string,
                 # but for type "time" it's a list...
                 self._add_command(
-                    Get(f"{self.block}.{field}.UNITS"), field_info, "units_scalar", str
+                    Get(f"{self.block}.{field}.UNITS"), field_info, "units", str
                 )
                 self._add_command(
                     Get(f"{self.block}.{field}.SCALE"), field_info, "scale", float
@@ -378,7 +378,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 self._add_command(
                     Get(f"*ENUMS.{self.block}.{field}.UNITS"),
                     field_info,
-                    "units_labels",
+                    "time_units_labels",
                     list,
                 )
                 self._add_command(
@@ -386,7 +386,83 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 )
 
             if field_type == "bit_out":
-                pass
+                self._add_command(
+                    Get(f"{self.block}1.{field}.CAPTURE_WORD"),
+                    field_info,
+                    "capture_word",
+                    str,
+                )
+                self._add_command(
+                    Get(f"{self.block}1.{field}.OFFSET"),
+                    field_info,
+                    "offset",
+                    str,
+                )
+
+            if field_type == "bit_mux":
+                self._add_command(
+                    Get(f"{self.block}1.{field}.DELAY"),
+                    field_info,
+                    "delay",
+                    int,
+                )
+                self._add_command(
+                    Get(f"{self.block}1.{field}.MAX_DELAY"),
+                    field_info,
+                    "max_delay",
+                    int,
+                )
+
+            if field_type == "pos_out":
+                self._add_command(
+                    Get(f"{self.block}1.{field}.CAPTURE"),
+                    field_info,
+                    "capture",
+                    str,
+                )
+                self._add_command(
+                    Get(f"*ENUMS.{self.block}1.{field}.CAPTURE"),
+                    field_info,
+                    "capture_labels",
+                    list,
+                )
+                self._add_command(
+                    Get(f"{self.block}1.{field}.OFFSET"),
+                    field_info,
+                    "offset",
+                    str,
+                )
+                self._add_command(
+                    Get(f"{self.block}1.{field}.SCALE"), field_info, "scale", float
+                )
+                self._add_command(
+                    Get(f"{self.block}1.{field}.UNITS"), field_info, "units", str
+                )
+                self._add_command(
+                    Get(f"{self.block}1.{field}.SCALED"), field_info, "scaled", float
+                )
+
+            if field_type == "ext_out":
+                self._add_command(
+                    Get(f"{self.block}1.{field}.CAPTURE"),
+                    field_info,
+                    "capture",
+                    str,
+                )
+                self._add_command(
+                    Get(f"*ENUMS.{self.block}1.{field}.CAPTURE"),
+                    field_info,
+                    "capture_labels",
+                    list,
+                )
+
+                if field_subtype == "bits":
+                    self._add_command(
+                        Get(f"{self.block}1.{field}.BITS"),
+                        field_info,
+                        "bits",
+                        list,
+                    )
 
         returned_values = yield from _execute_commands(
             *[item.command for item in self._commands]
@@ -407,10 +483,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             # https://stackoverflow.com/questions/51171908/extracting-data-from-typing-types
             # types = typing.get_type_hints(field_info)
             # assert isinstance(value, types[attribute].__args__[0])
-
-            # TODO: remove this temporary code once all types are mapped
-            if not type(value) == field_mapping.type_func:
-                print("Here!")
 
             setattr(field_info, attribute, field_mapping.type_func(value))
 

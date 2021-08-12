@@ -56,14 +56,37 @@ class FieldInfo:
     max: Optional[int] = None
 
     # param/read/write - scalar
-    units_scalar: Optional[str] = None
+    units: Optional[str] = None
     scale: Optional[float] = None
     offset: Optional[int] = None  # TODO: PandA returns 0 - is this an int or a float 0?
 
     # time
+    # time's units are special in that they alter the value read out -
+    # other units fields are just strings that act as suggestions to the reader
     units_time: Optional[str] = None
-    units_labels: Optional[List[str]] = None
+    time_units_labels: Optional[List[str]] = None
     min: Optional[float] = None
+
+    # bit_out
+    capture_word: Optional[str] = None
+    # offset: Optional[int] = None
+
+    # bit_mux
+    delay: Optional[int] = None
+    max_delay: Optional[int] = None
+
+    # pos_out
+    capture: Optional[str] = None
+    capture_labels: Optional[List[str]] = None
+    # offset: Optional[int] = None
+    # scale: Optional[float] = None
+    # units: Optional[str] = None
+    scaled: Optional[float] = None
+
+    # ext_out
+    # capture: Optional[str] = None
+    # capture_labels: Optional[List[str]] = None
+    bits: Optional[List[str]] = None
 
 
 @dataclass

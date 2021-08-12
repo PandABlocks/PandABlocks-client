@@ -108,7 +108,7 @@ class IocRecordFactory:
     _dispatcher: asyncio_dispatcher.AsyncioDispatcher = (
         asyncio_dispatcher.AsyncioDispatcher()
     )
-    """Class to handle creating PythonSoftIOC records for a given field defined in 
+    """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
 
     # Constants used in multiple records
@@ -190,17 +190,7 @@ class IocRecordFactory:
     ) -> Dict[str, RecordWrapper]:
         rec1 = builder.aOut(record_name, initial_value=int(values[record_name]))
         return {record_name: rec1}
-        # TODO: Make MAX field record?
-        # max_record_name = record_name + ":MAX"
-        # TODO: Why doesn't the MAX value come back with *CHANGES?
-        # TODO: below code just doesn't work, probably becuase we're already in
-        # an asyncio loop.
-        # max_value = asyncio.run_coroutine_threadsafe(
-        #     self._client.send(Get(max_record_name.replace(":", "."))),
-        #     self._dispatcher.loop,
-        # ).result()
-        # rec2 = builder.aOut(max_record_name, initial_value=max_value)
-        # return {record_name: rec1, max_record_name: rec2}
+        # TODO: Make MAX field record
 
     def _make_param_int(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
@@ -333,10 +323,16 @@ async def create_records(
                 # ":" separator for EPICS Record names, unlike PandA's "."
                 record_name = block + ":" + field
                 if block_info.number > 1:
+                    # TODO: If there is only 1 block, <block> and <block>1 are
+                    # synonomous. Perhaps just always use number?
                     # If more than 1 block, the block number becomes part of the PandA
                     # field and hence should become part of the record.
                     # Note PandA block counter is 1-indexed, hence +1
-                    record_name = record_name.replace(block, block + str(block_num + 1))
+                    # Only replace first instance to avoid problems with awkward field
+                    # names like "DIV1:DIVISOR"
+                    record_name = record_name.replace(
+                        block, block + str(block_num + 1), 1
+                    )
 
                 # Get the value of the field and all its sub-fields
                 field_values = {
