@@ -51,6 +51,20 @@ class FieldInfo:
     description: Optional[str] = None
     labels: Optional[List[str]] = None
 
+    # Attributes below this point only apply for certain field types and/or subtypes
+    # param/read/write - uint
+    max: Optional[int] = None
+
+    # param/read/write - scalar
+    units_scalar: Optional[str] = None
+    scale: Optional[float] = None
+    offset: Optional[int] = None  # TODO: PandA returns 0 - is this an int or a float 0?
+
+    # time
+    units_time: Optional[str] = None
+    units_labels: Optional[List[str]] = None
+    min: Optional[float] = None
+
 
 @dataclass
 class Changes:

@@ -2,7 +2,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
+from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar, Union, overload
 
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import BlockInfo, Changes, FieldInfo
@@ -274,6 +274,15 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
         return block_infos
 
 
+# TODO: docstring
+@dataclass
+class _FieldCommandMapping:
+    command: Get
+    field_info: FieldInfo
+    attribute: str
+    type_func: Callable
+
+
 @dataclass
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     """Get the fields of a block, returning a `FieldInfo` for each one, ordered
@@ -315,9 +324,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
         # Create the list of DESC and ENUM commands to request
-        self._commands: List[Get] = []
+        self._commands: List[_FieldCommandMapping] = []
         # Map from an index in the commands list to the associated field name
-        self._field_mapping: Dict[int, str] = {}
         field: str
         field_info: FieldInfo
         for field, field_info in fields.items():
@@ -326,7 +334,9 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             field_subtype = field_info.subtype
 
             if not self.skip_description:
-                self._add_command(Get(f"*DESC.{self.block}.{field}"), field)
+                self._add_command(
+                    Get(f"*DESC.{self.block}.{field}"), field_info, "description", str
+                )
 
             if (
                 field_type in ("bit_mux", "pos_mux", "ext_out")
@@ -335,47 +345,88 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 enum_str = f"*ENUMS.{self.block}.{field}"
                 if field_type == "ext_out":
                     enum_str += ".CAPTURE"
-                self._add_command(Get(enum_str), field)
+                self._add_command(Get(enum_str), field_info, "labels", list)
 
-            # Query for various attributes, depending on field type and subtype.
+            # Query for field attributes, depending on field type and subtype.
             # Note some of these must query an instance of a block, but this is okay
             # as the value is static and shared between them all
             # TODO: Confirm this statement is true for all attributes!
             if field_type == "param" and field_subtype == "uint":
-                self._add_command(Get(f"{self.block}1.{field}.MAX"), field)
+                self._add_command(
+                    Get(f"{self.block}1.{field}.MAX"), field_info, "max", int
+                )
 
             if field_type in ("param", "read", "write") and field_subtype == "scalar":
+                # NOTE: Multiple different fields have a "UNITS" attribute...
+                # TODO Do I need to handle them separately? Possibly not
+                # TODO: type of UNITS changes - for param - scalar it's just a string,
+                # but for type "time" it's a list...
                 self._add_command(
-                    Get(f"{self.block}.{field}.UNITS"),
-                    field
-                    # NOTE: Multiple different fields have a "UNITS" attribute...
+                    Get(f"{self.block}.{field}.UNITS"), field_info, "units_scalar", str
                 )
-                self._add_command(Get(f"{self.block}.{field}.SCALE"), field)
-                self._add_command(Get(f"{self.block}.{field}.OFFSET"), field)
+                self._add_command(
+                    Get(f"{self.block}.{field}.SCALE"), field_info, "scale", float
+                )
+                self._add_command(
+                    Get(f"{self.block}.{field}.OFFSET"), field_info, "offset", int
+                )
 
-        returned_values = yield from _execute_commands(*self._commands)
+            if field_type == "time":
+                self._add_command(
+                    Get(f"{self.block}1.{field}.UNITS"), field_info, "units_time", str
+                )
+                self._add_command(
+                    Get(f"*ENUMS.{self.block}.{field}.UNITS"),
+                    field_info,
+                    "units_labels",
+                    list,
+                )
+                self._add_command(
+                    Get(f"{self.block}1.{field}.MIN"), field_info, "min", float
+                )
 
-        # Merge the returned information back into the existing FieldInfo for each field
-        for idx, value in enumerate(returned_values):
-            command: Get = self._commands[idx]
-            field_info = fields[self._field_mapping[idx]]
+            if field_type == "bit_out":
+                pass
 
-            if command.field.startswith("*DESC"):
-                field_info.description = value
-            elif command.field.startswith("*ENUMS"):
-                field_info.labels = value
+        returned_values = yield from _execute_commands(
+            *[item.command for item in self._commands]
+        )
+
+        for value, field_mapping in zip(returned_values, self._commands):
+            field_info = field_mapping.field_info
+            attribute = field_mapping.attribute
+
+            assert hasattr(field_info, attribute)
+
+            # TODO: I'd like to do this, but it seems like we can't:
+            # "TypeError:Subscripted generics cannot be used with class and
+            # instance checks"
+            # This error appears when attemping to deal with List[str].
+            # We can either remove the "str" part, or check one of these
+            # libraries (or upgrade to Python3.8 for typing.get_args()!)
+            # https://stackoverflow.com/questions/51171908/extracting-data-from-typing-types
+            # types = typing.get_type_hints(field_info)
+            # assert isinstance(value, types[attribute].__args__[0])
+
+            # TODO: remove this temporary code once all types are mapped
+            if not type(value) == field_mapping.type_func:
+                print("Here!")
+
+            setattr(field_info, attribute, field_mapping.type_func(value))
 
         return fields
 
     def _add_command(
         self,
         command: Get,
-        field: str,
+        field_info: FieldInfo,
+        field_info_field: str,
+        type_func: Callable,
     ):
-        """Helper function to add a new `command` to the `commands` list and update
-        the `field_mapping` appropriately"""
-        self._commands.append(command)
-        self._field_mapping[len(self._commands) - 1] = field
+        """Create the structure that maps a command to the field in the FieldInfo structure that
+        the result of the Command will be saved to."""
+        mapping = _FieldCommandMapping(command, field_info, field_info_field, type_func)
+        self._commands.append(mapping)
 
 
 class GetPcapBitsLabels(Command):
