@@ -447,7 +447,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 #     Get(f"{self.block}1.{field}.SCALED"), field_info, "scaled", float
                 # )
 
-            if field_type == "ext_out":
+            if field_type == "ext_out" and field_subtype == "bits":
                 # Given by GetChanges
                 # self._add_command(
                 #     Get(f"{self.block}.{field}.CAPTURE"),
@@ -455,20 +455,20 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 #     "capture",
                 #     str,
                 # )
+                # Already retrieve this as part of the general *ENUMS request higher up
+                # self._add_command(
+                #     Get(f"*ENUMS.{self.block}.{field}.CAPTURE"),
+                #     field_info,
+                #     "capture_labels",
+                #     list,
+                # )
+
                 self._add_command(
-                    Get(f"*ENUMS.{self.block}.{field}.CAPTURE"),
+                    Get(f"{self.block}.{field}.BITS"),
                     field_info,
-                    "capture_labels",
+                    "bits",
                     list,
                 )
-
-                if field_subtype == "bits":
-                    self._add_command(
-                        Get(f"{self.block}.{field}.BITS"),
-                        field_info,
-                        "bits",
-                        list,
-                    )
 
         returned_values = yield from _execute_commands(
             *[item.command for item in self._commands]

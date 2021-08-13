@@ -85,7 +85,7 @@ class FieldInfo:
 
     # ext_out
     # capture: Optional[str] = None # given by GetChanges
-    # capture_labels: Optional[List[str]] = None
+    # capture_labels: Optional[List[str]] = None # we use "labels" instead
     bits: Optional[List[str]] = None
 
 
