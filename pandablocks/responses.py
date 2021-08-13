@@ -1,3 +1,4 @@
+import dataclasses
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -38,6 +39,9 @@ class FieldInfo:
     """Field type, subtype, description and labels as exposed by TCP server:
     https://pandablocks-server.readthedocs.io/en/latest/fields.html#field-types
 
+    Note that many fields will use a more specialised subclass of FieldInfo for
+    their additional attributes.
+
     Attributes:
         type: Field type, like "param", "bit_out", "pos_mux", etc.
         subtype: Some types have subtype, like "uint", "scalar", "lut", etc.
@@ -51,41 +55,63 @@ class FieldInfo:
     description: Optional[str] = None
     labels: Optional[List[str]] = None
 
-    # Attributes below this point only apply for certain field types and/or subtypes
-    # param/read/write - uint
+    @classmethod
+    def from_instance(cls, instance):
+        return cls(**dataclasses.asdict(instance))
+
+
+@dataclass
+class UintFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
+    `uint`"""
+
     max: Optional[int] = None
 
-    # param/read/write - scalar
+
+@dataclass
+class ScalarFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
+    `scalar`"""
+
     units: Optional[str] = None
     scale: Optional[float] = None
     offset: Optional[int] = None  # TODO: PandA returns 0 - is this an int or a float 0?
 
-    # time
-    # time's units are special in that they alter the value read out -
-    # other units fields are just strings that act as suggestions to the reader
-    # units_time: Optional[str] = None # given by GetChanges
-    time_units_labels: Optional[List[str]] = None
+
+@dataclass
+class TimeFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `time`"""
+
+    units_labels: Optional[List[str]] = None
     min: Optional[float] = None
 
-    # bit_out
-    capture_word: Optional[str] = None
-    # offset: Optional[int] = None
 
-    # bit_mux
-    # delay: Optional[int] = None # given by GetChanges
+@dataclass
+class BitOutFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `bit_out`"""
+
+    capture_word: Optional[str] = None
+    offset: Optional[int] = None  # TODO: PandA returns 0 - is this an int or a float 0?
+
+
+@dataclass
+class BitMuxFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `bit_mux`"""
+
     max_delay: Optional[int] = None
 
-    # pos_out
-    # capture: Optional[str] = None # given by GetChanges
-    capture_labels: Optional[List[str]] = None
-    # offset: Optional[int] = None # given by GetChanges
-    # scale: Optional[float] = None # given by GetChanges
-    # units: Optional[str] = None # given by GetChanges
-    # scaled: Optional[float] = None # given by GetChanges
 
-    # ext_out
-    # capture: Optional[str] = None # given by GetChanges
-    # capture_labels: Optional[List[str]] = None # we use "labels" instead
+@dataclass
+class PosOutFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `pos_out`"""
+
+    capture_labels: Optional[List[str]] = None
+
+
+@dataclass
+class ExtOutBitsFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `ext_out` and subtype `bits`"""
+
     bits: Optional[List[str]] = None
 
 

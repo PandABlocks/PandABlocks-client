@@ -5,7 +5,18 @@ from enum import Enum
 from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar, Union, overload
 
 from ._exchange import Exchange, ExchangeGenerator
-from .responses import BlockInfo, Changes, FieldInfo
+from .responses import (
+    BitMuxFieldInfo,
+    BitOutFieldInfo,
+    BlockInfo,
+    Changes,
+    ExtOutBitsFieldInfo,
+    FieldInfo,
+    PosOutFieldInfo,
+    ScalarFieldInfo,
+    TimeFieldInfo,
+    UintFieldInfo,
+)
 
 # Define the public API of this module
 __all__ = [
@@ -348,124 +359,77 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 self._add_command(Get(enum_str), field_info, "labels", list)
 
             # Query for field attributes, depending on field type and subtype.
-            # Note some of these must query an instance of a block, but this is okay
-            # as the value is static and shared between them all
-            # TODO: Confirm this statement is true for all attributes!
+            # Note most of these must query an instance of a block, but this is okay
+            # as the value is static and shared between them all - usually coming
+            # from static configuration files
             if field_type == "param" and field_subtype == "uint":
+                fields[field] = UintFieldInfo.from_instance(field_info)
                 self._add_command(
-                    Get(f"{self.block}1.{field}.MAX"), field_info, "max", int
+                    Get(f"{self.block}1.{field}.MAX"), fields[field], "max", int
                 )
 
             if field_type in ("param", "read", "write") and field_subtype == "scalar":
-                # NOTE: Multiple different fields have a "UNITS" attribute...
-                # TODO Do I need to handle them separately? Possibly not
-                # TODO: type of UNITS changes - for param - scalar it's just a string,
-                # but for type "time" it's a list...
+                fields[field] = ScalarFieldInfo.from_instance(field_info)
                 self._add_command(
-                    Get(f"{self.block}.{field}.UNITS"), field_info, "units", str
+                    Get(f"{self.block}.{field}.UNITS"), fields[field], "units", str
                 )
                 self._add_command(
-                    Get(f"{self.block}.{field}.SCALE"), field_info, "scale", float
+                    Get(f"{self.block}.{field}.SCALE"), fields[field], "scale", float
                 )
                 self._add_command(
-                    Get(f"{self.block}.{field}.OFFSET"), field_info, "offset", int
+                    Get(f"{self.block}.{field}.OFFSET"), fields[field], "offset", int
                 )
 
             if field_type == "time":
-                # UNITS is returned by GetChanges
-                # self._add_command(
-                #     Get(f"{self.block}1.{field}.UNITS"), field_info, "units_time", str
-                # )
+                fields[field] = TimeFieldInfo.from_instance(field_info)
                 self._add_command(
                     Get(f"*ENUMS.{self.block}.{field}.UNITS"),
-                    field_info,
-                    "time_units_labels",
+                    fields[field],
+                    "units_labels",
                     list,
                 )
                 self._add_command(
-                    Get(f"{self.block}1.{field}.MIN"), field_info, "min", float
+                    Get(f"{self.block}1.{field}.MIN"), fields[field], "min", float
                 )
 
             if field_type == "bit_out":
+                fields[field] = BitOutFieldInfo.from_instance(field_info)
                 self._add_command(
                     Get(f"{self.block}1.{field}.CAPTURE_WORD"),
-                    field_info,
+                    fields[field],
                     "capture_word",
                     str,
                 )
                 self._add_command(
                     Get(f"{self.block}1.{field}.OFFSET"),
-                    field_info,
+                    fields[field],
                     "offset",
                     int,
                 )
 
             if field_type == "bit_mux":
-                # DELAY given by GetChanges
-                # self._add_command(
-                #     Get(f"{self.block}1.{field}.DELAY"),
-                #     field_info,
-                #     "delay",
-                #     int,
-                # )
+                fields[field] = BitMuxFieldInfo.from_instance(field_info)
                 self._add_command(
                     Get(f"{self.block}1.{field}.MAX_DELAY"),
-                    field_info,
+                    fields[field],
                     "max_delay",
                     int,
                 )
 
             if field_type == "pos_out":
-                # Given by GetChanges
-                # self._add_command(
-                #     Get(f"{self.block}1.{field}.CAPTURE"),
-                #     field_info,
-                #     "capture",
-                #     str,
-                # )
+                fields[field] = PosOutFieldInfo.from_instance(field_info)
                 self._add_command(
                     Get(f"*ENUMS.{self.block}.{field}.CAPTURE"),
-                    field_info,
+                    fields[field],
                     "capture_labels",
                     list,
                 )
-                # These are returned by GetChanges. SCALED can then be
-                # calculated from these values.
-                # self._add_command(
-                #     Get(f"{self.block}1.{field}.OFFSET"),
-                #     field_info,
-                #     "offset",
-                #     str,
-                # )
-                # self._add_command(
-                #     Get(f"{self.block}1.{field}.SCALE"), field_info, "scale", float
-                # )
-                # self._add_command(
-                #     Get(f"{self.block}1.{field}.UNITS"), field_info, "units", str
-                # )
-                # self._add_command(
-                #     Get(f"{self.block}1.{field}.SCALED"), field_info, "scaled", float
-                # )
 
             if field_type == "ext_out" and field_subtype == "bits":
-                # Given by GetChanges
-                # self._add_command(
-                #     Get(f"{self.block}.{field}.CAPTURE"),
-                #     field_info,
-                #     "capture",
-                #     str,
-                # )
-                # Already retrieve this as part of the general *ENUMS request higher up
-                # self._add_command(
-                #     Get(f"*ENUMS.{self.block}.{field}.CAPTURE"),
-                #     field_info,
-                #     "capture_labels",
-                #     list,
-                # )
-
+                fields[field] = ExtOutBitsFieldInfo.from_instance(field_info)
                 self._add_command(
                     Get(f"{self.block}.{field}.BITS"),
-                    field_info,
+                    fields[field],
                     "bits",
                     list,
                 )
@@ -501,8 +465,16 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info_field: str,
         type_func: Callable,
     ):
-        """Create the structure that maps a command to the field in the FieldInfo structure that
-        the result of the Command will be saved to."""
+        """Create the structure that maps a command to the field in the FieldInfo
+        class (or subclass) that the result of the Command will be saved to.
+
+        Args:
+            command (Get): The Get command to send
+            field_info (FieldInfo): Existing instance to save result of Get into
+            field_info_field (str): Name of the field to save the Get result to
+            type_func (Callable): Function to convert data from string type to desired
+                    type e.g. `int`, `list`, etc.
+        """
         mapping = _FieldCommandMapping(command, field_info, field_info_field, type_func)
         self._commands.append(mapping)
 
