@@ -14,6 +14,7 @@ from .responses import (
     FieldInfo,
     PosOutFieldInfo,
     ScalarFieldInfo,
+    SubtypeTimeFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
 )
@@ -378,6 +379,15 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 )
                 self._add_command(
                     Get(f"{self.block}.{field}.OFFSET"), fields[field], "offset", int
+                )
+
+            if field_type in ("param", "read", "write") and field_subtype == "time":
+                fields[field] = SubtypeTimeFieldInfo.from_instance(field_info)
+                self._add_command(
+                    Get(f"*ENUMS.{self.block}.{field}.UNITS"),
+                    fields[field],
+                    "units_labels",
+                    list,
                 )
 
             if field_type == "time":

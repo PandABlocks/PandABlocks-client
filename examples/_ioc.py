@@ -11,7 +11,12 @@ from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import ChangeGroup, GetBlockInfo, GetChanges, GetFieldInfo
-from pandablocks.responses import BlockInfo, FieldInfo
+from pandablocks.responses import (
+    BlockInfo,
+    FieldInfo,
+    SubtypeTimeFieldInfo,
+    TimeFieldInfo,
+)
 
 # Define the public API of this module
 # TODO!
@@ -21,18 +26,18 @@ TIMEOUT = 2
 
 
 @dataclass
-class PandaInfo:
+class BlockAndFieldInfo:
     """Contains all available information for a Block, including Fields and all the
     Values for `block_info.number` instances of the Fields."""
 
     block_info: BlockInfo
     fields: Dict[str, FieldInfo]
     values: Dict[str, str]
-    # See `create_values_key` to create key for Dict from keys returned from GetChanges
+    # See `_create_values_key` to create key for Dict from keys returned from GetChanges
 
 
 # TODO: Be really fancy and create a custom type for the key
-def create_values_key(field_name: str) -> str:
+def _create_values_key(field_name: str) -> str:
     """Convert the dictionary key style used in `GetChanges.values` to that used
     throughout this application"""
     # EPICS record names use ":" as separators rather than PandA's ".".
@@ -45,15 +50,11 @@ def create_softioc():
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()
 
     client = AsyncioClient(sys.argv[1])
-    # TODO: Either re-insert the `with` block, or clean the client up manually
+    # TODO: Clean up client when we're done with it
     asyncio.run_coroutine_threadsafe(client.connect(), dispatcher.loop).result(TIMEOUT)
 
-    panda_dict = asyncio.run_coroutine_threadsafe(
-        introspect_panda(client), dispatcher.loop
-    ).result()  # TODO add TIMEOUT and exception handling
-
     all_records = asyncio.run_coroutine_threadsafe(
-        create_records(client, dispatcher, panda_dict), dispatcher.loop
+        create_records(client, dispatcher), dispatcher.loop
     ).result()  # TODO add TIMEOUT and exception handling
 
     asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
@@ -63,8 +64,19 @@ def create_softioc():
     softioc.interactive_ioc(globals())
 
 
-async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
-    """Query the PandA for all its Blocks, Fields, and Values of fields"""
+async def introspect_panda(client: AsyncioClient) -> Dict[str, BlockAndFieldInfo]:
+    """Query the PandA for all its Blocks, Fields, and Values of fields
+
+    Args:
+        client (AsyncioClient): Client used for commuication with the PandA
+
+    Raises:
+        Exception: TODO
+
+    Returns:
+        Dict[str, BlockAndFieldInfo]: Dictionary containing all information on
+            the block
+    """
 
     # Get the list of all blocks in the PandA
     # TODO: Do we care about the decription of the Block itself?
@@ -74,7 +86,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
     field_infos = await asyncio.gather(
         *[client.send(GetFieldInfo(block)) for block in block_dict]
     )
-
+    # TODO: I should reduce round trips and merge this with previous I/O
     # Request initial value of all fields
     changes = await client.send(GetChanges(ChangeGroup.ALL))
 
@@ -87,7 +99,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
         block_name_number, subfield_name = field_name.split(".", maxsplit=1)
         block_name = block_name_number.rstrip(digits)
 
-        field_name = create_values_key(field_name)
+        field_name = _create_values_key(field_name)
 
         if block_name not in values:
             values[block_name] = {}
@@ -95,7 +107,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, PandaInfo]:
 
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
-        panda_dict[block_name] = PandaInfo(
+        panda_dict[block_name] = BlockAndFieldInfo(
             block_info=block_info, fields=field_info, values=values[block_name]
         )
 
@@ -133,35 +145,49 @@ class IocRecordFactory:
         values: Dict[str, str],
         record_creation_func: Callable,
     ) -> Dict[str, RecordWrapper]:
+        """Make one record for the timer itself, and a sub-record for its units"""
         assert len(values) == 2, "Incorrect number of values passed, expected 2"
+        assert isinstance(field_info, (TimeFieldInfo, SubtypeTimeFieldInfo))
+        assert field_info.units_labels
         # TODO: add more info?
         # TODO: Add similar asserts to every function?
+
+        record_dict: Dict[str, RecordWrapper] = {}
 
         rec1 = record_creation_func(
             record_name, initial_value=float(values[record_name])
         )
+        record_dict[record_name] = rec1
+
         units_record = record_name + ":UNITS"
+        initial_unit = field_info.units_labels.index(values[units_record])
+        rec2 = builder.mbbIn(
+            units_record, *field_info.units_labels, initial_value=initial_unit
+        )
+        record_dict[units_record] = rec2
 
-        # TODO: This list should be retrieved from the *ENUMS.<field>.UNITS command!
-        # This list isn't right as some of the fields define minutes, "min", as valid
-        valid_units = ["s", "ms", "us"]
-        initial_unit = valid_units.index(values[units_record])
+        if field_info.type == "time":
+            assert isinstance(field_info, TimeFieldInfo)
+            min_record = record_name + ":MIN"
+            rec3 = builder.aIn(min_record, initial_value=field_info.min)
+            record_dict[min_record] = rec3
 
-        rec2 = builder.mbbIn(units_record, *valid_units, initial_value=initial_unit)
-        return {record_name: rec1, units_record: rec2}
+        return record_dict
 
     def _make_time_write(
-        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
     ) -> Dict[str, RecordWrapper]:
-        """Make one writeable record for the timer itself, and a sub-record for its
-        units"""
         return self._make_time(record_name, field_info, values, builder.aOut)
 
     def _make_time_read(
-        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
     ) -> Dict[str, RecordWrapper]:
-        """Make one readable record for the timer itself, and a sub-record for its
-        units"""
         return self._make_time(record_name, field_info, values, builder.aIn)
 
     def _make_boolin(
@@ -298,11 +324,12 @@ class IocRecordFactory:
 async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
-    panda_dict: Dict[str, PandaInfo],
 ) -> Dict[
     str, RecordWrapper
 ]:  # TODO: RecordWrapper doesn't exist for GraphQL, will need to change
     """Create the relevant records from the given block_dict"""
+
+    panda_dict = await introspect_panda(client)
 
     # Set the record prefix
     builder.SetDeviceName("ABC")
@@ -377,7 +404,7 @@ async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
             # TODO: Use changes.no_value?
 
         for field, value in changes.values.items():
-            field = create_values_key(field)
+            field = _create_values_key(field)
             if field not in all_records:
                 # TODO: uncomment when we have all fields
                 # raise Exception("Unknown record returned from GetChanges")

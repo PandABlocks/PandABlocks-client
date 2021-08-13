@@ -87,6 +87,16 @@ class TimeFieldInfo(FieldInfo):
 
 
 @dataclass
+class SubtypeTimeFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
+    `time`"""
+
+    # TODO: This class name is terrible
+
+    units_labels: Optional[List[str]] = None
+
+
+@dataclass
 class BitOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `bit_out`"""
 
