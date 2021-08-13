@@ -63,7 +63,7 @@ class FieldInfo:
     # time
     # time's units are special in that they alter the value read out -
     # other units fields are just strings that act as suggestions to the reader
-    units_time: Optional[str] = None
+    # units_time: Optional[str] = None # given by GetChanges
     time_units_labels: Optional[List[str]] = None
     min: Optional[float] = None
 
@@ -72,19 +72,19 @@ class FieldInfo:
     # offset: Optional[int] = None
 
     # bit_mux
-    delay: Optional[int] = None
+    # delay: Optional[int] = None # given by GetChanges
     max_delay: Optional[int] = None
 
     # pos_out
-    capture: Optional[str] = None
+    # capture: Optional[str] = None # given by GetChanges
     capture_labels: Optional[List[str]] = None
-    # offset: Optional[int] = None
-    # scale: Optional[float] = None
-    # units: Optional[str] = None
-    scaled: Optional[float] = None
+    # offset: Optional[int] = None # given by GetChanges
+    # scale: Optional[float] = None # given by GetChanges
+    # units: Optional[str] = None # given by GetChanges
+    # scaled: Optional[float] = None # given by GetChanges
 
     # ext_out
-    # capture: Optional[str] = None
+    # capture: Optional[str] = None # given by GetChanges
     # capture_labels: Optional[List[str]] = None
     bits: Optional[List[str]] = None
 

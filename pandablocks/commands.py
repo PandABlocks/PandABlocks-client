@@ -372,9 +372,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 )
 
             if field_type == "time":
-                self._add_command(
-                    Get(f"{self.block}1.{field}.UNITS"), field_info, "units_time", str
-                )
+                # UNITS is returned by GetChanges
+                # self._add_command(
+                #     Get(f"{self.block}1.{field}.UNITS"), field_info, "units_time", str
+                # )
                 self._add_command(
                     Get(f"*ENUMS.{self.block}.{field}.UNITS"),
                     field_info,
@@ -396,16 +397,17 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                     Get(f"{self.block}1.{field}.OFFSET"),
                     field_info,
                     "offset",
-                    str,
+                    int,
                 )
 
             if field_type == "bit_mux":
-                self._add_command(
-                    Get(f"{self.block}1.{field}.DELAY"),
-                    field_info,
-                    "delay",
-                    int,
-                )
+                # DELAY given by GetChanges
+                # self._add_command(
+                #     Get(f"{self.block}1.{field}.DELAY"),
+                #     field_info,
+                #     "delay",
+                #     int,
+                # )
                 self._add_command(
                     Get(f"{self.block}1.{field}.MAX_DELAY"),
                     field_info,
@@ -414,43 +416,47 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 )
 
             if field_type == "pos_out":
+                # Given by GetChanges
+                # self._add_command(
+                #     Get(f"{self.block}1.{field}.CAPTURE"),
+                #     field_info,
+                #     "capture",
+                #     str,
+                # )
                 self._add_command(
-                    Get(f"{self.block}1.{field}.CAPTURE"),
-                    field_info,
-                    "capture",
-                    str,
-                )
-                self._add_command(
-                    Get(f"*ENUMS.{self.block}1.{field}.CAPTURE"),
+                    Get(f"*ENUMS.{self.block}.{field}.CAPTURE"),
                     field_info,
                     "capture_labels",
                     list,
                 )
-                self._add_command(
-                    Get(f"{self.block}1.{field}.OFFSET"),
-                    field_info,
-                    "offset",
-                    str,
-                )
-                self._add_command(
-                    Get(f"{self.block}1.{field}.SCALE"), field_info, "scale", float
-                )
-                self._add_command(
-                    Get(f"{self.block}1.{field}.UNITS"), field_info, "units", str
-                )
-                self._add_command(
-                    Get(f"{self.block}1.{field}.SCALED"), field_info, "scaled", float
-                )
+                # These are returned by GetChanges. SCALED can then be
+                # calculated from these values.
+                # self._add_command(
+                #     Get(f"{self.block}1.{field}.OFFSET"),
+                #     field_info,
+                #     "offset",
+                #     str,
+                # )
+                # self._add_command(
+                #     Get(f"{self.block}1.{field}.SCALE"), field_info, "scale", float
+                # )
+                # self._add_command(
+                #     Get(f"{self.block}1.{field}.UNITS"), field_info, "units", str
+                # )
+                # self._add_command(
+                #     Get(f"{self.block}1.{field}.SCALED"), field_info, "scaled", float
+                # )
 
             if field_type == "ext_out":
+                # Given by GetChanges
+                # self._add_command(
+                #     Get(f"{self.block}.{field}.CAPTURE"),
+                #     field_info,
+                #     "capture",
+                #     str,
+                # )
                 self._add_command(
-                    Get(f"{self.block}1.{field}.CAPTURE"),
-                    field_info,
-                    "capture",
-                    str,
-                )
-                self._add_command(
-                    Get(f"*ENUMS.{self.block}1.{field}.CAPTURE"),
+                    Get(f"*ENUMS.{self.block}.{field}.CAPTURE"),
                     field_info,
                     "capture_labels",
                     list,
@@ -458,7 +464,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
                 if field_subtype == "bits":
                     self._add_command(
-                        Get(f"{self.block}1.{field}.BITS"),
+                        Get(f"{self.block}.{field}.BITS"),
                         field_info,
                         "bits",
                         list,
