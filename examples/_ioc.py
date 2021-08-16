@@ -139,6 +139,36 @@ class IocRecordFactory:
         assert len(labels) > 0
         return labels.index(record_value)
 
+    def _create_record(
+        self,
+        record_name: str,
+        description: Optional[str],
+        record_creation_func: Callable,
+        *args,
+        **kwargs,
+    ) -> RecordWrapper:
+        """Create the record, using the given function and passing all optional
+        arguments and keyword arguments, and then set the description field for the
+        record.
+
+        Args:
+            record_name (str): The name this record will be created with
+            description (str): The description for this field
+            record_creation_func (Callable): The function that will be used to create
+                this record. Expects to be one of the builder.* functions.
+
+        Returns:
+            RecordWrapper: The newly created record.
+        """
+        # assert field_info.description
+        # # TODO: Check if we want this assert - currently we don't retrieve
+        # descriptions for attributes!
+
+        record = record_creation_func(record_name, *args, **kwargs)
+        record.DESC = description
+
+        return record
+
     def _make_time(
         self,
         record_name: str,
@@ -155,8 +185,11 @@ class IocRecordFactory:
 
         record_dict: Dict[str, RecordWrapper] = {}
 
-        record_dict[record_name] = record_creation_func(
-            record_name, initial_value=float(values[record_name])
+        record_dict[record_name] = self._create_record(
+            record_name,
+            field_info.description,
+            record_creation_func,
+            initial_value=float(values[record_name]),
         )
 
         units_record = record_name + ":UNITS"
