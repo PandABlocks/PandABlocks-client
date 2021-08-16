@@ -2,7 +2,18 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import (
@@ -320,135 +331,272 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     block: str
     skip_description: bool = False
 
+    def _commands_param_uint(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = UintFieldInfo(field_type, field_subtype)
+
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"{self.block}1.{field_name}.MAX"), field_info, "max", int
+                )
+            ],
+        )
+
+    def _commands_scalar(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = ScalarFieldInfo(field_type, field_subtype)
+
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"{self.block}.{field_name}.UNITS"), field_info, "units", str
+                ),
+                _FieldCommandMapping(
+                    Get(f"{self.block}.{field_name}.SCALE"), field_info, "scale", float
+                ),
+                _FieldCommandMapping(
+                    Get(f"{self.block}.{field_name}.OFFSET"), field_info, "offset", int
+                ),
+            ],
+        )
+
+    def _commands_subtype_time(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = SubtypeTimeFieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+                    field_info,
+                    "units_labels",
+                    list,
+                ),
+            ],
+        )
+
+    def _commands_enum(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = FieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}"),
+                    field_info,
+                    "labels",
+                    list,
+                ),
+            ],
+        )
+
+    def _commands_time(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = TimeFieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+                    field_info,
+                    "units_labels",
+                    list,
+                ),
+                _FieldCommandMapping(
+                    Get(f"{self.block}1.{field_name}.MIN"), field_info, "min", float
+                ),
+            ],
+        )
+
+    def _commands_bit_out(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = BitOutFieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"{self.block}1.{field_name}.CAPTURE_WORD"),
+                    field_info,
+                    "capture_word",
+                    str,
+                ),
+                _FieldCommandMapping(
+                    Get(f"{self.block}1.{field_name}.OFFSET"),
+                    field_info,
+                    "offset",
+                    int,
+                ),
+            ],
+        )
+
+    def _commands_bit_mux(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = BitMuxFieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"{self.block}1.{field_name}.MAX_DELAY"),
+                    field_info,
+                    "max_delay",
+                    int,
+                ),
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}"), field_info, "labels", list
+                ),
+            ],
+        )
+
+    def _commands_pos_mux(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = FieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}"), field_info, "labels", list
+                ),
+            ],
+        )
+
+    def _commands_pos_out(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = PosOutFieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+                    field_info,
+                    "capture_labels",
+                    list,
+                ),
+            ],
+        )
+
+    def _commands_ext_out(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = FieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+                    field_info,
+                    "labels",
+                    list,
+                ),
+            ],
+        )
+
+    def _commands_ext_out_bits(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+        field_info = ExtOutBitsFieldInfo(field_type, field_subtype)
+        return (
+            field_info,
+            [
+                _FieldCommandMapping(
+                    Get(f"{self.block}.{field_name}.BITS"),
+                    field_info,
+                    "bits",
+                    list,
+                ),
+                _FieldCommandMapping(
+                    Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+                    field_info,
+                    "labels",
+                    list,
+                ),
+            ],
+        )
+
     def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
+        command_mapping_list: List[_FieldCommandMapping] = []
         for line in ex.multiline:
             name, index, type_subtype = line.split(maxsplit=2)
 
             # Append "None" to list below so there are always at least 2 elements
             # so we can always unpack into subtype, even if no split occurs.
             field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
-            unsorted[int(index)] = (name, FieldInfo(field_type, subtype))
+
+            # Map a (type, subtype) to a method that returns the appropriate
+            # subclasss of FieldInfo, and a list of all the Commands to request
+            # TODO: This is static so should live somewhere not inline - but it can't
+            # live on the Dataclass itself due to Python restrictions...
+            _commands_map: Dict[
+                Tuple[str, Optional[str]],
+                Callable[
+                    [str, str, Optional[str]],
+                    Tuple[FieldInfo, List[_FieldCommandMapping]],
+                ],
+            ] = {
+                ("param", "uint"): self._commands_param_uint,
+                ("param", "scalar"): self._commands_scalar,
+                ("read", "scalar"): self._commands_scalar,
+                ("write", "scalar"): self._commands_scalar,
+                ("param", "time"): self._commands_subtype_time,
+                ("read", "time"): self._commands_subtype_time,
+                ("write", "time"): self._commands_subtype_time,
+                ("param", "enum"): self._commands_enum,
+                ("read", "enum"): self._commands_enum,
+                ("write", "enum"): self._commands_enum,
+                ("time", None): self._commands_time,
+                ("bit_out", None): self._commands_bit_out,
+                ("bit_mux", None): self._commands_bit_mux,
+                ("pos_mux", None): self._commands_pos_mux,
+                ("pos_out", None): self._commands_pos_out,
+                ("ext_out", None): self._commands_ext_out,
+                ("ext_out", "bits"): self._commands_ext_out_bits,
+            }
+
+            if (field_type, subtype) in _commands_map:
+                field_info, command_mapping = _commands_map[(field_type, subtype)](
+                    name, field_type, subtype
+                )
+            else:
+                # No type-specific commands to create
+                field_info = FieldInfo(field_type, subtype)
+                command_mapping = []
+
+            if not self.skip_description:
+                command_mapping.append(
+                    _FieldCommandMapping(
+                        Get(f"*DESC.{self.block}.{name}"),
+                        field_info,
+                        "description",
+                        str,
+                    )
+                )
+
+            command_mapping_list.extend(command_mapping)
+
+            unsorted[int(index)] = (name, field_info)
 
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
-        # Create the list of DESC and ENUM commands to request
-        self._commands: List[_FieldCommandMapping] = []
-        # Map from an index in the commands list to the associated field name
-        field: str
-        field_info: FieldInfo
-        for field, field_info in fields.items():
-
-            field_type = field_info.type
-            field_subtype = field_info.subtype
-
-            if not self.skip_description:
-                self._add_command(
-                    Get(f"*DESC.{self.block}.{field}"), field_info, "description", str
-                )
-
-            if (
-                field_type in ("bit_mux", "pos_mux", "ext_out")
-                or field_subtype == "enum"
-            ):
-                enum_str = f"*ENUMS.{self.block}.{field}"
-                if field_type == "ext_out":
-                    enum_str += ".CAPTURE"
-                self._add_command(Get(enum_str), field_info, "labels", list)
-
-            # Query for field attributes, depending on field type and subtype.
-            # Note most of these must query an instance of a block, but this is okay
-            # as the value is static and shared between them all - usually coming
-            # from static configuration files
-            if field_type == "param" and field_subtype == "uint":
-                fields[field] = UintFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"{self.block}1.{field}.MAX"), fields[field], "max", int
-                )
-
-            if field_type in ("param", "read", "write") and field_subtype == "scalar":
-                fields[field] = ScalarFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"{self.block}.{field}.UNITS"), fields[field], "units", str
-                )
-                self._add_command(
-                    Get(f"{self.block}.{field}.SCALE"), fields[field], "scale", float
-                )
-                self._add_command(
-                    Get(f"{self.block}.{field}.OFFSET"), fields[field], "offset", int
-                )
-
-            if field_type in ("param", "read", "write") and field_subtype == "time":
-                fields[field] = SubtypeTimeFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"*ENUMS.{self.block}.{field}.UNITS"),
-                    fields[field],
-                    "units_labels",
-                    list,
-                )
-
-            if field_type == "time":
-                fields[field] = TimeFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"*ENUMS.{self.block}.{field}.UNITS"),
-                    fields[field],
-                    "units_labels",
-                    list,
-                )
-                self._add_command(
-                    Get(f"{self.block}1.{field}.MIN"), fields[field], "min", float
-                )
-
-            if field_type == "bit_out":
-                fields[field] = BitOutFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"{self.block}1.{field}.CAPTURE_WORD"),
-                    fields[field],
-                    "capture_word",
-                    str,
-                )
-                self._add_command(
-                    Get(f"{self.block}1.{field}.OFFSET"),
-                    fields[field],
-                    "offset",
-                    int,
-                )
-
-            if field_type == "bit_mux":
-                fields[field] = BitMuxFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"{self.block}1.{field}.MAX_DELAY"),
-                    fields[field],
-                    "max_delay",
-                    int,
-                )
-
-            if field_type == "pos_out":
-                fields[field] = PosOutFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"*ENUMS.{self.block}.{field}.CAPTURE"),
-                    fields[field],
-                    "capture_labels",
-                    list,
-                )
-
-            if field_type == "ext_out" and field_subtype == "bits":
-                fields[field] = ExtOutBitsFieldInfo.from_instance(field_info)
-                self._add_command(
-                    Get(f"{self.block}.{field}.BITS"),
-                    fields[field],
-                    "bits",
-                    list,
-                )
-
         returned_values = yield from _execute_commands(
-            *[item.command for item in self._commands]
+            *[item.command for item in command_mapping_list]
         )
 
-        for value, field_mapping in zip(returned_values, self._commands):
+        for value, field_mapping in zip(returned_values, command_mapping_list):
             field_info = field_mapping.field_info
             attribute = field_mapping.attribute
 
@@ -467,26 +615,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             setattr(field_info, attribute, field_mapping.type_func(value))
 
         return fields
-
-    def _add_command(
-        self,
-        command: Get,
-        field_info: FieldInfo,
-        field_info_field: str,
-        type_func: Callable,
-    ):
-        """Create the structure that maps a command to the field in the FieldInfo
-        class (or subclass) that the result of the Command will be saved to.
-
-        Args:
-            command (Get): The Get command to send
-            field_info (FieldInfo): Existing instance to save result of Get into
-            field_info_field (str): Name of the field to save the Get result to
-            type_func (Callable): Function to convert data from string type to desired
-                    type e.g. `int`, `list`, etc.
-        """
-        mapping = _FieldCommandMapping(command, field_info, field_info_field, type_func)
-        self._commands.append(mapping)
 
 
 class GetPcapBitsLabels(Command):

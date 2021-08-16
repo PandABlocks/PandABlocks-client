@@ -54,6 +54,8 @@ class FieldInfo:
     subtype: Optional[str] = None
     description: Optional[str] = None
     labels: Optional[List[str]] = None
+    # TODO: labels should be removed - its not applicable to large numbers of fields
+    # it will however mean we have to create several more subclasses...
 
     @classmethod
     def from_instance(cls, instance) -> "FieldInfo":
