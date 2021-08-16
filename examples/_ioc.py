@@ -117,12 +117,10 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, BlockAndFieldInfo
 
 # TODO: Is this actually a Factory? Might be more of a Builder...
 class IocRecordFactory:
-    _client: AsyncioClient
-    _dispatcher: asyncio_dispatcher.AsyncioDispatcher = (
-        asyncio_dispatcher.AsyncioDispatcher()
-    )
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
+
+    _client: AsyncioClient
 
     # Constants used in multiple records
     ZNAM_STR: str = "0"
@@ -468,5 +466,5 @@ async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
         await asyncio.sleep(1)
 
 
-if __name__ == "__main__":
-    create_softioc()
+# # if __name__ == "__main__":
+# #     create_softioc()
