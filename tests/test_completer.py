@@ -11,10 +11,14 @@ def dummy_server_with_blocks(dummy_server_in_thread):
         "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
         "!OUT 1 bit_out\n.",  # SRGATE fields
-        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # LUT.INPB labels
+        "OK =10",  # LUT.INPB.MAX_DELAY BEING EATEN
+        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # LUT.INPB labels BEING EATEN
         "!Input-Level\n!Pulse-On-Rising-Edge\n.",  # LUT.TYPEA labels
-        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # PCAP.GATE labels
         "!Rising\n!Falling\n.",  # PCAP.TRIG_EDGE labels
+        "OK =20",  # PCAP1.GATE.MAX_DELAY
+        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # PCAP.GATE labels
+        "OK =PCAP.BITS2",  # SRGATE1.OUT.CAPTURE_WORD
+        "OK =21",  # SRGATE1.OUT.OFFSET
     ]
     yield dummy_server_in_thread
 

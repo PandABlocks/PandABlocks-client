@@ -562,19 +562,28 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 ("bit_mux", None): self._commands_bit_mux,
                 ("pos_mux", None): self._commands_pos_mux,
                 ("pos_out", None): self._commands_pos_out,
-                ("ext_out", None): self._commands_ext_out,
+                ("ext_out", "timestamp"): self._commands_ext_out,
+                ("ext_out", "samples"): self._commands_ext_out,
                 ("ext_out", "bits"): self._commands_ext_out_bits,
             }
 
             if (field_type, subtype) in _commands_map:
+                # Create type-specific commands
                 field_info, command_mapping = _commands_map[(field_type, subtype)](
                     name, field_type, subtype
                 )
             else:
                 # No type-specific commands to create
+                # TODO: Consider whether we turn this into its own function, and then
+                # list all known type-subtype pairs in the mapping. This would mean we
+                #  could spot unknown types much more easily.
                 field_info = FieldInfo(field_type, subtype)
                 command_mapping = []
 
+            # Description is common to all fields, and its retrieval may be disabled,
+            # hence why it is handed here.
+            # Note that we don't get the description for any attributes - these are
+            # fixed strings and so not worth retrieving dynamically.
             if not self.skip_description:
                 command_mapping.append(
                     _FieldCommandMapping(

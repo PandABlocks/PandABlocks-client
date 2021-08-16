@@ -425,9 +425,6 @@ async def create_records(
                     if field.startswith(record_name)
                 }
 
-                # TODO: It seems that some record creation requires additional network
-                # calls. So we should probably make this into a set of simultaneous
-                # async tasks, rather than sequential for loops.
                 records = record_factory.create_record(
                     record_name, field_info, field_values
                 )

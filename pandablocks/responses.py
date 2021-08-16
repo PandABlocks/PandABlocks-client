@@ -1,4 +1,3 @@
-import dataclasses
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -56,20 +55,6 @@ class FieldInfo:
     labels: Optional[List[str]] = None
     # TODO: labels should be removed - its not applicable to large numbers of fields
     # it will however mean we have to create several more subclasses...
-
-    @classmethod
-    def from_instance(cls, instance) -> "FieldInfo":
-        """Return a copy of this dataclass as one of its child classes.
-        This should be called like this:
-        ```
-        field_info = FieldInfo("abc")
-        field_info = SubtypeTimeFieldInfo.from_instance(field_info)
-        assert isinstance(field_info, SubtypeTimeFieldInfo)
-        ```
-
-        This method should never need to be overridden in subclasses.
-        """
-        return cls(**dataclasses.asdict(instance))
 
 
 @dataclass

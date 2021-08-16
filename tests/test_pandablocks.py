@@ -19,7 +19,7 @@ from pandablocks.connections import (
     DataConnection,
     NoContextAvailable,
 )
-from pandablocks.responses import BlockInfo, Data
+from pandablocks.responses import BitMuxFieldInfo, BlockInfo, Data
 from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE
 
 
@@ -198,15 +198,17 @@ def test_get_fields():
     # First yield, the response to "LUT.*?"
     assert (
         conn.receive_bytes(b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n")
-        == b"*DESC.LUT.INPA?\n*ENUMS.LUT.INPA?\n*DESC.LUT.TYPEA?\n*ENUMS.LUT.TYPEA?\n"
+        == b"*ENUMS.LUT.TYPEA?\n*DESC.LUT.TYPEA?\nLUT1.INPA.MAX_DELAY?\n"
+        + b"*ENUMS.LUT.INPA?\n*DESC.LUT.INPA?\n"
     )
 
-    # Responses to the 2 *DESC and 2 *ENUM commands
+    # Responses to the 2 *DESC, 2 *ENUM commands and MAX_DELAY commands
     responses = [
-        b"OK =Input A\n",
-        b"!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n"
-        b"OK =Source of the value of A for calculation\n",
         b"!Input-Level\n!Pulse-On-Rising-Edge\n.\n",
+        b"OK =Source of the value of A for calculation\n",
+        b"OK =10\n",
+        b"!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n",
+        b"OK =Input A\n",
     ]
     for response in responses:
         assert (
@@ -217,11 +219,12 @@ def test_get_fields():
         (
             cmd,
             {
-                "INPA": FieldInfo(
+                "INPA": BitMuxFieldInfo(
                     type="bit_mux",
                     subtype=None,
                     description="Input A",
                     labels=["TTLIN1.VAL", "LVDSIN1.VAL"],
+                    max_delay=10,
                 ),
                 "TYPEA": FieldInfo(
                     type="param",
@@ -244,13 +247,13 @@ def test_get_fields_type_ext_out():
     # First yield, the response to "PCAP.*?"
     assert (
         conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n")
-        == b"*DESC.PCAP.SAMPLES?\n*ENUMS.PCAP.SAMPLES.CAPTURE?\n"
+        == b"*ENUMS.PCAP.SAMPLES.CAPTURE?\n*DESC.PCAP.SAMPLES?\n"
     )
 
     # Responses to the *DESC and *ENUM commands
     responses = [
-        b"OK =Number of gated samples in the current capture\n",
         b"!No\n!Value\n.\n",
+        b"OK =Number of gated samples in the current capture\n",
     ]
     for response in responses:
         assert (
@@ -324,20 +327,20 @@ def test_get_fields_no_enums():
     """Test that a field that does not have any enum labels does not attempt to
     retrieve them"""
     conn = ControlConnection()
-    cmd = GetFieldInfo("LVDSIN")
-    assert conn.send(cmd) == b"LVDSIN.*?\n"
+    cmd = GetFieldInfo("BITS")
+    assert conn.send(cmd) == b"BITS.*?\n"
 
     # First yield, the response to "LVDSIN.*?"
-    assert conn.receive_bytes(b"!VAL 0 bit_out\n.\n") == b"*DESC.LVDSIN.VAL?\n"
+    assert conn.receive_bytes(b"!A 0 param bit\n.\n") == b"*DESC.BITS.A?\n"
 
-    assert get_responses(conn, b"OK =LVDS input value\n") == [
+    assert get_responses(conn, b"OK =The value that output A should take\n") == [
         (
             cmd,
             {
-                "VAL": FieldInfo(
-                    type="bit_out",
-                    subtype=None,
-                    description="LVDS input value",
+                "A": FieldInfo(
+                    type="param",
+                    subtype="bit",
+                    description="The value that output A should take",
                     labels=None,
                 ),
             },
@@ -349,16 +352,16 @@ def test_get_fields_no_enums_no_description():
     """Test that a field that does not have any enum labels does not attempt to
     retrieve them, and also does not retrieve a description."""
     conn = ControlConnection()
-    cmd = GetFieldInfo("LVDSIN", skip_description=True)
-    assert conn.send(cmd) == b"LVDSIN.*?\n"
+    cmd = GetFieldInfo("BITS", skip_description=True)
+    assert conn.send(cmd) == b"BITS.*?\n"
 
-    assert get_responses(conn, b"!VAL 0 bit_out\n.\n") == [
+    assert get_responses(conn, b"!A 0 param bit\n.\n") == [
         (
             cmd,
             {
-                "VAL": FieldInfo(
-                    type="bit_out",
-                    subtype=None,
+                "A": FieldInfo(
+                    type="param",
+                    subtype="bit",
                     description=None,
                     labels=None,
                 ),
