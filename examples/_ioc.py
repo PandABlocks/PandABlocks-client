@@ -12,6 +12,7 @@ from softioc.pythonSoftIoc import RecordWrapper
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import ChangeGroup, GetBlockInfo, GetChanges, GetFieldInfo
 from pandablocks.responses import (
+    BitOutFieldInfo,
     BlockInfo,
     FieldInfo,
     SubtypeTimeFieldInfo,
@@ -154,27 +155,37 @@ class IocRecordFactory:
 
         record_dict: Dict[str, RecordWrapper] = {}
 
-        rec1 = record_creation_func(
+        record_dict[record_name] = record_creation_func(
             record_name, initial_value=float(values[record_name])
         )
-        record_dict[record_name] = rec1
 
         units_record = record_name + ":UNITS"
         initial_unit = field_info.units_labels.index(values[units_record])
-        rec2 = builder.mbbIn(
+        record_dict[units_record] = builder.mbbIn(
             units_record, *field_info.units_labels, initial_value=initial_unit
         )
-        record_dict[units_record] = rec2
-
-        if field_info.type == "time":
-            assert isinstance(field_info, TimeFieldInfo)
-            min_record = record_name + ":MIN"
-            rec3 = builder.aIn(min_record, initial_value=field_info.min)
-            record_dict[min_record] = rec3
 
         return record_dict
 
-    def _make_time_write(
+    def _make_type_time_write(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+    ) -> Dict[str, RecordWrapper]:
+        """Make the records for a field of type "time" - one for the time itself, one
+        for units, and one for the MIN value.
+        """
+        record_dict = self._make_time(record_name, field_info, values, builder.aOut)
+        assert isinstance(field_info, TimeFieldInfo)
+
+        min_record = record_name + ":MIN"
+        min_rec = builder.aIn(min_record, initial_value=field_info.min)
+        record_dict[min_record] = min_rec
+
+        return record_dict
+
+    def _make_subtype_time_write(
         self,
         record_name: str,
         field_info: FieldInfo,
@@ -182,7 +193,7 @@ class IocRecordFactory:
     ) -> Dict[str, RecordWrapper]:
         return self._make_time(record_name, field_info, values, builder.aOut)
 
-    def _make_time_read(
+    def _make_subtype_time_read(
         self,
         record_name: str,
         field_info: FieldInfo,
@@ -193,14 +204,27 @@ class IocRecordFactory:
     def _make_boolin(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
-        return {
-            record_name: builder.boolIn(
-                record_name,
-                ZNAM=self.ZNAM_STR,
-                ONAM=self.ONAM_STR,
-                initial_value=int(values[record_name]),
-            )
-        }
+        assert isinstance(field_info, BitOutFieldInfo)
+
+        record_dict = {}
+        record_dict[record_name] = builder.boolIn(
+            record_name,
+            ZNAM=self.ZNAM_STR,
+            ONAM=self.ONAM_STR,
+            initial_value=int(values[record_name]),
+        )
+
+        cw_rec_name = record_name + ":CAPTURE_WORD"
+        record_dict[cw_rec_name] = builder.stringIn(
+            cw_rec_name, initial_value=field_info.capture_word
+        )
+
+        offset_rec_name = record_name + ":OFFSET"
+        record_dict[offset_rec_name] = builder.aIn(
+            offset_rec_name, initial_value=field_info.offset
+        )
+
+        return record_dict
 
     def _make_action(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
@@ -304,9 +328,9 @@ class IocRecordFactory:
             Dict[str, RecordWrapper],
         ],
     ] = {
-        ("time", None): _make_time_write,
-        ("param", "time"): _make_time_write,
-        ("read", "time"): _make_time_read,
+        ("time", None): _make_type_time_write,
+        ("param", "time"): _make_subtype_time_write,
+        ("read", "time"): _make_subtype_time_read,
         ("bit_out", None): _make_boolin,
         ("write", "action"): _make_action,
         ("param", "uint"): _make_param_uint,
