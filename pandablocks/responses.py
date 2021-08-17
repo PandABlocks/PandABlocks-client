@@ -131,7 +131,7 @@ class PosMuxFieldInfo(FieldInfo):
 class PosOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `pos_out`"""
 
-    capture_labels: Optional[List[str]] = None
+    labels: Optional[List[str]] = None
 
 
 @dataclass

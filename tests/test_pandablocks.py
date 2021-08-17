@@ -467,7 +467,7 @@ def test_get_fields_non_existant_block():
             None,
             "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
             ["!VAL1\n!VAL2\n.\n"],
-            PosOutFieldInfo("pos_out", None, capture_labels=["VAL1", "VAL2"]),
+            PosOutFieldInfo("pos_out", None, labels=["VAL1", "VAL2"]),
         ),
         (
             "ext_out",
