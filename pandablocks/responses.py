@@ -52,9 +52,12 @@ class FieldInfo:
     type: str
     subtype: Optional[str] = None
     description: Optional[str] = None
-    labels: Optional[List[str]] = None
-    # TODO: labels should be removed - its not applicable to large numbers of fields
-    # it will however mean we have to create several more subclasses...
+
+    # TODO: All the subclasses implement all their fields as Optional. This is because
+    # you can't have non-optional fields after optional ones, as both subtype and
+    # description in this class are definitely optional. The way around it is
+    # to have a base dataclass for the mandatory types, then extra intermediate classes
+    # to arrange all the mandatory fields in the right order
 
 
 @dataclass
@@ -94,6 +97,14 @@ class SubtypeTimeFieldInfo(FieldInfo):
 
 
 @dataclass
+class EnumFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
+    `enum`"""
+
+    labels: Optional[List[str]] = None
+
+
+@dataclass
 class BitOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `bit_out`"""
 
@@ -106,6 +117,14 @@ class BitMuxFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `bit_mux`"""
 
     max_delay: Optional[int] = None
+    labels: Optional[List[str]] = None
+
+
+@dataclass
+class PosMuxFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `pos_mux`"""
+
+    labels: Optional[List[str]] = None
 
 
 @dataclass
@@ -116,8 +135,16 @@ class PosOutFieldInfo(FieldInfo):
 
 
 @dataclass
-class ExtOutBitsFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `ext_out` and subtype `bits`"""
+class ExtOutFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `ext_out` and subtypes `timestamp`
+    or `samples`"""
+
+    labels: Optional[List[str]] = None
+
+
+@dataclass
+class ExtOutBitsFieldInfo(ExtOutFieldInfo):
+    """Extended `ExtOutFieldInfo` for fields with type `ext_out` and subtype `bits`"""
 
     bits: Optional[List[str]] = None
 

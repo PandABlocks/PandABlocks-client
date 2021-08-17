@@ -21,8 +21,11 @@ from .responses import (
     BitOutFieldInfo,
     BlockInfo,
     Changes,
+    EnumFieldInfo,
     ExtOutBitsFieldInfo,
+    ExtOutFieldInfo,
     FieldInfo,
+    PosMuxFieldInfo,
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
@@ -384,7 +387,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _commands_enum(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
-        field_info = FieldInfo(field_type, field_subtype)
+        field_info = EnumFieldInfo(field_type, field_subtype)
         return (
             field_info,
             [
@@ -460,7 +463,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _commands_pos_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
-        field_info = FieldInfo(field_type, field_subtype)
+        field_info = PosMuxFieldInfo(field_type, field_subtype)
         return (
             field_info,
             [
@@ -489,7 +492,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _commands_ext_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
-        field_info = FieldInfo(field_type, field_subtype)
+        field_info = ExtOutFieldInfo(field_type, field_subtype)
         return (
             field_info,
             [

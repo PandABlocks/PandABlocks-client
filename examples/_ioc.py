@@ -14,6 +14,7 @@ from pandablocks.commands import ChangeGroup, GetBlockInfo, GetChanges, GetField
 from pandablocks.responses import (
     BitOutFieldInfo,
     BlockInfo,
+    EnumFieldInfo,
     FieldInfo,
     SubtypeTimeFieldInfo,
     TimeFieldInfo,
@@ -329,6 +330,7 @@ class IocRecordFactory:
     def _make_param_enum(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
+        assert isinstance(field_info, EnumFieldInfo)
         index_value = self._get_enum_index_value(field_info.labels, values[record_name])
         return {
             record_name: builder.mbbIn(

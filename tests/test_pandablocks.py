@@ -4,7 +4,6 @@ import pytest
 
 from pandablocks.commands import (
     CommandException,
-    FieldInfo,
     Get,
     GetBlockInfo,
     GetFieldInfo,
@@ -19,7 +18,14 @@ from pandablocks.connections import (
     DataConnection,
     NoContextAvailable,
 )
-from pandablocks.responses import BitMuxFieldInfo, BlockInfo, Data
+from pandablocks.responses import (
+    BitMuxFieldInfo,
+    BlockInfo,
+    Data,
+    EnumFieldInfo,
+    ExtOutFieldInfo,
+    UintFieldInfo,
+)
 from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE
 
 
@@ -191,6 +197,7 @@ def test_get_block_info_desc_err():
 
 
 def test_get_fields():
+    """Simple test case for GetFieldInfo"""
     conn = ControlConnection()
     cmd = GetFieldInfo("LUT")
     assert conn.send(cmd) == b"LUT.*?\n"
@@ -202,7 +209,7 @@ def test_get_fields():
         + b"*ENUMS.LUT.INPA?\n*DESC.LUT.INPA?\n"
     )
 
-    # Responses to the 2 *DESC, 2 *ENUM commands and MAX_DELAY commands
+    # Responses to the 2 *DESC, 2 *ENUM, and MAX_DELAY commands
     responses = [
         b"!Input-Level\n!Pulse-On-Rising-Edge\n.\n",
         b"OK =Source of the value of A for calculation\n",
@@ -226,7 +233,7 @@ def test_get_fields():
                     labels=["TTLIN1.VAL", "LVDSIN1.VAL"],
                     max_delay=10,
                 ),
-                "TYPEA": FieldInfo(
+                "TYPEA": EnumFieldInfo(
                     type="param",
                     subtype="enum",
                     description="Source of the value of A for calculation",
@@ -264,7 +271,7 @@ def test_get_fields_type_ext_out():
         (
             cmd,
             {
-                "SAMPLES": FieldInfo(
+                "SAMPLES": ExtOutFieldInfo(
                     type="ext_out",
                     subtype="samples",
                     description="Number of gated samples in the current capture",
@@ -275,7 +282,7 @@ def test_get_fields_type_ext_out():
     ]
 
 
-def test_get_fields_type_skip_description():
+def test_get_fields_skip_description():
     """Test that the skip_description flag causes no description to be retrieved
     for the field"""
     conn = ControlConnection()
@@ -293,7 +300,7 @@ def test_get_fields_type_skip_description():
         (
             cmd,
             {
-                "SAMPLES": FieldInfo(
+                "SAMPLES": ExtOutFieldInfo(
                     type="ext_out",
                     subtype="samples",
                     description=None,
@@ -304,8 +311,8 @@ def test_get_fields_type_skip_description():
     ]
 
 
-def test_get_fields_non_existant_field():
-    """Test that querying for an unknown field returns a sensible error"""
+def test_get_fields_non_existant_block():
+    """Test that querying for an unknown block returns a sensible error"""
     conn = ControlConnection()
     cmd = GetFieldInfo("FOO")
     assert conn.send(cmd) == b"FOO.*?\n"
@@ -323,53 +330,45 @@ def test_get_fields_non_existant_field():
     ]
 
 
-def test_get_fields_no_enums():
-    """Test that a field that does not have any enum labels does not attempt to
-    retrieve them"""
+@pytest.mark.parametrize(
+    "field_type, field_subtype, expected_get_string, responses, expected_field_info",
+    [
+        (
+            "param",
+            "uint",
+            "TEST1.TEST_FIELD.MAX?\n",
+            ["OK =10\n"],
+            UintFieldInfo("param", "uint", max=10),
+        )
+    ],
+)
+def test_get_fields_parameterized_type(
+    field_type, field_subtype, expected_get_string, responses, expected_field_info
+):
+    """Test every field type-subtype pair that has a defined function
+    and confirm it sends the expected Get commands to the server"""
     conn = ControlConnection()
-    cmd = GetFieldInfo("BITS")
-    assert conn.send(cmd) == b"BITS.*?\n"
+    cmd = GetFieldInfo("TEST", skip_description=True)
+    assert conn.send(cmd) == b"TEST.*?\n"
 
-    # First yield, the response to "LVDSIN.*?"
-    assert conn.receive_bytes(b"!A 0 param bit\n.\n") == b"*DESC.BITS.A?\n"
+    field_definition_str = f"!TEST_FIELD 1 {field_type} {field_subtype}\n.\n"
+    assert (
+        conn.receive_bytes(field_definition_str.encode())
+        == expected_get_string.encode()
+    )
 
-    assert get_responses(conn, b"OK =The value that output A should take\n") == [
+    for response in responses:
+        assert conn.receive_bytes(response.encode()) == b""
+
+    assert get_responses(conn) == [
         (
             cmd,
-            {
-                "A": FieldInfo(
-                    type="param",
-                    subtype="bit",
-                    description="The value that output A should take",
-                    labels=None,
-                ),
-            },
+            {"TEST_FIELD": expected_field_info},
         )
     ]
 
 
-def test_get_fields_no_enums_no_description():
-    """Test that a field that does not have any enum labels does not attempt to
-    retrieve them, and also does not retrieve a description."""
-    conn = ControlConnection()
-    cmd = GetFieldInfo("BITS", skip_description=True)
-    assert conn.send(cmd) == b"BITS.*?\n"
-
-    assert get_responses(conn, b"!A 0 param bit\n.\n") == [
-        (
-            cmd,
-            {
-                "A": FieldInfo(
-                    type="param",
-                    subtype="bit",
-                    description=None,
-                    labels=None,
-                ),
-            },
-        )
-    ]
-
-
+# TODO: What happens when returned field type and/or subype is garbage?
 def test_get_pcap_bits_labels():
     """Simple working testcase for GetPcapBitsLabels"""
 
