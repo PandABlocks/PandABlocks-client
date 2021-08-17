@@ -20,10 +20,17 @@ from pandablocks.connections import (
 )
 from pandablocks.responses import (
     BitMuxFieldInfo,
+    BitOutFieldInfo,
     BlockInfo,
     Data,
     EnumFieldInfo,
+    ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
+    PosMuxFieldInfo,
+    PosOutFieldInfo,
+    ScalarFieldInfo,
+    SubtypeTimeFieldInfo,
+    TimeFieldInfo,
     UintFieldInfo,
 )
 from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE
@@ -339,7 +346,152 @@ def test_get_fields_non_existant_block():
             "TEST1.TEST_FIELD.MAX?\n",
             ["OK =10\n"],
             UintFieldInfo("param", "uint", max=10),
-        )
+        ),
+        (
+            "param",
+            "scalar",
+            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\nTEST.TEST_FIELD.OFFSET?\n",
+            [
+                "OK =some_units\n",
+                "OK =0.5\n",
+                "OK =8\n",
+            ],
+            ScalarFieldInfo("param", "scalar", units="some_units", scale=0.5, offset=8),
+        ),
+        (
+            "read",
+            "scalar",
+            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\nTEST.TEST_FIELD.OFFSET?\n",
+            [
+                "OK =some_units\n",
+                "OK =0.5\n",
+                "OK =8\n",
+            ],
+            ScalarFieldInfo("read", "scalar", units="some_units", scale=0.5, offset=8),
+        ),
+        (
+            "write",
+            "scalar",
+            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\nTEST.TEST_FIELD.OFFSET?\n",
+            [
+                "OK =some_units\n",
+                "OK =0.5\n",
+                "OK =8\n",
+            ],
+            ScalarFieldInfo("write", "scalar", units="some_units", scale=0.5, offset=8),
+        ),
+        (
+            "param",
+            "time",
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\n",
+            [
+                "!VAL1\n!VAL2\n.\n",
+            ],
+            SubtypeTimeFieldInfo("param", "time", units_labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "read",
+            "time",
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\n",
+            [
+                "!VAL1\n!VAL2\n.\n",
+            ],
+            SubtypeTimeFieldInfo("read", "time", units_labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "write",
+            "time",
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\n",
+            [
+                "!VAL1\n!VAL2\n.\n",
+            ],
+            SubtypeTimeFieldInfo("write", "time", units_labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "param",
+            "enum",
+            "*ENUMS.TEST.TEST_FIELD?\n",
+            [
+                "!VAL1\n!VAL2\n.\n",
+            ],
+            EnumFieldInfo("param", "enum", labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "read",
+            "enum",
+            "*ENUMS.TEST.TEST_FIELD?\n",
+            [
+                "!VAL1\n!VAL2\n.\n",
+            ],
+            EnumFieldInfo("read", "enum", labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "write",
+            "enum",
+            "*ENUMS.TEST.TEST_FIELD?\n",
+            [
+                "!VAL1\n!VAL2\n.\n",
+            ],
+            EnumFieldInfo("write", "enum", labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "time",
+            None,
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\nTEST1.TEST_FIELD.MIN?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =5e-8\n"],
+            TimeFieldInfo("time", None, units_labels=["VAL1", "VAL2"], min=5e-8),
+        ),
+        (
+            "bit_out",
+            None,
+            "TEST1.TEST_FIELD.CAPTURE_WORD?\nTEST1.TEST_FIELD.OFFSET?\n",
+            ["OK =PCAP.BITS1\n", "OK =12\n"],
+            BitOutFieldInfo("bit_out", None, capture_word="PCAP.BITS1", offset=12),
+        ),
+        (
+            "bit_mux",
+            None,
+            "TEST1.TEST_FIELD.MAX_DELAY?\n*ENUMS.TEST.TEST_FIELD?\n",
+            ["OK =25\n", "!VAL1\n!VAL2\n.\n"],
+            BitMuxFieldInfo("bit_mux", None, max_delay=25, labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "pos_mux",
+            None,
+            "*ENUMS.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n"],
+            PosMuxFieldInfo("pos_mux", None, labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "pos_out",
+            None,
+            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
+            ["!VAL1\n!VAL2\n.\n"],
+            PosOutFieldInfo("pos_out", None, capture_labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "ext_out",
+            "timestamp",
+            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
+            ["!VAL1\n!VAL2\n.\n"],
+            ExtOutFieldInfo("ext_out", "timestamp", labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "ext_out",
+            "samples",
+            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
+            ["!VAL1\n!VAL2\n.\n"],
+            ExtOutFieldInfo("ext_out", "samples", labels=["VAL1", "VAL2"]),
+        ),
+        (
+            "ext_out",
+            "bits",
+            "TEST.TEST_FIELD.BITS?\n*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
+            ["!BITS1\n!BITS2\n.\n", "!VAL1\n!VAL2\n.\n"],
+            ExtOutBitsFieldInfo(
+                "ext_out", "bits", bits=["BITS1", "BITS2"], labels=["VAL1", "VAL2"]
+            ),
+        ),
     ],
 )
 def test_get_fields_parameterized_type(
@@ -350,6 +502,9 @@ def test_get_fields_parameterized_type(
     conn = ControlConnection()
     cmd = GetFieldInfo("TEST", skip_description=True)
     assert conn.send(cmd) == b"TEST.*?\n"
+
+    if field_subtype is None:
+        field_subtype = ""  # Ensure we don't write the literal string "None"
 
     field_definition_str = f"!TEST_FIELD 1 {field_type} {field_subtype}\n.\n"
     assert (
