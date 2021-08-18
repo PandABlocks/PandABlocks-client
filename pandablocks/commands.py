@@ -550,7 +550,18 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                     Tuple[FieldInfo, List[_FieldCommandMapping]],
                 ],
             ] = {
+                # Order matches that of PandA server's Field Types docs
+                ("time", None): self._commands_time,
+                ("bit_out", None): self._commands_bit_out,
+                ("pos_out", None): self._commands_pos_out,
+                ("ext_out", "timestamp"): self._commands_ext_out,
+                ("ext_out", "samples"): self._commands_ext_out,
+                ("ext_out", "bits"): self._commands_ext_out_bits,
+                ("bit_mux", None): self._commands_bit_mux,
+                ("pos_mux", None): self._commands_pos_mux,
                 ("param", "uint"): self._commands_param_uint,
+                ("read", "uint"): self._commands_param_uint,
+                ("write", "uint"): self._commands_param_uint,
                 ("param", "scalar"): self._commands_scalar,
                 ("read", "scalar"): self._commands_scalar,
                 ("write", "scalar"): self._commands_scalar,
@@ -560,14 +571,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 ("param", "enum"): self._commands_enum,
                 ("read", "enum"): self._commands_enum,
                 ("write", "enum"): self._commands_enum,
-                ("time", None): self._commands_time,
-                ("bit_out", None): self._commands_bit_out,
-                ("bit_mux", None): self._commands_bit_mux,
-                ("pos_mux", None): self._commands_pos_mux,
-                ("pos_out", None): self._commands_pos_out,
-                ("ext_out", "timestamp"): self._commands_ext_out,
-                ("ext_out", "samples"): self._commands_ext_out,
-                ("ext_out", "bits"): self._commands_ext_out_bits,
             }
 
             if (field_type, subtype) in _commands_map:
@@ -580,6 +583,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 # TODO: Consider whether we turn this into its own function, and then
                 # list all known type-subtype pairs in the mapping. This would mean we
                 #  could spot unknown types much more easily.
+                # TODO: Add tests for unknown types and subtypes
                 field_info = FieldInfo(field_type, subtype)
                 command_mapping = []
 

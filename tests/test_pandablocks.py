@@ -337,6 +337,7 @@ def test_get_fields_non_existant_block():
     ]
 
 
+# TODO: Confirm I've listed every possible type-subtype pair once
 @pytest.mark.parametrize(
     "field_type, field_subtype, expected_get_string, responses, expected_field_info",
     [
@@ -346,6 +347,20 @@ def test_get_fields_non_existant_block():
             "TEST1.TEST_FIELD.MAX?\n",
             ["OK =10\n"],
             UintFieldInfo("param", "uint", max=10),
+        ),
+        (
+            "read",
+            "uint",
+            "TEST1.TEST_FIELD.MAX?\n",
+            ["OK =67\n"],
+            UintFieldInfo("read", "uint", max=67),
+        ),
+        (
+            "write",
+            "uint",
+            "TEST1.TEST_FIELD.MAX?\n",
+            ["OK =58\n"],
+            UintFieldInfo("write", "uint", max=58),
         ),
         (
             "param",

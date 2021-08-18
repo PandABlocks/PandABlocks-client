@@ -12,12 +12,18 @@ from softioc.pythonSoftIoc import RecordWrapper
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import ChangeGroup, GetBlockInfo, GetChanges, GetFieldInfo
 from pandablocks.responses import (
+    BitMuxFieldInfo,
     BitOutFieldInfo,
     BlockInfo,
     EnumFieldInfo,
+    ExtOutFieldInfo,
     FieldInfo,
+    PosMuxFieldInfo,
+    PosOutFieldInfo,
+    ScalarFieldInfo,
     SubtypeTimeFieldInfo,
     TimeFieldInfo,
+    UintFieldInfo,
 )
 
 # Define the public API of this module
@@ -152,18 +158,24 @@ class IocRecordFactory:
 
         Args:
             record_name (str): The name this record will be created with
-            description (str): The description for this field
+            description (str): The description for this field. This will be truncated
+                to 40 characters due to EPICS limitations.
             record_creation_func (Callable): The function that will be used to create
                 this record. Expects to be one of the builder.* functions.
 
         Returns:
             RecordWrapper: The newly created record.
         """
-        # assert field_info.description
-        # # TODO: Check if we want this assert - currently we don't retrieve
-        # descriptions for attributes!
 
         record = record_creation_func(record_name, *args, **kwargs)
+
+        # Record description field is a maximum of 40 characters long. Ensure any string
+        # is shorter than that before setting it.
+        if description and len(description) > 40:
+            # TODO: Add logging and some kind of warning when this happens
+            # TODO: Some of the hard-coded descriptions break this limit. Re-word them.
+            description = description[:40]
+
         record.DESC = description
 
         return record
@@ -192,9 +204,15 @@ class IocRecordFactory:
         )
 
         units_record = record_name + ":UNITS"
-        initial_unit = field_info.units_labels.index(values[units_record])
-        record_dict[units_record] = builder.mbbIn(
-            units_record, *field_info.units_labels, initial_value=initial_unit
+        initial_index = self._get_enum_index_value(
+            field_info.units_labels, values[units_record]
+        )
+        record_dict[units_record] = self._create_record(
+            units_record,
+            "Units of time setting",
+            builder.mbbIn,
+            *field_info.units_labels,
+            initial_value=initial_index,
         )
 
         return record_dict
@@ -208,12 +226,17 @@ class IocRecordFactory:
         """Make the records for a field of type "time" - one for the time itself, one
         for units, and one for the MIN value.
         """
+        # RAW attribute ignored - EPICS should never care about it
         record_dict = self._make_time(record_name, field_info, values, builder.aOut)
         assert isinstance(field_info, TimeFieldInfo)
 
         min_record = record_name + ":MIN"
-        min_rec = builder.aIn(min_record, initial_value=field_info.min)
-        record_dict[min_record] = min_rec
+        record_dict[min_record] = self._create_record(
+            min_record,
+            "Minimum programmable time",
+            builder.aIn,
+            initial_value=field_info.min,
+        )
 
         return record_dict
 
@@ -233,81 +256,356 @@ class IocRecordFactory:
     ) -> Dict[str, RecordWrapper]:
         return self._make_time(record_name, field_info, values, builder.aIn)
 
-    def _make_boolin(
+    def _make_bit_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
         assert isinstance(field_info, BitOutFieldInfo)
 
         record_dict = {}
-        record_dict[record_name] = builder.boolIn(
+        record_dict[record_name] = self._create_record(
             record_name,
+            field_info.description,
+            builder.boolIn,
             ZNAM=self.ZNAM_STR,
             ONAM=self.ONAM_STR,
             initial_value=int(values[record_name]),
         )
 
         cw_rec_name = record_name + ":CAPTURE_WORD"
-        record_dict[cw_rec_name] = builder.stringIn(
-            cw_rec_name, initial_value=field_info.capture_word
+        record_dict[cw_rec_name] = self._create_record(
+            cw_rec_name,
+            "Name of field containing this bit",
+            builder.stringIn,
+            initial_value=field_info.capture_word,
         )
 
         offset_rec_name = record_name + ":OFFSET"
-        record_dict[offset_rec_name] = builder.aIn(
-            offset_rec_name, initial_value=field_info.offset
+        record_dict[offset_rec_name] = self._create_record(
+            offset_rec_name,
+            "Position of this bit in captured word",
+            builder.aIn,
+            initial_value=field_info.offset,
         )
 
         return record_dict
 
-    def _make_action(
+    def _make_pos_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
-        return {
-            record_name: builder.boolOut(
-                record_name, ZNAM=self.ZNAM_STR, ONAM=self.ONAM_STR
-            )
-        }
+        assert isinstance(field_info, PosOutFieldInfo)
+        assert field_info.labels
+        record_dict = {}
 
-    def _make_param_uint(
-        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
-        rec1 = builder.aOut(record_name, initial_value=int(values[record_name]))
-        return {record_name: rec1}
-        # TODO: Make MAX field record
+        record_dict[record_name] = self._create_record(
+            record_name,
+            field_info.description,
+            builder.aOut,
+            initial_value=float(values[record_name]),
+        )
 
-    def _make_param_int(
-        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
-        return {
-            record_name: builder.aOut(
-                record_name, initial_value=int(values[record_name])
-            )
-        }
+        capture_rec = record_name + ":CAPTURE"
+        capture_index = self._get_enum_index_value(
+            field_info.labels, values[capture_rec]
+        )
+        record_dict[capture_rec] = self._create_record(
+            capture_rec,
+            "Capture options",
+            builder.mbbOut,
+            *field_info.labels,
+            initial_value=capture_index,
+        )
 
-    def _make_param_scalar(
-        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
-        # TODO: Create any/all of the child attributes?
-        # UNITS, RAW, OFFSET, SCALE, INFO.
-        # Would need a lot of GETs for all the initial values.
-        return {
-            record_name: builder.aOut(
-                record_name, initial_value=float(values[record_name])
-            )
-        }
+        offset_rec = record_name + ":OFFSET"
+        record_dict[offset_rec] = self._create_record(
+            offset_rec, "Offset", builder.aOut, initial_value=int(values[offset_rec])
+        )
 
-    def _make_param_bit(
+        scale_rec = record_name + ":SCALE"
+        record_dict[scale_rec] = self._create_record(
+            scale_rec,
+            "Scale factor",
+            builder.aOut,
+            initial_value=float(values[scale_rec]),
+        )
+
+        units_rec = record_name + ":UNITS"
+        record_dict[units_rec] = self._create_record(
+            units_rec,
+            "Units string",
+            builder.stringOut,
+            initial_value=values[units_rec],
+        )
+
+        # SCALED attribute doesn't get returned from GetChanges. Instead
+        # of trying to dynamically query for it we'll just recalculate it
+        scaled_rec = record_name + ":SCALED"
+        builder.records.calc(
+            scaled_rec,
+            CALC="A*B + C",
+            INPA=builder.CP(record_dict[record_name]),
+            INPB=builder.CP(record_dict[scale_rec]),
+            INPC=builder.CP(record_dict[offset_rec]),
+        )
+
+        return record_dict
+
+    def _make_ext_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
+        assert isinstance(field_info, ExtOutFieldInfo)
+        assert field_info.labels
+        record_dict = {}
+        # TODO: Check if initial_value should be set- this field appears
+        # to be write only though
+        record_dict[record_name] = self._create_record(
+            record_name, field_info.description, builder.aIn
+        )
+
+        capture_rec = record_name + ":CAPTURE"
+        capture_index = self._get_enum_index_value(
+            field_info.labels, values[capture_rec]
+        )
+        record_dict[capture_rec] = self._create_record(
+            capture_rec,
+            field_info.description,
+            builder.mbbOut,
+            *field_info.labels,
+            initial_value=capture_index,
+        )
+
+        return record_dict
+
+    def _make_ext_out_bits(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        record_dict = self._make_ext_out(record_name, field_info, values)
+
+        # bits_rec = record_name + ":BITS"
+        # TODO add BITS record after talking to Tom about exploding it into many
+        # capture records.
+
+        return record_dict
+
+    def _make_bit_mux(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        assert isinstance(field_info, BitMuxFieldInfo)
+        record_dict = {}
+
+        record_dict[record_name] = self._create_record(
+            record_name,
+            field_info.description,
+            builder.stringOut,
+            initial_value=values[record_name],
+        )
+
+        delay_rec = record_name + ":DELAY"
+        record_dict[delay_rec] = self._create_record(
+            delay_rec,
+            "Clock delay on input",
+            builder.aOut,
+            initial_value=int(values[delay_rec]),
+        )
+
+        max_delay_rec = record_name + ":MAX_DELAY"
+        record_dict[max_delay_rec] = self._create_record(
+            max_delay_rec,
+            "Maximum valid input delay",
+            builder.aIn,
+            initial_value=field_info.max_delay,
+        )
+
+        return record_dict
+
+    def _make_pos_mux(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        assert isinstance(field_info, PosMuxFieldInfo)
+        assert field_info.labels
+        record_dict = {}
+
+        initial_index = self._get_enum_index_value(
+            field_info.labels, values[record_name]
+        )
+        record_dict[record_name] = self._create_record(
+            record_name,
+            field_info.description,
+            builder.mbbOut,
+            *field_info.labels,
+            initial_index,
+        )
+
+        return record_dict
+
+    def _make_uint(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+        record_creation_func: Callable,
+    ) -> Dict[str, RecordWrapper]:
+        assert isinstance(field_info, UintFieldInfo)
+
+        record_dict = {}
+        record_dict[record_name] = self._create_record(
+            record_name,
+            field_info.description,
+            record_creation_func,
+            initial_value=int(values[record_name]),
+        )
+
+        max_record = record_name + ":MAX"
+        record_dict[max_record] = self._create_record(
+            max_record,
+            "Number of places to right shift calculation result before output",
+            builder.aIn,
+            initial_value=field_info.max,
+        )
+
+        return record_dict
+
+    def _make_uint_read(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_uint(record_name, field_info, values, builder.aIn)
+
+    def _make_uint_write(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_uint(record_name, field_info, values, builder.aOut)
+
+    def _make_int(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+        record_creation_func: Callable,
+    ) -> Dict[str, RecordWrapper]:
+
         return {
-            record_name: builder.boolOut(
+            record_name: self._create_record(
                 record_name,
+                field_info.description,
+                record_creation_func,
+                initial_value=int(values[record_name]),
+            )
+        }
+
+    def _make_int_read(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_int(record_name, field_info, values, builder.aIn)
+
+    def _make_int_write(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+    ) -> Dict[str, RecordWrapper]:
+        assert record_name not in values
+        # Write fields don't have values to return from GetChanges, so set default
+        # TODO: Extend this logic to all other _write functions?
+        values[record_name] = "0"
+        return self._make_int(record_name, field_info, values, builder.aOut)
+
+    def _make_scalar(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+        record_creation_func: Callable,
+    ) -> Dict[str, RecordWrapper]:
+        # RAW attribute ignored - EPICS should never care about it
+        assert isinstance(field_info, ScalarFieldInfo)
+        assert field_info.offset is not None
+        record_dict = {}
+
+        # print(float(values[record_name]), type(float(values[record_name])))
+        # record_dict[record_name] = self._create_record(
+        #     record_name,
+        #     field_info.description,
+        #     record_creation_func,
+        #     initial_value=float(values[record_name]),
+        #     # TODO: Line above, when record_creation_func is aIn,
+        #     # gives "TypeError: must be real number, not str"
+        #     # initial_value=values[record_name],
+        # )
+
+        offset_rec = record_name + ":OFFSET"
+        record_dict[offset_rec] = self._create_record(
+            offset_rec,
+            "Offset from scaled data to value",
+            builder.aIn,
+            initial_value=int(field_info.offset),
+        )
+
+        scale_rec = record_name + ":SCALE"
+        record_dict[scale_rec] = self._create_record(
+            scale_rec,
+            "Scaling from raw data to value",
+            builder.aIn,
+            initial_value=field_info.scale,
+        )
+
+        units_rec = record_name + ":UNITS"
+        record_dict[units_rec] = self._create_record(
+            units_rec,
+            "Units associated with value",
+            builder.stringIn,
+            initial_value=field_info.units,
+        )
+
+        return record_dict
+
+    def _make_scalar_read(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_scalar(record_name, field_info, values, builder.aIn)
+
+    def _make_scalar_write(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_scalar(record_name, field_info, values, builder.aOut)
+
+    def _make_bit(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+        record_creation_func: Callable,
+    ) -> Dict[str, RecordWrapper]:
+
+        return {
+            record_name: self._create_record(
+                record_name,
+                field_info.description,
+                record_creation_func,
                 ZNAM=self.ZNAM_STR,
                 ONAM=self.ONAM_STR,
                 initial_value=int(values[record_name]),
             )
         }
 
-    def _make_param_action(
+    def _make_bit_read(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_bit(record_name, field_info, values, builder.boolIn)
+
+    def _make_bit_write(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_bit(record_name, field_info, values, builder.boolOut)
+
+    def _make_action_read(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
         raise Exception(
@@ -315,30 +613,83 @@ class IocRecordFactory:
         )  # TODO: What am I supposed to do here? Could delete this and let
         # create_record throw an exception when the mapping isn't in the dict
 
-    def _make_param_lut(
+    def _make_action_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
-
-        rec1 = builder.stringOut(record_name, initial_value=values[record_name])
-        # TODO: Create the RAW attribute record?
-        # raw_name = record_name + ":RAW"
-        # raw_rec = builder.aOut(raw_name, initial_value=int(value, 16))
         return {
-            record_name: rec1,
+            record_name: self._create_record(
+                record_name,
+                field_info.description,
+                builder.boolOut,
+                ZNAM=self.ZNAM_STR,
+                ONAM=self.ONAM_STR,
+            )
         }
 
-    def _make_param_enum(
-        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    def _make_lut(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+        record_creation_func: Callable,
+    ) -> Dict[str, RecordWrapper]:
+        # RAW attribute ignored - EPICS should never care about it
+        return {
+            record_name: self._create_record(
+                record_name,
+                field_info.description,
+                record_creation_func,
+                initial_value=values[record_name],
+            ),
+        }
+
+    def _make_lut_read(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_lut(record_name, field_info, values, builder.stringIn)
+
+    def _make_lut_write(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_lut(record_name, field_info, values, builder.stringOut)
+
+    def _make_enum(
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        values: Dict[str, str],
+        record_creation_func: Callable,
     ) -> Dict[str, RecordWrapper]:
         assert isinstance(field_info, EnumFieldInfo)
+        assert field_info.labels
+
         index_value = self._get_enum_index_value(field_info.labels, values[record_name])
+
         return {
-            record_name: builder.mbbIn(
+            record_name: self._create_record(
                 record_name,
+                field_info.description,
+                record_creation_func,
                 *field_info.labels,
                 initial_value=index_value,
             )
         }
+
+    def _make_enum_read(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_enum(record_name, field_info, values, builder.mbbIn)
+
+    def _make_enum_write(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, RecordWrapper]:
+        return self._make_enum(record_name, field_info, values, builder.mbbOut)
 
     def create_record(
         self, record_name: str, field_info: FieldInfo, field_values: Dict[str, str]
@@ -361,20 +712,39 @@ class IocRecordFactory:
             Dict[str, RecordWrapper],
         ],
     ] = {
+        # Order matches that of PandA server's Field Types docs
         ("time", None): _make_type_time_write,
-        ("param", "time"): _make_subtype_time_write,
+        ("bit_out", None): _make_bit_out,
+        ("pos_out", None): _make_pos_out,
+        ("ext_out", "timestamp"): _make_ext_out,
+        ("ext_out", "samples"): _make_ext_out,
+        ("ext_out", "bits"): _make_ext_out_bits,
+        ("bit_mux", None): _make_bit_mux,
+        ("pos_mux", None): _make_pos_mux,
+        ("param", "uint"): _make_uint_read,
+        ("read", "uint"): _make_uint_read,
+        ("write", "uint"): _make_uint_write,
+        ("param", "int"): _make_int_read,
+        ("read", "int"): _make_int_read,
+        ("write", "int"): _make_int_write,
+        ("param", "scalar"): _make_scalar_read,
+        ("read", "scalar"): _make_scalar_read,
+        ("write", "scalar"): _make_scalar_write,
+        ("param", "bit"): _make_bit_read,
+        ("read", "bit"): _make_bit_read,
+        ("write", "bit"): _make_bit_write,
+        ("param", "action"): _make_action_read,
+        ("read", "action"): _make_action_read,
+        ("write", "action"): _make_action_write,
+        ("param", "lut"): _make_lut_read,
+        ("read", "lut"): _make_lut_read,
+        ("write", "lut"): _make_lut_write,
+        ("param", "enum"): _make_enum_read,
+        ("read", "enum"): _make_enum_read,
+        ("write", "enum"): _make_enum_write,
+        ("param", "time"): _make_subtype_time_read,
         ("read", "time"): _make_subtype_time_read,
-        ("bit_out", None): _make_boolin,
-        ("write", "action"): _make_action,
-        ("param", "uint"): _make_param_uint,
-        ("param", "int"): _make_param_int,
-        ("param", "scalar"): _make_param_scalar,
-        # ("read", "scalar"): _make_param_scalar,
-        # ("write", "scalar"): _make_param_scalar,
-        ("param", "bit"): _make_param_bit,
-        ("param", "action"): _make_param_action,
-        ("param", "lut"): _make_param_lut,
-        ("param", "enum"): _make_param_enum,
+        ("write", "time"): _make_subtype_time_write,
     }
 
 
@@ -468,5 +838,5 @@ async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
         await asyncio.sleep(1)
 
 
-# # if __name__ == "__main__":
-# #     create_softioc()
+if __name__ == "__main__":
+    create_softioc()
