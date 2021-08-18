@@ -16,6 +16,7 @@ from pandablocks.responses import (
     BitOutFieldInfo,
     BlockInfo,
     EnumFieldInfo,
+    ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
     FieldInfo,
     PosMuxFieldInfo,
@@ -127,14 +128,17 @@ class IocRecordFactory:
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
 
-    _client: AsyncioClient
+    _record_prefix: str
 
     # Constants used in multiple records
     ZNAM_STR: str = "0"
     ONAM_STR: str = "1"
 
-    def __init__(self, client: AsyncioClient):
-        self._client = client
+    def __init__(self, record_prefix: str):
+        self._record_prefix = record_prefix
+
+        # Set the record prefix
+        builder.SetDeviceName(self._record_prefix)
 
     def _get_enum_index_value(self, labels: Optional[List[str]], record_value: str):
         """Find the index of `record_value` in the `labels` list, suitable for
@@ -361,6 +365,8 @@ class IocRecordFactory:
             record_name, field_info.description, builder.aIn
         )
 
+        # TODO: Change labels -> capture_labels, as they are conceptually a bit
+        # different in some places
         capture_rec = record_name + ":CAPTURE"
         capture_index = self._get_enum_index_value(
             field_info.labels, values[capture_rec]
@@ -378,11 +384,38 @@ class IocRecordFactory:
     def _make_ext_out_bits(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, RecordWrapper]:
+
         record_dict = self._make_ext_out(record_name, field_info, values)
 
-        # bits_rec = record_name + ":BITS"
-        # TODO add BITS record after talking to Tom about exploding it into many
-        # capture records.
+        assert isinstance(field_info, ExtOutBitsFieldInfo)
+        assert field_info.bits
+        # Create a "table" out of the items present in the list of labels
+
+        # Identify which BITS field this is - we want BITS0 through BITS3 to
+        # look like one continuous table from the outside, indexed 0 through 127
+        bits_index_str = record_name[-1]
+        assert bits_index_str.isdigit()
+        bits_index = int(bits_index_str)
+        offset = bits_index * 32
+
+        # TODO: Do I have to link the PCAP:BITS<n>:CAPTURE record to the capture records
+        # created below?
+
+        # There is a single CAPTURE record which is alias'd to appear in each row.
+        # This is because you can only capture a whole field's worth of bits at a time,
+        # and not bits individually. When one is captured, they all are.
+        capture = builder.records.bi(f"BITS:{offset}:CAPTURE")  # TODO: on update?
+        for i in range(offset + 1, offset + 32):
+            capture.add_alias(f"BITS:{i}:CAPTURE")
+
+        # Each row of the table has a VAL and a NAME.
+        for i, label in enumerate(field_info.bits):
+            link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
+            bits_prefix = f"BITS:{offset + i}"
+            builder.records.bi(f"{bits_prefix}:VAL", INP=link)
+            # TODO: Confirm I don't need the record saved
+
+            builder.records.stringin(f"{bits_prefix}:NAME", VAL=label)
 
         return record_dict
 
@@ -529,16 +562,12 @@ class IocRecordFactory:
         assert field_info.offset is not None
         record_dict = {}
 
-        # print(float(values[record_name]), type(float(values[record_name])))
-        # record_dict[record_name] = self._create_record(
-        #     record_name,
-        #     field_info.description,
-        #     record_creation_func,
-        #     initial_value=float(values[record_name]),
-        #     # TODO: Line above, when record_creation_func is aIn,
-        #     # gives "TypeError: must be real number, not str"
-        #     # initial_value=values[record_name],
-        # )
+        record_dict[record_name] = self._create_record(
+            record_name,
+            field_info.description,
+            record_creation_func,
+            initial_value=float(values[record_name]),
+        )
 
         offset_rec = record_name + ":OFFSET"
         record_dict[offset_rec] = self._create_record(
@@ -671,12 +700,15 @@ class IocRecordFactory:
 
         index_value = self._get_enum_index_value(field_info.labels, values[record_name])
 
+        # TODO: Check if I need this elsewhere
+        labels = [label[:25] for label in field_info.labels]
+
         return {
             record_name: self._create_record(
                 record_name,
                 field_info.description,
                 record_creation_func,
-                *field_info.labels,
+                *labels,
                 initial_value=index_value,
             )
         }
@@ -758,13 +790,10 @@ async def create_records(
 
     panda_dict = await introspect_panda(client)
 
-    # Set the record prefix
-    builder.SetDeviceName("ABC")
-
     # Dictionary containing every record of every type
     all_records: Dict[str, RecordWrapper] = {}
 
-    record_factory = IocRecordFactory(client)
+    record_factory = IocRecordFactory("ABC")
 
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
@@ -820,7 +849,7 @@ async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly"""
     while True:
-
+        # TODO: Work out converting the strings to the right type for the record
         changes = await client.send(GetChanges(ChangeGroup.ALL))
         if changes.in_error:
             raise Exception("Problem here!")
@@ -834,6 +863,9 @@ async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
                 # raise Exception("Unknown record returned from GetChanges")
                 pass
             record = all_records[field]
+            # TODO: Try changing an ENUM in the PandA and see if this works
+            # Will probably need to store the type conversion needed for each type
+            # record.set(type(record.get())(value))
             record.set(value)
         await asyncio.sleep(1)
 
