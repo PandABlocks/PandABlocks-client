@@ -47,10 +47,12 @@ class _BlockAndFieldInfo:
 
 @dataclass
 class _RecordInfo:
-    """Extra information associated with some records"""
+    """A container for a record and extra information needed to later update
+    the record"""
 
-    labels: List[str]
-    data_type_func: Callable = str
+    record: RecordWrapper
+    data_type_func: Callable
+    labels: Optional[List[str]] = None
 
 
 # TODO: Be really fancy and create a custom type for the key
@@ -162,18 +164,20 @@ class IocRecordFactory:
         assert len(labels) > 0
         return ([label[:25] for label in labels], labels.index(record_value))
 
-    def _create_record(
+    def _create_record_info(
         self,
         record_name: str,
         description: Optional[str],
         record_creation_func: Callable,
+        data_type_func: Callable,
+        labels: List[str] = [],
         *args,
         **kwargs,
-    ) -> RecordWrapper:
+    ) -> _RecordInfo:
         """Create the record, using the given function and passing all optional
         arguments and keyword arguments, and then set the description field for the
         record.
-
+        TODO: update docs
         Args:
             record_name (str): The name this record will be created with
             description (str): The description for this field. This will be truncated
@@ -182,10 +186,16 @@ class IocRecordFactory:
                 this record. Expects to be one of the builder.* functions.
 
         Returns:
-            RecordWrapper: The newly created record.
+            _RecordInfo: Class containing the created record and anything needed for
+                updating the record.
         """
+        if (
+            record_creation_func == builder.mbbIn
+            or record_creation_func == builder.mbbOut
+        ):
+            assert len(labels) <= 16, f"Too many labels to create record {record_name}"
 
-        record = record_creation_func(record_name, *args, **kwargs)
+        record = record_creation_func(record_name, *labels, *args, **kwargs)
 
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
@@ -196,7 +206,11 @@ class IocRecordFactory:
 
         record.DESC = description
 
-        return record
+        record_info = _RecordInfo(
+            record, data_type_func=data_type_func, labels=labels if labels else None
+        )
+
+        return record_info
 
     def _make_time(
         self,
@@ -204,7 +218,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         """Make one record for the timer itself, and a sub-record for its units"""
         assert len(values) == 2, "Incorrect number of values passed, expected 2"
         assert isinstance(field_info, (TimeFieldInfo, SubtypeTimeFieldInfo))
@@ -212,12 +226,13 @@ class IocRecordFactory:
         # TODO: add more info?
         # TODO: Add similar asserts to every function?
 
-        record_dict: Dict[str, RecordWrapper] = {}
+        record_dict: Dict[str, _RecordInfo] = {}
 
-        record_dict[record_name] = self._create_record(
+        record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             record_creation_func,
+            float,
             initial_value=float(values[record_name]),
         )
 
@@ -225,11 +240,12 @@ class IocRecordFactory:
         labels, initial_index = self._process_labels(
             field_info.units_labels, values[units_record]
         )
-        record_dict[units_record] = self._create_record(
+        record_dict[units_record] = self._create_record_info(
             units_record,
             "Units of time setting",
             builder.mbbIn,
-            *labels,
+            type(initial_index),
+            labels=labels,
             initial_value=initial_index,
         )
 
@@ -240,7 +256,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         """Make the records for a field of type "time" - one for the time itself, one
         for units, and one for the MIN value.
         """
@@ -249,10 +265,11 @@ class IocRecordFactory:
         assert isinstance(field_info, TimeFieldInfo)
 
         min_record = record_name + ":MIN"
-        record_dict[min_record] = self._create_record(
+        record_dict[min_record] = self._create_record_info(
             min_record,
             "Minimum programmable time",
             builder.aIn,
+            type(field_info.min),
             initial_value=field_info.min,
         )
 
@@ -263,7 +280,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_time(record_name, field_info, values, builder.aOut)
 
     def _make_subtype_time_read(
@@ -271,37 +288,40 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_time(record_name, field_info, values, builder.aIn)
 
     def _make_bit_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, BitOutFieldInfo)
 
         record_dict = {}
-        record_dict[record_name] = self._create_record(
+        record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             builder.boolIn,
+            int,
             ZNAM=self.ZNAM_STR,
             ONAM=self.ONAM_STR,
             initial_value=int(values[record_name]),
         )
 
         cw_rec_name = record_name + ":CAPTURE_WORD"
-        record_dict[cw_rec_name] = self._create_record(
+        record_dict[cw_rec_name] = self._create_record_info(
             cw_rec_name,
             "Name of field containing this bit",
             builder.stringIn,
+            type(field_info.capture_word),
             initial_value=field_info.capture_word,
         )
 
         offset_rec_name = record_name + ":OFFSET"
-        record_dict[offset_rec_name] = self._create_record(
+        record_dict[offset_rec_name] = self._create_record_info(
             offset_rec_name,
             "Position of this bit in captured word",
             builder.aIn,
+            type(field_info.offset),
             initial_value=field_info.offset,
         )
 
@@ -309,15 +329,16 @@ class IocRecordFactory:
 
     def _make_pos_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, PosOutFieldInfo)
         assert field_info.labels
         record_dict = {}
 
-        record_dict[record_name] = self._create_record(
+        record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             builder.aOut,
+            float,
             initial_value=float(values[record_name]),
         )
 
@@ -325,32 +346,39 @@ class IocRecordFactory:
         labels, capture_index = self._process_labels(
             field_info.labels, values[capture_rec]
         )
-        record_dict[capture_rec] = self._create_record(
+        record_dict[capture_rec] = self._create_record_info(
             capture_rec,
             "Capture options",
             builder.mbbOut,
-            *labels,
+            int,
+            labels=labels,
             initial_value=capture_index,
         )
 
         offset_rec = record_name + ":OFFSET"
-        record_dict[offset_rec] = self._create_record(
-            offset_rec, "Offset", builder.aOut, initial_value=int(values[offset_rec])
+        record_dict[offset_rec] = self._create_record_info(
+            offset_rec,
+            "Offset",
+            builder.aOut,
+            int,
+            initial_value=int(values[offset_rec]),
         )
 
         scale_rec = record_name + ":SCALE"
-        record_dict[scale_rec] = self._create_record(
+        record_dict[scale_rec] = self._create_record_info(
             scale_rec,
             "Scale factor",
             builder.aOut,
+            float,
             initial_value=float(values[scale_rec]),
         )
 
         units_rec = record_name + ":UNITS"
-        record_dict[units_rec] = self._create_record(
+        record_dict[units_rec] = self._create_record_info(
             units_rec,
             "Units string",
             builder.stringOut,
+            str,
             initial_value=values[units_rec],
         )
 
@@ -360,23 +388,23 @@ class IocRecordFactory:
         builder.records.calc(
             scaled_rec,
             CALC="A*B + C",
-            INPA=builder.CP(record_dict[record_name]),
-            INPB=builder.CP(record_dict[scale_rec]),
-            INPC=builder.CP(record_dict[offset_rec]),
+            INPA=builder.CP(record_dict[record_name].record),
+            INPB=builder.CP(record_dict[scale_rec].record),
+            INPC=builder.CP(record_dict[offset_rec].record),
         )
 
         return record_dict
 
     def _make_ext_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, ExtOutFieldInfo)
         assert field_info.labels
         record_dict = {}
         # TODO: Check if initial_value should be set- this field appears
         # to be write only though
-        record_dict[record_name] = self._create_record(
-            record_name, field_info.description, builder.aIn
+        record_dict[record_name] = self._create_record_info(
+            record_name, field_info.description, builder.aIn, int
         )
 
         # TODO: Change labels -> capture_labels, as they are conceptually a bit
@@ -385,11 +413,12 @@ class IocRecordFactory:
         labels, capture_index = self._process_labels(
             field_info.labels, values[capture_rec]
         )
-        record_dict[capture_rec] = self._create_record(
+        record_dict[capture_rec] = self._create_record_info(
             capture_rec,
             field_info.description,
             builder.mbbOut,
-            *labels,
+            int,
+            labels=labels,
             initial_value=capture_index,
         )
 
@@ -397,7 +426,7 @@ class IocRecordFactory:
 
     def _make_ext_out_bits(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
 
         record_dict = self._make_ext_out(record_name, field_info, values)
 
@@ -435,30 +464,33 @@ class IocRecordFactory:
 
     def _make_bit_mux(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, BitMuxFieldInfo)
         record_dict = {}
 
-        record_dict[record_name] = self._create_record(
+        record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             builder.stringOut,
+            str,
             initial_value=values[record_name],
         )
 
         delay_rec = record_name + ":DELAY"
-        record_dict[delay_rec] = self._create_record(
+        record_dict[delay_rec] = self._create_record_info(
             delay_rec,
             "Clock delay on input",
             builder.aOut,
+            int,
             initial_value=int(values[delay_rec]),
         )
 
         max_delay_rec = record_name + ":MAX_DELAY"
-        record_dict[max_delay_rec] = self._create_record(
+        record_dict[max_delay_rec] = self._create_record_info(
             max_delay_rec,
             "Maximum valid input delay",
             builder.aIn,
+            type(field_info.max_delay),
             initial_value=field_info.max_delay,
         )
 
@@ -466,20 +498,18 @@ class IocRecordFactory:
 
     def _make_pos_mux(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, PosMuxFieldInfo)
         assert field_info.labels
         record_dict = {}
 
-        labels, initial_index = self._process_labels(
-            field_info.labels, values[record_name]
-        )
-        record_dict[record_name] = self._create_record(
+        # This should be an mbbOut record, but there are too many posssible labels
+        record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
-            builder.mbbOut,
-            *labels,
-            initial_index,
+            builder.stringOut,
+            str,
+            initial_value=values[record_name],
         )
 
         return record_dict
@@ -490,22 +520,24 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, UintFieldInfo)
 
         record_dict = {}
-        record_dict[record_name] = self._create_record(
+        record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             record_creation_func,
+            int,
             initial_value=int(values[record_name]),
         )
 
         max_record = record_name + ":MAX"
-        record_dict[max_record] = self._create_record(
+        record_dict[max_record] = self._create_record_info(
             max_record,
             "Maximum valid value for this field",
             builder.aIn,
+            type(field_info.max),
             initial_value=field_info.max,
         )
 
@@ -516,7 +548,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_uint(record_name, field_info, values, builder.aIn)
 
     def _make_uint_write(
@@ -524,7 +556,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_uint(record_name, field_info, values, builder.aOut)
 
     def _make_int(
@@ -533,13 +565,14 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
 
         return {
-            record_name: self._create_record(
+            record_name: self._create_record_info(
                 record_name,
                 field_info.description,
                 record_creation_func,
+                int,
                 initial_value=int(values[record_name]),
             )
         }
@@ -549,7 +582,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_int(record_name, field_info, values, builder.aIn)
 
     def _make_int_write(
@@ -557,7 +590,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert record_name not in values
         # Write fields don't have values to return from GetChanges, so set default
         # TODO: Extend this logic to all other _write functions?
@@ -570,40 +603,44 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
         assert isinstance(field_info, ScalarFieldInfo)
         assert field_info.offset is not None
         record_dict = {}
 
-        record_dict[record_name] = self._create_record(
+        record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             record_creation_func,
+            float,
             initial_value=float(values[record_name]),
         )
 
         offset_rec = record_name + ":OFFSET"
-        record_dict[offset_rec] = self._create_record(
+        record_dict[offset_rec] = self._create_record_info(
             offset_rec,
             "Offset from scaled data to value",
             builder.aIn,
-            initial_value=int(field_info.offset),
+            type(field_info.offset),
+            initial_value=field_info.offset,
         )
 
         scale_rec = record_name + ":SCALE"
-        record_dict[scale_rec] = self._create_record(
+        record_dict[scale_rec] = self._create_record_info(
             scale_rec,
             "Scaling from raw data to value",
             builder.aIn,
+            type(field_info.scale),
             initial_value=field_info.scale,
         )
 
         units_rec = record_name + ":UNITS"
-        record_dict[units_rec] = self._create_record(
+        record_dict[units_rec] = self._create_record_info(
             units_rec,
             "Units associated with value",
             builder.stringIn,
+            type(field_info.units),
             initial_value=field_info.units,
         )
 
@@ -611,12 +648,12 @@ class IocRecordFactory:
 
     def _make_scalar_read(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_scalar(record_name, field_info, values, builder.aIn)
 
     def _make_scalar_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_scalar(record_name, field_info, values, builder.aOut)
 
     def _make_bit(
@@ -625,13 +662,14 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
 
         return {
-            record_name: self._create_record(
+            record_name: self._create_record_info(
                 record_name,
                 field_info.description,
                 record_creation_func,
+                int,
                 ZNAM=self.ZNAM_STR,
                 ONAM=self.ONAM_STR,
                 initial_value=int(values[record_name]),
@@ -640,17 +678,17 @@ class IocRecordFactory:
 
     def _make_bit_read(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_bit(record_name, field_info, values, builder.boolIn)
 
     def _make_bit_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_bit(record_name, field_info, values, builder.boolOut)
 
     def _make_action_read(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         raise Exception(
             "Documentation says this field isn't useful for non-write types"
         )  # TODO: What am I supposed to do here? Could delete this and let
@@ -658,12 +696,13 @@ class IocRecordFactory:
 
     def _make_action_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return {
-            record_name: self._create_record(
+            record_name: self._create_record_info(
                 record_name,
                 field_info.description,
                 builder.boolOut,
+                int,  # TODO: Is this right? Is this an exception case?
                 ZNAM=self.ZNAM_STR,
                 ONAM=self.ONAM_STR,
             )
@@ -675,13 +714,14 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
         return {
-            record_name: self._create_record(
+            record_name: self._create_record_info(
                 record_name,
                 field_info.description,
                 record_creation_func,
+                str,
                 initial_value=values[record_name],
             ),
         }
@@ -691,7 +731,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_lut(record_name, field_info, values, builder.stringIn)
 
     def _make_lut_write(
@@ -699,7 +739,7 @@ class IocRecordFactory:
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_lut(record_name, field_info, values, builder.stringOut)
 
     def _make_enum(
@@ -708,7 +748,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, EnumFieldInfo)
 
         labels, index_value = self._process_labels(
@@ -716,28 +756,29 @@ class IocRecordFactory:
         )
 
         return {
-            record_name: self._create_record(
+            record_name: self._create_record_info(
                 record_name,
                 field_info.description,
                 record_creation_func,
-                *labels,
+                int,
+                labels=labels,
                 initial_value=index_value,
             )
         }
 
     def _make_enum_read(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_enum(record_name, field_info, values, builder.mbbIn)
 
     def _make_enum_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         return self._make_enum(record_name, field_info, values, builder.mbbOut)
 
     def create_record(
         self, record_name: str, field_info: FieldInfo, field_values: Dict[str, str]
-    ) -> Dict[str, RecordWrapper]:
+    ) -> Dict[str, _RecordInfo]:
         """Create the record (and any child records) for the PandA field specified in
         the parameters.
         TODO: Argument documentation?"""
@@ -753,7 +794,7 @@ class IocRecordFactory:
         Tuple[str, Optional[str]],
         Callable[
             ["IocRecordFactory", str, FieldInfo, Dict[str, str]],
-            Dict[str, RecordWrapper],
+            Dict[str, _RecordInfo],
         ],
     ] = {
         # Order matches that of PandA server's Field Types docs
@@ -796,14 +837,15 @@ async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
 ) -> Dict[
-    str, RecordWrapper
+    str, _RecordInfo
 ]:  # TODO: RecordWrapper doesn't exist for GraphQL, will need to change
-    """Create the relevant records from the given block_dict"""
+    """Query the PandA and create the relevant records based on the information
+    returned"""
 
     panda_dict = await introspect_panda(client)
 
     # Dictionary containing every record of every type
-    all_records: Dict[str, RecordWrapper] = {}
+    all_records: Dict[str, _RecordInfo] = {}
 
     record_factory = IocRecordFactory("ABC")
 
@@ -855,7 +897,7 @@ async def create_records(
     return all_records
 
 
-async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
+async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly"""
     while True:
@@ -870,10 +912,15 @@ async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
             field = _create_values_key(field)
             if field not in all_records:
                 raise Exception("Unknown record returned from GetChanges")
-            record = all_records[field]
+            record_info = all_records[field]
+            record = record_info.record
             # TODO: Try changing an ENUM in the PandA and see if this works
             # Will probably need to store the type conversion needed for each type
-            record.set(type(record.get())(value))
+            if record_info.labels:
+                # Record is enum, convert string the PandA returns into an int index
+                record.set(record_info.labels.index(value))
+            else:
+                record.set(record_info.data_type_func(value))
         await asyncio.sleep(1)
 
 
