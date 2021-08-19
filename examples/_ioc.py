@@ -69,7 +69,7 @@ def create_softioc():
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()
 
     client = AsyncioClient(sys.argv[1])
-    # TODO: Clean up client when we're done with it
+
     asyncio.run_coroutine_threadsafe(client.connect(), dispatcher.loop).result(TIMEOUT)
 
     all_records = asyncio.run_coroutine_threadsafe(
@@ -82,9 +82,11 @@ def create_softioc():
     # Temporarily leave this running forever to aid debugging
     softioc.interactive_ioc(globals())
 
+    asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result(TIMEOUT)
+
 
 async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInfo]:
-    """Query the PandA for all its Blocks, Fields, and Values of fields
+    """Query the PandA for all its Blocks, Fields of each Block, and Values of each Field
 
     Args:
         client (AsyncioClient): Client used for commuication with the PandA
@@ -134,7 +136,6 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     return panda_dict
 
 
-# TODO: Is this actually a Factory? Might be more of a Builder...
 class IocRecordFactory:
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
@@ -179,18 +180,24 @@ class IocRecordFactory:
         """Create the record, using the given function and passing all optional
         arguments and keyword arguments, and then set the description field for the
         record.
-        TODO: update docs
+
         Args:
             record_name (str): The name this record will be created with
             description (str): The description for this field. This will be truncated
                 to 40 characters due to EPICS limitations.
             record_creation_func (Callable): The function that will be used to create
                 this record. Expects to be one of the builder.* functions.
+            data_type_func (Callable): The function to use to convert the value returned
+                from GetChanges, which will always be a string, into a type appropriate for
+                the record e.g. int, float.
+            labels (List[str]): If the record type being created is a mbbi or mbbo record,
+                provide the list of valid labels here.
 
         Returns:
             _RecordInfo: Class containing the created record and anything needed for
                 updating the record.
         """
+
         if (
             record_creation_func == builder.mbbIn
             or record_creation_func == builder.mbbOut
@@ -866,13 +873,22 @@ class IocRecordFactory:
         ("write", "time"): _make_subtype_time_write,
     }
 
+    def initialise(self, dispatcher: asyncio_dispatcher.AsyncioDispatcher) -> None:
+        """Perform any final initialisation code to create the records. No new
+        records may be created after this method is called.
+
+        Args:
+            dispatcher (asyncio_dispatcher.AsyncioDispatcher): The dispatcher used in
+                IOC initialisation
+        """
+        builder.LoadDatabase()
+        softioc.iocInit(dispatcher)
+
 
 async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
-) -> Dict[
-    str, _RecordInfo
-]:  # TODO: RecordWrapper doesn't exist for GraphQL, will need to change
+) -> Dict[str, _RecordInfo]:
     """Query the PandA and create the relevant records based on the information
     returned"""
 
@@ -923,10 +939,7 @@ async def create_records(
 
                 all_records.update(records)
 
-    # Boilerplate get the IOC started
-    # TODO: Move these lines somewhere else - having them here won't work for GraphQL
-    builder.LoadDatabase()
-    softioc.iocInit(dispatcher)
+    record_factory.initialise(dispatcher)
 
     return all_records
 
@@ -935,7 +948,6 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly"""
     while True:
-        # TODO: Work out converting the strings to the right type for the record
         changes = await client.send(GetChanges(ChangeGroup.ALL))
         if changes.in_error:
             raise Exception("Problem here!")
@@ -948,8 +960,6 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
                 raise Exception("Unknown record returned from GetChanges")
             record_info = all_records[field]
             record = record_info.record
-            # TODO: Try changing an ENUM in the PandA and see if this works
-            # Will probably need to store the type conversion needed for each type
             if record_info.labels:
                 # Record is enum, convert string the PandA returns into an int index
                 record.set(record_info.labels.index(value))
