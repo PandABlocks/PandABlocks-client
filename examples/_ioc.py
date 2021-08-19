@@ -35,7 +35,7 @@ TIMEOUT = 2
 
 
 @dataclass
-class BlockAndFieldInfo:
+class _BlockAndFieldInfo:
     """Contains all available information for a Block, including Fields and all the
     Values for `block_info.number` instances of the Fields."""
 
@@ -43,6 +43,14 @@ class BlockAndFieldInfo:
     fields: Dict[str, FieldInfo]
     values: Dict[str, str]
     # See `_create_values_key` to create key for Dict from keys returned from GetChanges
+
+
+@dataclass
+class _RecordInfo:
+    """Extra information associated with some records"""
+
+    labels: List[str]
+    data_type_func: Callable = str
 
 
 # TODO: Be really fancy and create a custom type for the key
@@ -73,7 +81,7 @@ def create_softioc():
     softioc.interactive_ioc(globals())
 
 
-async def introspect_panda(client: AsyncioClient) -> Dict[str, BlockAndFieldInfo]:
+async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInfo]:
     """Query the PandA for all its Blocks, Fields, and Values of fields
 
     Args:
@@ -88,17 +96,18 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, BlockAndFieldInfo
     """
 
     # Get the list of all blocks in the PandA
-    # TODO: Do we care about the decription of the Block itself?
     block_dict = await client.send(GetBlockInfo())
 
     # Concurrently request info for all fields of all blocks
-    field_infos = await asyncio.gather(
-        *[client.send(GetFieldInfo(block)) for block in block_dict]
+    # Note order of requests is important as it is unpacked below
+    returned_infos = await asyncio.gather(
+        *[client.send(GetFieldInfo(block)) for block in block_dict],
+        client.send(GetChanges(ChangeGroup.ALL)),
     )
-    # TODO: I should reduce round trips and merge this with previous I/O
-    # Request initial value of all fields
-    changes = await client.send(GetChanges(ChangeGroup.ALL))
 
+    field_infos = returned_infos[0:-1]
+
+    changes = returned_infos[-1]
     if changes.in_error:
         raise Exception("TODO: Some better error handling")
     # TODO: Do something with changes.no_value ?
@@ -116,7 +125,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, BlockAndFieldInfo
 
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
-        panda_dict[block_name] = BlockAndFieldInfo(
+        panda_dict[block_name] = _BlockAndFieldInfo(
             block_info=block_info, fields=field_info, values=values[block_name]
         )
 
@@ -140,13 +149,18 @@ class IocRecordFactory:
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
 
-    def _get_enum_index_value(self, labels: Optional[List[str]], record_value: str):
+    def _process_labels(
+        self, labels: Optional[List[str]], record_value: str
+    ) -> Tuple[List[str], int]:
         """Find the index of `record_value` in the `labels` list, suitable for
         use in an `initial_value=` argument during record creation.
+        Secondly, return a new list from the given labels that are all short
+        enough to fit within EPICS 25 character label limit.
+
         Raises ValueError if `record_value` not found in `labels`."""
         assert labels
         assert len(labels) > 0
-        return labels.index(record_value)
+        return ([label[:25] for label in labels], labels.index(record_value))
 
     def _create_record(
         self,
@@ -208,14 +222,14 @@ class IocRecordFactory:
         )
 
         units_record = record_name + ":UNITS"
-        initial_index = self._get_enum_index_value(
+        labels, initial_index = self._process_labels(
             field_info.units_labels, values[units_record]
         )
         record_dict[units_record] = self._create_record(
             units_record,
             "Units of time setting",
             builder.mbbIn,
-            *field_info.units_labels,
+            *labels,
             initial_value=initial_index,
         )
 
@@ -308,14 +322,14 @@ class IocRecordFactory:
         )
 
         capture_rec = record_name + ":CAPTURE"
-        capture_index = self._get_enum_index_value(
+        labels, capture_index = self._process_labels(
             field_info.labels, values[capture_rec]
         )
         record_dict[capture_rec] = self._create_record(
             capture_rec,
             "Capture options",
             builder.mbbOut,
-            *field_info.labels,
+            *labels,
             initial_value=capture_index,
         )
 
@@ -368,14 +382,14 @@ class IocRecordFactory:
         # TODO: Change labels -> capture_labels, as they are conceptually a bit
         # different in some places
         capture_rec = record_name + ":CAPTURE"
-        capture_index = self._get_enum_index_value(
+        labels, capture_index = self._process_labels(
             field_info.labels, values[capture_rec]
         )
         record_dict[capture_rec] = self._create_record(
             capture_rec,
             field_info.description,
             builder.mbbOut,
-            *field_info.labels,
+            *labels,
             initial_value=capture_index,
         )
 
@@ -457,14 +471,14 @@ class IocRecordFactory:
         assert field_info.labels
         record_dict = {}
 
-        initial_index = self._get_enum_index_value(
+        labels, initial_index = self._process_labels(
             field_info.labels, values[record_name]
         )
         record_dict[record_name] = self._create_record(
             record_name,
             field_info.description,
             builder.mbbOut,
-            *field_info.labels,
+            *labels,
             initial_index,
         )
 
@@ -490,7 +504,7 @@ class IocRecordFactory:
         max_record = record_name + ":MAX"
         record_dict[max_record] = self._create_record(
             max_record,
-            "Number of places to right shift calculation result before output",
+            "Maximum valid value for this field",
             builder.aIn,
             initial_value=field_info.max,
         )
@@ -696,12 +710,10 @@ class IocRecordFactory:
         record_creation_func: Callable,
     ) -> Dict[str, RecordWrapper]:
         assert isinstance(field_info, EnumFieldInfo)
-        assert field_info.labels
 
-        index_value = self._get_enum_index_value(field_info.labels, values[record_name])
-
-        # TODO: Check if I need this elsewhere
-        labels = [label[:25] for label in field_info.labels]
+        labels, index_value = self._process_labels(
+            field_info.labels, values[record_name]
+        )
 
         return {
             record_name: self._create_record(
@@ -806,10 +818,8 @@ async def create_records(
                 # ":" separator for EPICS Record names, unlike PandA's "."
                 record_name = block + ":" + field
                 if block_info.number > 1:
-                    # TODO: If there is only 1 block, <block> and <block>1 are
-                    # synonomous. Perhaps just always use number?
                     # If more than 1 block, the block number becomes part of the PandA
-                    # field and hence should become part of the record.
+                    # block name and hence should become part of the record.
                     # Note PandA block counter is 1-indexed, hence +1
                     # Only replace first instance to avoid problems with awkward field
                     # names like "DIV1:DIVISOR"
@@ -859,14 +869,11 @@ async def update(client: AsyncioClient, all_records: Dict[str, RecordWrapper]):
         for field, value in changes.values.items():
             field = _create_values_key(field)
             if field not in all_records:
-                # TODO: uncomment when we have all fields
-                # raise Exception("Unknown record returned from GetChanges")
-                pass
+                raise Exception("Unknown record returned from GetChanges")
             record = all_records[field]
             # TODO: Try changing an ENUM in the PandA and see if this works
             # Will probably need to store the type conversion needed for each type
-            # record.set(type(record.get())(value))
-            record.set(value)
+            record.set(type(record.get())(value))
         await asyncio.sleep(1)
 
 
