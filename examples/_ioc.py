@@ -141,6 +141,8 @@ class IocRecordFactory:
 
     _record_prefix: str
 
+    _pos_out_row_counter: int = 0
+
     # Constants used in multiple records
     ZNAM_STR: str = "0"
     ONAM_STR: str = "1"
@@ -332,7 +334,7 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         assert isinstance(field_info, PosOutFieldInfo)
         assert field_info.labels
-        record_dict = {}
+        record_dict: Dict[str, _RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -385,13 +387,35 @@ class IocRecordFactory:
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
         scaled_rec = record_name + ":SCALED"
-        builder.records.calc(
+        scaled_calc_rec = builder.records.calc(
             scaled_rec,
             CALC="A*B + C",
             INPA=builder.CP(record_dict[record_name].record),
             INPB=builder.CP(record_dict[scale_rec].record),
             INPC=builder.CP(record_dict[offset_rec].record),
         )
+
+        # Create the POSITIONS "table" of records. Most are aliases of the records
+        # created above.
+        positions_str = f"POSITIONS:{self._pos_out_row_counter}"
+        builder.records.stringin(positions_str + ":NAME", VAL=record_name)
+
+        scaled_calc_rec.add_alias(self._record_prefix + ":" + positions_str + ":VAL")
+
+        record_dict[capture_rec].record.add_alias(
+            self._record_prefix + ":" + positions_str + ":" + capture_rec.split(":")[-1]
+        )
+        record_dict[offset_rec].record.add_alias(
+            self._record_prefix + ":" + positions_str + ":" + offset_rec.split(":")[-1]
+        )
+        record_dict[scale_rec].record.add_alias(
+            self._record_prefix + ":" + positions_str + ":" + scale_rec.split(":")[-1]
+        )
+        record_dict[units_rec].record.add_alias(
+            self._record_prefix + ":" + positions_str + ":" + units_rec.split(":")[-1]
+        )
+
+        self._pos_out_row_counter += 1
 
         return record_dict
 
@@ -434,8 +458,9 @@ class IocRecordFactory:
         assert field_info.bits
         # Create a "table" out of the items present in the list of labels
 
-        # Identify which BITS field this is - we want BITS0 through BITS3 to
-        # look like one continuous table from the outside, indexed 0 through 127
+        # Identify which BITS field this is and calculate its offset - we want BITS0
+        # through BITS3 to look like one continuous table from the outside, indexed
+        # 0 through 127
         bits_index_str = record_name[-1]
         assert bits_index_str.isdigit()
         bits_index = int(bits_index_str)
@@ -447,18 +472,27 @@ class IocRecordFactory:
         # There is a single CAPTURE record which is alias'd to appear in each row.
         # This is because you can only capture a whole field's worth of bits at a time,
         # and not bits individually. When one is captured, they all are.
-        capture = builder.records.bi(f"BITS:{offset}:CAPTURE")  # TODO: on update?
+        capture_record_info = self._create_record_info(
+            f"BITS:{offset}:CAPTURE", None, builder.boolIn, int
+        )
+        # TODO: on update? Description?
+
         for i in range(offset + 1, offset + 32):
-            capture.add_alias(f"BITS:{i}:CAPTURE")
+            capture_record_info.record.add_alias(
+                f"{self._record_prefix}:BITS:{i}:CAPTURE"
+            )
 
         # Each row of the table has a VAL and a NAME.
         for i, label in enumerate(field_info.bits):
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
-            bits_prefix = f"BITS:{offset + i}"
-            builder.records.bi(f"{bits_prefix}:VAL", INP=link)
-            # TODO: Confirm I don't need the record saved
+            enumerated_bits_prefix = f"BITS:{offset + i}"
+            builder.records.bi(f"{enumerated_bits_prefix}:VAL", INP=link)
+            # TODO: Confirm I don't need the record saved.
+            # If I do, swap to using _create_record_info
+            # TODO: Description?
 
-            builder.records.stringin(f"{bits_prefix}:NAME", VAL=label)
+            builder.records.stringin(f"{enumerated_bits_prefix}:NAME", VAL=label)
+            # TODO: Description?
 
         return record_dict
 
