@@ -1,6 +1,7 @@
 # Creating PythonSoftIOCs directly from PandA Blocks and Fields
 
 import asyncio
+import inspect
 import sys
 from dataclasses import dataclass
 from string import digits
@@ -144,6 +145,12 @@ class IocRecordFactory:
 
     _pos_out_row_counter: int = 0
 
+    # List of methods in builder, used for parameter validation
+    _builder_methods = [
+        method
+        for _, method in inspect.getmembers(builder, predicate=inspect.isfunction)
+    ]
+
     # Constants used in multiple records
     ZNAM_STR: str = "0"
     ONAM_STR: str = "1"
@@ -188,15 +195,22 @@ class IocRecordFactory:
             record_creation_func (Callable): The function that will be used to create
                 this record. Expects to be one of the builder.* functions.
             data_type_func (Callable): The function to use to convert the value returned
-                from GetChanges, which will always be a string, into a type appropriate for
-                the record e.g. int, float.
-            labels (List[str]): If the record type being created is a mbbi or mbbo record,
-                provide the list of valid labels here.
+                from GetChanges, which will always be a string, into a type appropriate
+                for the record e.g. int, float.
+            labels (List[str]): If the record type being created is a mbbi or mbbo
+                record, provide the list of valid labels here.
 
         Returns:
             _RecordInfo: Class containing the created record and anything needed for
                 updating the record.
         """
+        assert (
+            record_creation_func in self._builder_methods
+        ), "Unrecognised record creation function passed to _create_record_info"
+
+        # TODO: Take another go at validating the data_type_func. Can't use
+        # inspect.isbuiltin,could do something like
+        # isinstance(data_type_func, type(float)) but that seems hacky
 
         if (
             record_creation_func == builder.mbbIn
@@ -473,18 +487,13 @@ class IocRecordFactory:
         bits_index = int(bits_index_str)
         offset = bits_index * 32
 
-        # TODO: Do I have to link the PCAP:BITS<n>:CAPTURE record to the capture records
-        # created below?
+        capture_rec = record_name + ":CAPTURE"
+        capture_record_info = record_dict[capture_rec]
 
         # There is a single CAPTURE record which is alias'd to appear in each row.
         # This is because you can only capture a whole field's worth of bits at a time,
         # and not bits individually. When one is captured, they all are.
-        capture_record_info = self._create_record_info(
-            f"BITS:{offset}:CAPTURE", None, builder.boolIn, int
-        )
-        # TODO: on update? Description?
-
-        for i in range(offset + 1, offset + 32):
+        for i in range(offset, offset + 32):
             capture_record_info.record.add_alias(
                 f"{self._record_prefix}:BITS:{i}:CAPTURE"
             )
@@ -554,6 +563,12 @@ class IocRecordFactory:
         )
 
         return record_dict
+
+    def _make_table(
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+    ) -> Dict[str, _RecordInfo]:
+        # TODO: Implement this!
+        return {}
 
     def _make_uint(
         self,
@@ -825,7 +840,10 @@ class IocRecordFactory:
         TODO: Argument documentation?"""
         key = (field_info.type, field_info.subtype)
         if key not in self._field_record_mapping:
-            return {}  # TODO: Eventually make this into an exception
+            raise Exception(
+                f'Unrecognised type-subtype pair "{key}" when creating {record_name}.'
+                + "Could not create record."
+            )
         return self._field_record_mapping[key](
             self, record_name, field_info, field_values
         )
@@ -847,6 +865,7 @@ class IocRecordFactory:
         ("ext_out", "bits"): _make_ext_out_bits,
         ("bit_mux", None): _make_bit_mux,
         ("pos_mux", None): _make_pos_mux,
+        ("table", None): _make_table,
         ("param", "uint"): _make_uint_read,
         ("read", "uint"): _make_uint_read,
         ("write", "uint"): _make_uint_write,
@@ -881,6 +900,8 @@ class IocRecordFactory:
             dispatcher (asyncio_dispatcher.AsyncioDispatcher): The dispatcher used in
                 IOC initialisation
         """
+        # TODO: Delete WriteRecords when I'm done debugging
+        builder.WriteRecords("records.db")
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
 
@@ -950,7 +971,8 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
     while True:
         changes = await client.send(GetChanges(ChangeGroup.ALL))
         if changes.in_error:
-            raise Exception("Problem here!")
+            pass
+            # TODO: We should continue processing here, but log an error somehow
             # TODO: Combine with getChanges error handling in introspect_panda?
             # TODO: Use changes.no_value?
 
