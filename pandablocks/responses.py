@@ -131,7 +131,7 @@ class PosMuxFieldInfo(FieldInfo):
 class PosOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `pos_out`"""
 
-    labels: Optional[List[str]] = None
+    capture_labels: Optional[List[str]] = None
 
 
 @dataclass
@@ -139,7 +139,7 @@ class ExtOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `ext_out` and subtypes `timestamp`
     or `samples`"""
 
-    labels: Optional[List[str]] = None
+    capture_labels: Optional[List[str]] = None
 
 
 @dataclass

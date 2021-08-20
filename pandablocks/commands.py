@@ -483,7 +483,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 _FieldCommandMapping(
                     Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
                     field_info,
-                    "labels",
+                    "capture_labels",
                     list,
                 ),
             ],
@@ -499,7 +499,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 _FieldCommandMapping(
                     Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
                     field_info,
-                    "labels",
+                    "capture_labels",
                     list,
                 ),
             ],
@@ -521,7 +521,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 _FieldCommandMapping(
                     Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
                     field_info,
-                    "labels",
+                    "capture_labels",
                     list,
                 ),
             ],

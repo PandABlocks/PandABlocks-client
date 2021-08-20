@@ -56,7 +56,6 @@ class _RecordInfo:
     labels: Optional[List[str]] = None
 
 
-# TODO: Be really fancy and create a custom type for the key
 def _create_values_key(field_name: str) -> str:
     """Convert the dictionary key style used in `GetChanges.values` to that used
     throughout this application"""
@@ -172,6 +171,7 @@ class IocRecordFactory:
         Raises ValueError if `record_value` not found in `labels`."""
         assert labels
         assert len(labels) > 0
+        # TODO: Warn on truncation? Similar to warn on description truncation.
         return ([label[:25] for label in labels], labels.index(record_value))
 
     def _check_num_values(self, values: Dict[str, str], num: int) -> None:
@@ -230,8 +230,7 @@ class IocRecordFactory:
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
         if description and len(description) > 40:
-            # TODO: Add logging and some kind of warning when this happens
-            # TODO: Some of the hard-coded descriptions break this limit. Re-word them.
+            # TODO: Add logging/some kind of warning when this happens
             description = description[:40]
 
         record.DESC = description
@@ -253,7 +252,6 @@ class IocRecordFactory:
         self._check_num_values(values, 2)
         assert isinstance(field_info, (TimeFieldInfo, SubtypeTimeFieldInfo))
         assert field_info.units_labels
-        # TODO: add more info?
 
         record_dict: Dict[str, _RecordInfo] = {}
 
@@ -363,7 +361,7 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 5)
         assert isinstance(field_info, PosOutFieldInfo)
-        assert field_info.labels
+        assert field_info.capture_labels
         record_dict: Dict[str, _RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
@@ -376,7 +374,7 @@ class IocRecordFactory:
 
         capture_rec = record_name + ":CAPTURE"
         labels, capture_index = self._process_labels(
-            field_info.labels, values[capture_rec]
+            field_info.capture_labels, values[capture_rec]
         )
         record_dict[capture_rec] = self._create_record_info(
             capture_rec,
@@ -454,7 +452,7 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutFieldInfo)
-        assert field_info.labels
+        assert field_info.capture_labels
         record_dict = {}
         # TODO: Check if initial_value should be set- this field appears
         # to be write only though
@@ -462,11 +460,9 @@ class IocRecordFactory:
             record_name, field_info.description, builder.aIn, int
         )
 
-        # TODO: Change labels -> capture_labels, as they are conceptually a bit
-        # different in some places
         capture_rec = record_name + ":CAPTURE"
         labels, capture_index = self._process_labels(
-            field_info.labels, values[capture_rec]
+            field_info.capture_labels, values[capture_rec]
         )
         record_dict[capture_rec] = self._create_record_info(
             capture_rec,
