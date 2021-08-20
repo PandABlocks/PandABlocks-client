@@ -174,6 +174,13 @@ class IocRecordFactory:
         assert len(labels) > 0
         return ([label[:25] for label in labels], labels.index(record_value))
 
+    def _check_num_values(self, values: Dict[str, str], num: int) -> None:
+        """Function to check that the number of values is the expected amount.
+        Raises AssertionError if incorrect number of values."""
+        assert (
+            len(values) == num
+        ), f"Incorrect number of values, {len(values)}, expected {num}.\n {values}"
+
     def _create_record_info(
         self,
         record_name: str,
@@ -243,11 +250,10 @@ class IocRecordFactory:
         record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
         """Make one record for the timer itself, and a sub-record for its units"""
-        assert len(values) == 2, "Incorrect number of values passed, expected 2"
+        self._check_num_values(values, 2)
         assert isinstance(field_info, (TimeFieldInfo, SubtypeTimeFieldInfo))
         assert field_info.units_labels
         # TODO: add more info?
-        # TODO: Add similar asserts to every function?
 
         record_dict: Dict[str, _RecordInfo] = {}
 
@@ -284,8 +290,9 @@ class IocRecordFactory:
         for units, and one for the MIN value.
         """
         # RAW attribute ignored - EPICS should never care about it
-        record_dict = self._make_time(record_name, field_info, values, builder.aOut)
+        self._check_num_values(values, 2)
         assert isinstance(field_info, TimeFieldInfo)
+        record_dict = self._make_time(record_name, field_info, values, builder.aOut)
 
         min_record = record_name + ":MIN"
         record_dict[min_record] = self._create_record_info(
@@ -317,6 +324,7 @@ class IocRecordFactory:
     def _make_bit_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
         assert isinstance(field_info, BitOutFieldInfo)
 
         record_dict = {}
@@ -353,6 +361,7 @@ class IocRecordFactory:
     def _make_pos_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 5)
         assert isinstance(field_info, PosOutFieldInfo)
         assert field_info.labels
         record_dict: Dict[str, _RecordInfo] = {}
@@ -443,6 +452,7 @@ class IocRecordFactory:
     def _make_ext_out(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutFieldInfo)
         assert field_info.labels
         record_dict = {}
@@ -472,11 +482,11 @@ class IocRecordFactory:
     def _make_ext_out_bits(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
-
-        record_dict = self._make_ext_out(record_name, field_info, values)
-
+        self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutBitsFieldInfo)
         assert field_info.bits
+
+        record_dict = self._make_ext_out(record_name, field_info, values)
         # Create a "table" out of the items present in the list of labels
 
         # Identify which BITS field this is and calculate its offset - we want BITS0
@@ -503,8 +513,6 @@ class IocRecordFactory:
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
             builder.records.bi(f"{enumerated_bits_prefix}:VAL", INP=link)
-            # TODO: Confirm I don't need the record saved.
-            # If I do, swap to using _create_record_info
             # TODO: Description?
 
             builder.records.stringin(f"{enumerated_bits_prefix}:NAME", VAL=label)
@@ -515,8 +523,9 @@ class IocRecordFactory:
     def _make_bit_mux(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 2)
         assert isinstance(field_info, BitMuxFieldInfo)
-        record_dict = {}
+        record_dict: Dict[str, _RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -549,9 +558,10 @@ class IocRecordFactory:
     def _make_pos_mux(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
         assert isinstance(field_info, PosMuxFieldInfo)
         assert field_info.labels
-        record_dict = {}
+        record_dict: Dict[str, _RecordInfo] = {}
 
         # This should be an mbbOut record, but there are too many posssible labels
         record_dict[record_name] = self._create_record_info(
@@ -577,9 +587,10 @@ class IocRecordFactory:
         values: Dict[str, str],
         record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
         assert isinstance(field_info, UintFieldInfo)
 
-        record_dict = {}
+        record_dict: Dict[str, _RecordInfo] = {}
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
@@ -622,6 +633,7 @@ class IocRecordFactory:
         values: Dict[str, str],
         record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
 
         return {
             record_name: self._create_record_info(
@@ -661,9 +673,10 @@ class IocRecordFactory:
         record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
+        self._check_num_values(values, 1)
         assert isinstance(field_info, ScalarFieldInfo)
         assert field_info.offset is not None
-        record_dict = {}
+        record_dict: Dict[str, _RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -719,6 +732,7 @@ class IocRecordFactory:
         values: Dict[str, str],
         record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
 
         return {
             record_name: self._create_record_info(
@@ -747,18 +761,18 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         raise Exception(
             "Documentation says this field isn't useful for non-write types"
-        )  # TODO: What am I supposed to do here? Could delete this and let
-        # create_record throw an exception when the mapping isn't in the dict
+        )  # TODO: Should I still create a record here?
 
     def _make_action_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 0)
         return {
             record_name: self._create_record_info(
                 record_name,
                 field_info.description,
                 builder.boolOut,
-                int,  # TODO: Is this right? Is this an exception case?
+                int,  # not bool, as that'll treat string "0" as true
                 ZNAM=self.ZNAM_STR,
                 ONAM=self.ONAM_STR,
             )
@@ -772,6 +786,7 @@ class IocRecordFactory:
         record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
+        self._check_num_values(values, 1)
         return {
             record_name: self._create_record_info(
                 record_name,
@@ -805,6 +820,7 @@ class IocRecordFactory:
         values: Dict[str, str],
         record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
         assert isinstance(field_info, EnumFieldInfo)
 
         labels, index_value = self._process_labels(
@@ -837,7 +853,21 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         """Create the record (and any child records) for the PandA field specified in
         the parameters.
-        TODO: Argument documentation?"""
+
+        Args:
+            record_name (str): The name of the record to create, with colons separating
+                words in EPICS style.
+            field_info (FieldInfo): The field info for the record being created
+            field_values (Dict[str, str]): The dictionary of values for the record and
+                all child records. The keys are in EPICS style.
+
+        Raises:
+            Exception: Raised when the field's type and subtype are unrecognised
+
+        Returns:
+            Dict[str, _RecordInfo]: A dictionary of all records created and their
+                associated _RecordInfo object
+        """
         key = (field_info.type, field_info.subtype)
         if key not in self._field_record_mapping:
             raise Exception(
@@ -941,10 +971,14 @@ async def create_records(
                     )
 
                 # Get the value of the field and all its sub-fields
+                # Watch for cases where the record name is a prefix to multiple
+                # unrelated fields. e.g. for record_name "INENC1:CLK",
+                # values for keys "INENC1:CLK" "INENC1:CLK:DELAY" should match
+                # but "INENC1:CLK_PERIOD" should not
                 field_values = {
                     field: value
                     for field, value in values.items()
-                    if field.startswith(record_name)
+                    if field == record_name or field.startswith(record_name + ":")
                 }
 
                 records = record_factory.create_record(
