@@ -622,12 +622,11 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         return self._make_uint(record_name, field_info, values, builder.aOut)
 
-    def _make_int(
+    def _make_int_read(
         self,
         record_name: str,
         field_info: FieldInfo,
         values: Dict[str, str],
-        record_creation_func: Callable,
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 1)
 
@@ -635,19 +634,11 @@ class IocRecordFactory:
             record_name: self._create_record_info(
                 record_name,
                 field_info.description,
-                record_creation_func,
+                builder.aIn,
                 int,
                 initial_value=int(values[record_name]),
             )
         }
-
-    def _make_int_read(
-        self,
-        record_name: str,
-        field_info: FieldInfo,
-        values: Dict[str, str],
-    ) -> Dict[str, _RecordInfo]:
-        return self._make_int(record_name, field_info, values, builder.aIn)
 
     def _make_int_write(
         self,
@@ -655,11 +646,15 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
     ) -> Dict[str, _RecordInfo]:
-        assert record_name not in values
-        # Write fields don't have values to return from GetChanges, so set default
-        # TODO: Extend this logic to all other _write functions?
-        values[record_name] = "0"
-        return self._make_int(record_name, field_info, values, builder.aOut)
+        self._check_num_values(values, 0)
+        return {
+            record_name: self._create_record_info(
+                record_name,
+                field_info.description,
+                builder.aOut,
+                int,
+            )
+        }
 
     def _make_scalar(
         self,
@@ -983,10 +978,7 @@ async def create_records(
 
                 for new_record in records:
                     if new_record in all_records:
-                        raise Exception(
-                            f"Duplicate record name {new_record} detected!"
-                            # TODO: More explanation here?
-                        )
+                        raise Exception(f"Duplicate record name {new_record} detected.")
 
                 all_records.update(records)
 
