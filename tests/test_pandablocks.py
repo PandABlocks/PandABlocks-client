@@ -282,7 +282,7 @@ def test_get_fields_type_ext_out():
                     type="ext_out",
                     subtype="samples",
                     description="Number of gated samples in the current capture",
-                    labels=["No", "Value"],
+                    capture_labels=["No", "Value"],
                 )
             },
         )
@@ -311,7 +311,7 @@ def test_get_fields_skip_description():
                     type="ext_out",
                     subtype="samples",
                     description=None,
-                    labels=["No", "Value"],
+                    capture_labels=["No", "Value"],
                 )
             },
         )
@@ -482,21 +482,21 @@ def test_get_fields_non_existant_block():
             None,
             "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
             ["!VAL1\n!VAL2\n.\n"],
-            PosOutFieldInfo("pos_out", None, labels=["VAL1", "VAL2"]),
+            PosOutFieldInfo("pos_out", None, capture_labels=["VAL1", "VAL2"]),
         ),
         (
             "ext_out",
             "timestamp",
             "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
             ["!VAL1\n!VAL2\n.\n"],
-            ExtOutFieldInfo("ext_out", "timestamp", labels=["VAL1", "VAL2"]),
+            ExtOutFieldInfo("ext_out", "timestamp", capture_labels=["VAL1", "VAL2"]),
         ),
         (
             "ext_out",
             "samples",
             "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
             ["!VAL1\n!VAL2\n.\n"],
-            ExtOutFieldInfo("ext_out", "samples", labels=["VAL1", "VAL2"]),
+            ExtOutFieldInfo("ext_out", "samples", capture_labels=["VAL1", "VAL2"]),
         ),
         (
             "ext_out",
@@ -504,7 +504,10 @@ def test_get_fields_non_existant_block():
             "TEST.TEST_FIELD.BITS?\n*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
             ["!BITS1\n!BITS2\n.\n", "!VAL1\n!VAL2\n.\n"],
             ExtOutBitsFieldInfo(
-                "ext_out", "bits", bits=["BITS1", "BITS2"], labels=["VAL1", "VAL2"]
+                "ext_out",
+                "bits",
+                bits=["BITS1", "BITS2"],
+                capture_labels=["VAL1", "VAL2"],
             ),
         ),
     ],
