@@ -483,7 +483,8 @@ class IocRecordFactory:
         assert field_info.bits
 
         record_dict = self._make_ext_out(record_name, field_info, values)
-        # Create a "table" out of the items present in the list of labels
+
+        # Create a "table" out of the items present in the list of bits
 
         # Identify which BITS field this is and calculate its offset - we want BITS0
         # through BITS3 to look like one continuous table from the outside, indexed
