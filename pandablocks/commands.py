@@ -571,24 +571,24 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 ("param", "enum"): self._commands_enum,
                 ("read", "enum"): self._commands_enum,
                 ("write", "enum"): self._commands_enum,
+                # TODO: Add TABLE support?
             }
 
-            if (field_type, subtype) in _commands_map:
+            try:
                 # Create type-specific commands
                 field_info, command_mapping = _commands_map[(field_type, subtype)](
                     name, field_type, subtype
                 )
-            else:
+            except KeyError:
                 # No type-specific commands to create
-                # TODO: Consider whether we turn this into its own function, and then
-                # list all known type-subtype pairs in the mapping. This would mean we
-                #  could spot unknown types much more easily.
+                # Note that this deliberately allows all types and subtypes, to allow
+                # future changes to the server's types without breaking the clients.
                 # TODO: Add tests for unknown types and subtypes
                 field_info = FieldInfo(field_type, subtype)
                 command_mapping = []
 
             # Description is common to all fields, and its retrieval may be disabled,
-            # hence why it is handed here.
+            # hence why it is handled here.
             # Note that we don't get the description for any attributes - these are
             # fixed strings and so not worth retrieving dynamically.
             if not self.skip_description:
