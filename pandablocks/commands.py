@@ -311,28 +311,30 @@ class _FieldCommandMapping:
 
 @dataclass
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
-    """Get the fields of a block, returning a `FieldInfo` for each one, ordered
-    to match the definition order in the PandA
+    """Get the fields of a block, returning a `FieldInfo` (or appropriate subclass) for
+    each one, ordered to match the definition order in the PandA
     TODO: Update this!
 
     Args:
         block: The name of the block type
-        skip_description: If `True`, prevents retrieving the description
-            for each Field. This will reduce network calls.
+        extended_metadata: If `True`, retrieves detailed metadata about a field and
+            all of its attributes. This will cause an additional network round trip.
+            If `False` only the field names and types will be returned. Default `True`.
 
     For example::
 
         GetFieldInfo("LUT") -> {
             "INPA":
-                FieldInfo(type='bit_mux',
-                        subtype=None,
-                        description='Input A',
-                        label=['TTLIN1.VAL', 'TTLIN2.VAL', ...]),
+                BitMuxFieldInfo(type='bit_mux',
+                                subtype=None,
+                                description='Input A',
+                                max_delay=5
+                                label=['TTLIN1.VAL', 'TTLIN2.VAL', ...]),
             ...}
     """
 
     block: str
-    skip_description: bool = False
+    extended_metadata: bool = True
 
     def _commands_param_uint(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
@@ -574,24 +576,28 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 # TODO: Add TABLE support?
             }
 
-            try:
-                # Create type-specific commands
-                field_info, command_mapping = _commands_map[(field_type, subtype)](
-                    name, field_type, subtype
-                )
-            except KeyError:
-                # No type-specific commands to create
-                # Note that this deliberately allows all types and subtypes, to allow
-                # future changes to the server's types without breaking the clients.
-                # TODO: Add tests for unknown types and subtypes
+            if self.extended_metadata is False:
                 field_info = FieldInfo(field_type, subtype)
-                command_mapping = []
+            else:
 
-            # Description is common to all fields, and its retrieval may be disabled,
-            # hence why it is handled here.
-            # Note that we don't get the description for any attributes - these are
-            # fixed strings and so not worth retrieving dynamically.
-            if not self.skip_description:
+                try:
+                    # Create type-specific commands
+                    field_info, command_mapping = _commands_map[(field_type, subtype)](
+                        name, field_type, subtype
+                    )
+                except KeyError:
+                    # No type-specific commands to create
+                    # Note that this deliberately allows all types and subtypes, to
+                    # allow future changes to the server's types without breaking the
+                    # clients.
+                    # TODO: Add tests for unknown types and subtypes
+                    # TODO: Add a warning we encountered an unknown type
+                    field_info = FieldInfo(field_type, subtype)
+                    command_mapping = []
+
+                # Description is common to all fields
+                # Note that we don't get the description for any attributes - these are
+                # fixed strings and so not worth retrieving dynamically.
                 command_mapping.append(
                     _FieldCommandMapping(
                         Get(f"*DESC.{self.block}.{name}"),
@@ -601,12 +607,16 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                     )
                 )
 
-            command_mapping_list.extend(command_mapping)
+                command_mapping_list.extend(command_mapping)
 
             unsorted[int(index)] = (name, field_info)
 
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
+
+        if self.extended_metadata is False:
+            # Asked to not perform the requests for extra metadata.
+            return fields
 
         returned_values = yield from _execute_commands(
             *[item.command for item in command_mapping_list]

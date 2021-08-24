@@ -26,6 +26,7 @@ from pandablocks.responses import (
     EnumFieldInfo,
     ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
+    FieldInfo,
     PosMuxFieldInfo,
     PosOutFieldInfo,
     ScalarFieldInfo,
@@ -289,29 +290,22 @@ def test_get_fields_type_ext_out():
     ]
 
 
-def test_get_fields_skip_description():
-    """Test that the skip_description flag causes no description to be retrieved
+def test_get_fields_skip_metadata():
+    """Test that the skip_metadata flag causes no description to be retrieved
     for the field"""
     conn = ControlConnection()
-    cmd = GetFieldInfo("PCAP", True)
+    cmd = GetFieldInfo("PCAP", False)
     assert conn.send(cmd) == b"PCAP.*?\n"
 
-    assert (
-        conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n")
-        == b"*ENUMS.PCAP.SAMPLES.CAPTURE?\n"
-    )
-
-    assert conn.receive_bytes(b"!No\n!Value\n.\n") == b""
+    assert conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n") == b""
 
     assert get_responses(conn) == [
         (
             cmd,
             {
-                "SAMPLES": ExtOutFieldInfo(
+                "SAMPLES": FieldInfo(
                     type="ext_out",
                     subtype="samples",
-                    description=None,
-                    capture_labels=["No", "Value"],
                 )
             },
         )
@@ -331,7 +325,7 @@ def test_get_fields_non_existant_block():
         (
             cmd,
             ACommandException(
-                "GetFieldInfo(block='FOO', skip_description=False) -> ERR No such block"
+                "GetFieldInfo(block='FOO', extended_metadata=True) -> ERR No such block"
             ),
         )
     ]
@@ -344,170 +338,236 @@ def test_get_fields_non_existant_block():
         (
             "param",
             "uint",
-            "TEST1.TEST_FIELD.MAX?\n",
-            ["OK =10\n"],
-            UintFieldInfo("param", "uint", max=10),
+            "TEST1.TEST_FIELD.MAX?\n*DESC.TEST.TEST_FIELD?\n",
+            ["OK =10\n", "OK =Test Description\n"],
+            UintFieldInfo("param", "uint", max=10, description="Test Description"),
         ),
         (
             "read",
             "uint",
-            "TEST1.TEST_FIELD.MAX?\n",
-            ["OK =67\n"],
-            UintFieldInfo("read", "uint", max=67),
+            "TEST1.TEST_FIELD.MAX?\n*DESC.TEST.TEST_FIELD?\n",
+            ["OK =67\n", "OK =Test Description\n"],
+            UintFieldInfo("read", "uint", max=67, description="Test Description"),
         ),
         (
             "write",
             "uint",
-            "TEST1.TEST_FIELD.MAX?\n",
-            ["OK =58\n"],
-            UintFieldInfo("write", "uint", max=58),
+            "TEST1.TEST_FIELD.MAX?\n*DESC.TEST.TEST_FIELD?\n",
+            ["OK =58\n", "OK =Test Description\n"],
+            UintFieldInfo("write", "uint", max=58, description="Test Description"),
         ),
         (
             "param",
             "scalar",
-            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\nTEST.TEST_FIELD.OFFSET?\n",
+            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\n"
+            + "TEST.TEST_FIELD.OFFSET?\n*DESC.TEST.TEST_FIELD?\n",
             [
                 "OK =some_units\n",
                 "OK =0.5\n",
                 "OK =8\n",
+                "OK =Test Description\n",
             ],
-            ScalarFieldInfo("param", "scalar", units="some_units", scale=0.5, offset=8),
+            ScalarFieldInfo(
+                "param",
+                "scalar",
+                units="some_units",
+                scale=0.5,
+                offset=8,
+                description="Test Description",
+            ),
         ),
         (
             "read",
             "scalar",
-            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\nTEST.TEST_FIELD.OFFSET?\n",
-            [
-                "OK =some_units\n",
-                "OK =0.5\n",
-                "OK =8\n",
-            ],
-            ScalarFieldInfo("read", "scalar", units="some_units", scale=0.5, offset=8),
+            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\n"
+            + "TEST.TEST_FIELD.OFFSET?\n*DESC.TEST.TEST_FIELD?\n",
+            ["OK =some_units\n", "OK =0.5\n", "OK =8\n", "OK =Test Description\n"],
+            ScalarFieldInfo(
+                "read",
+                "scalar",
+                units="some_units",
+                scale=0.5,
+                offset=8,
+                description="Test Description",
+            ),
         ),
         (
             "write",
             "scalar",
-            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\nTEST.TEST_FIELD.OFFSET?\n",
-            [
-                "OK =some_units\n",
-                "OK =0.5\n",
-                "OK =8\n",
-            ],
-            ScalarFieldInfo("write", "scalar", units="some_units", scale=0.5, offset=8),
+            "TEST.TEST_FIELD.UNITS?\nTEST.TEST_FIELD.SCALE?\n"
+            + "TEST.TEST_FIELD.OFFSET?\n*DESC.TEST.TEST_FIELD?\n",
+            ["OK =some_units\n", "OK =0.5\n", "OK =8\n", "OK =Test Description\n"],
+            ScalarFieldInfo(
+                "write",
+                "scalar",
+                units="some_units",
+                scale=0.5,
+                offset=8,
+                description="Test Description",
+            ),
         ),
         (
             "param",
             "time",
-            "*ENUMS.TEST.TEST_FIELD.UNITS?\n",
-            [
-                "!VAL1\n!VAL2\n.\n",
-            ],
-            SubtypeTimeFieldInfo("param", "time", units_labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            SubtypeTimeFieldInfo(
+                "param",
+                "time",
+                units_labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
         ),
         (
             "read",
             "time",
-            "*ENUMS.TEST.TEST_FIELD.UNITS?\n",
-            [
-                "!VAL1\n!VAL2\n.\n",
-            ],
-            SubtypeTimeFieldInfo("read", "time", units_labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            SubtypeTimeFieldInfo(
+                "read",
+                "time",
+                units_labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
         ),
         (
             "write",
             "time",
-            "*ENUMS.TEST.TEST_FIELD.UNITS?\n",
-            [
-                "!VAL1\n!VAL2\n.\n",
-            ],
-            SubtypeTimeFieldInfo("write", "time", units_labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            SubtypeTimeFieldInfo(
+                "write",
+                "time",
+                units_labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
         ),
         (
             "param",
             "enum",
-            "*ENUMS.TEST.TEST_FIELD?\n",
-            [
-                "!VAL1\n!VAL2\n.\n",
-            ],
-            EnumFieldInfo("param", "enum", labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            EnumFieldInfo(
+                "param", "enum", labels=["VAL1", "VAL2"], description="Test Description"
+            ),
         ),
         (
             "read",
             "enum",
-            "*ENUMS.TEST.TEST_FIELD?\n",
-            [
-                "!VAL1\n!VAL2\n.\n",
-            ],
-            EnumFieldInfo("read", "enum", labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            EnumFieldInfo(
+                "read", "enum", labels=["VAL1", "VAL2"], description="Test Description"
+            ),
         ),
         (
             "write",
             "enum",
-            "*ENUMS.TEST.TEST_FIELD?\n",
-            [
-                "!VAL1\n!VAL2\n.\n",
-            ],
-            EnumFieldInfo("write", "enum", labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            EnumFieldInfo(
+                "write", "enum", labels=["VAL1", "VAL2"], description="Test Description"
+            ),
         ),
         (
             "time",
             None,
-            "*ENUMS.TEST.TEST_FIELD.UNITS?\nTEST1.TEST_FIELD.MIN?\n",
-            ["!VAL1\n!VAL2\n.\n", "OK =5e-8\n"],
-            TimeFieldInfo("time", None, units_labels=["VAL1", "VAL2"], min=5e-8),
+            "*ENUMS.TEST.TEST_FIELD.UNITS?\nTEST1.TEST_FIELD.MIN?\n"
+            + "*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =5e-8\n", "OK =Test Description\n"],
+            TimeFieldInfo(
+                "time",
+                None,
+                units_labels=["VAL1", "VAL2"],
+                min=5e-8,
+                description="Test Description",
+            ),
         ),
         (
             "bit_out",
             None,
-            "TEST1.TEST_FIELD.CAPTURE_WORD?\nTEST1.TEST_FIELD.OFFSET?\n",
-            ["OK =PCAP.BITS1\n", "OK =12\n"],
-            BitOutFieldInfo("bit_out", None, capture_word="PCAP.BITS1", offset=12),
+            "TEST1.TEST_FIELD.CAPTURE_WORD?\nTEST1.TEST_FIELD.OFFSET?\n"
+            + "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =PCAP.BITS1\n", "OK =12\n", "OK =Test Description\n"],
+            BitOutFieldInfo(
+                "bit_out",
+                None,
+                capture_word="PCAP.BITS1",
+                offset=12,
+                description="Test Description",
+            ),
         ),
         (
             "bit_mux",
             None,
-            "TEST1.TEST_FIELD.MAX_DELAY?\n*ENUMS.TEST.TEST_FIELD?\n",
-            ["OK =25\n", "!VAL1\n!VAL2\n.\n"],
-            BitMuxFieldInfo("bit_mux", None, max_delay=25, labels=["VAL1", "VAL2"]),
+            "TEST1.TEST_FIELD.MAX_DELAY?\n*ENUMS.TEST.TEST_FIELD?\n"
+            + "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =25\n", "!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            BitMuxFieldInfo(
+                "bit_mux",
+                None,
+                max_delay=25,
+                labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
         ),
         (
             "pos_mux",
             None,
-            "*ENUMS.TEST.TEST_FIELD?\n",
-            ["!VAL1\n!VAL2\n.\n"],
-            PosMuxFieldInfo("pos_mux", None, labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            PosMuxFieldInfo(
+                "pos_mux", None, labels=["VAL1", "VAL2"], description="Test Description"
+            ),
         ),
         (
             "pos_out",
             None,
-            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
-            ["!VAL1\n!VAL2\n.\n"],
-            PosOutFieldInfo("pos_out", None, capture_labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            PosOutFieldInfo(
+                "pos_out",
+                None,
+                capture_labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
         ),
         (
             "ext_out",
             "timestamp",
-            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
-            ["!VAL1\n!VAL2\n.\n"],
-            ExtOutFieldInfo("ext_out", "timestamp", capture_labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            ExtOutFieldInfo(
+                "ext_out",
+                "timestamp",
+                capture_labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
         ),
         (
             "ext_out",
             "samples",
-            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
-            ["!VAL1\n!VAL2\n.\n"],
-            ExtOutFieldInfo("ext_out", "samples", capture_labels=["VAL1", "VAL2"]),
+            "*ENUMS.TEST.TEST_FIELD.CAPTURE?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            ExtOutFieldInfo(
+                "ext_out",
+                "samples",
+                capture_labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
         ),
         (
             "ext_out",
             "bits",
-            "TEST.TEST_FIELD.BITS?\n*ENUMS.TEST.TEST_FIELD.CAPTURE?\n",
-            ["!BITS1\n!BITS2\n.\n", "!VAL1\n!VAL2\n.\n"],
+            "TEST.TEST_FIELD.BITS?\n*ENUMS.TEST.TEST_FIELD.CAPTURE?\n"
+            + "*DESC.TEST.TEST_FIELD?\n",
+            ["!BITS1\n!BITS2\n.\n", "!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
             ExtOutBitsFieldInfo(
                 "ext_out",
                 "bits",
                 bits=["BITS1", "BITS2"],
                 capture_labels=["VAL1", "VAL2"],
+                description="Test Description",
             ),
         ),
     ],
@@ -515,10 +575,11 @@ def test_get_fields_non_existant_block():
 def test_get_fields_parameterized_type(
     field_type, field_subtype, expected_get_string, responses, expected_field_info
 ):
-    """Test every field type-subtype pair that has a defined function
-    and confirm it sends the expected Get commands to the server"""
+    """Test every defined field type-subtype pair that has a defined function
+    and confirm it creates the expected FieldInfo (or subclass) with the expected
+    data"""
     conn = ControlConnection()
-    cmd = GetFieldInfo("TEST", skip_description=True)
+    cmd = GetFieldInfo("TEST", extended_metadata=True)
     assert conn.send(cmd) == b"TEST.*?\n"
 
     if field_subtype is None:
