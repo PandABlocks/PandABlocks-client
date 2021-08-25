@@ -337,7 +337,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     block: str
     extended_metadata: bool = True
 
-    def _commands_param_uint(
+    def _param_uint(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -352,7 +352,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info.max = int(max)
         return field_name, field_info
 
-    def _commands_scalar(
+    def _scalar(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -377,7 +377,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         return field_name, field_info
 
-    def _commands_subtype_time(
+    def _subtype_time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -396,7 +396,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         return field_name, field_info
 
-    def _commands_enum(
+    def _enum(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -415,7 +415,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         return field_name, field_info
 
-    def _commands_time(
+    def _time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -437,7 +437,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         return field_name, field_info
 
-    def _commands_bit_out(
+    def _bit_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -459,7 +459,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         return field_name, field_info
 
-    def _commands_bit_mux(
+    def _bit_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -481,7 +481,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         return field_name, field_info
 
-    def _commands_pos_mux(
+    def _pos_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -494,7 +494,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info.labels = list(labels)
         return field_name, field_info
 
-    def _commands_pos_out(
+    def _pos_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -511,7 +511,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info.capture_labels = list(capture)
         return field_name, field_info
 
-    def _commands_ext_out(
+    def _ext_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -532,7 +532,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             field_info,
         )
 
-    def _commands_ext_out_bits(
+    def _ext_out_bits(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
         Tuple[FieldInfo, List[Get]],
@@ -601,26 +601,26 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             ] = {
                 # TODO: No reason to have the "commands" part in all these method names
                 # Order matches that of PandA server's Field Types docs
-                ("time", None): self._commands_time,
-                ("bit_out", None): self._commands_bit_out,
-                ("pos_out", None): self._commands_pos_out,
-                ("ext_out", "timestamp"): self._commands_ext_out,
-                ("ext_out", "samples"): self._commands_ext_out,
-                ("ext_out", "bits"): self._commands_ext_out_bits,
-                ("bit_mux", None): self._commands_bit_mux,
-                ("pos_mux", None): self._commands_pos_mux,
-                ("param", "uint"): self._commands_param_uint,
-                ("read", "uint"): self._commands_param_uint,
-                ("write", "uint"): self._commands_param_uint,
-                ("param", "scalar"): self._commands_scalar,
-                ("read", "scalar"): self._commands_scalar,
-                ("write", "scalar"): self._commands_scalar,
-                ("param", "time"): self._commands_subtype_time,
-                ("read", "time"): self._commands_subtype_time,
-                ("write", "time"): self._commands_subtype_time,
-                ("param", "enum"): self._commands_enum,
-                ("read", "enum"): self._commands_enum,
-                ("write", "enum"): self._commands_enum,
+                ("time", None): self._time,
+                ("bit_out", None): self._bit_out,
+                ("pos_out", None): self._pos_out,
+                ("ext_out", "timestamp"): self._ext_out,
+                ("ext_out", "samples"): self._ext_out,
+                ("ext_out", "bits"): self._ext_out_bits,
+                ("bit_mux", None): self._bit_mux,
+                ("pos_mux", None): self._pos_mux,
+                ("param", "uint"): self._param_uint,
+                ("read", "uint"): self._param_uint,
+                ("write", "uint"): self._param_uint,
+                ("param", "scalar"): self._scalar,
+                ("read", "scalar"): self._scalar,
+                ("write", "scalar"): self._scalar,
+                ("param", "time"): self._subtype_time,
+                ("read", "time"): self._subtype_time,
+                ("write", "time"): self._subtype_time,
+                ("param", "enum"): self._enum,
+                ("read", "enum"): self._enum,
+                ("write", "enum"): self._enum,
                 # TODO: Add TABLE support
             }
 
