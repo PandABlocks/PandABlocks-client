@@ -6,6 +6,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Generic,
     List,
     Optional,
@@ -509,31 +510,33 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _commands_ext_out_bits(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        List[Get],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = ExtOutBitsFieldInfo(field_type, field_subtype)
-        return (
-            field_info,
-            [
-                _FieldCommandMapping(
-                    Get(f"{self.block}.{field_name}.BITS"),
-                    field_info,
-                    "bits",
-                    list,
-                ),
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
-                    field_info,
-                    "capture_labels",
-                    list,
-                ),
-            ],
-        )
+
+        bits, capture_labels = yield [
+            Get(f"{self.block}.{field_name}.BITS"),
+            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+        ]
+        field_info.bits = list(bits)
+        field_info.capture_labels = list(capture_labels)
+
+        return field_name, field_info
 
     def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
-        command_mapping_list: List[_FieldCommandMapping] = []
+        gets_list: List[
+            Generator[
+                List[Get],
+                Tuple[Union[List[str], str], ...],
+                Tuple[str, FieldInfo],
+            ]
+        ] = []
         for line in ex.multiline:
             name, index, type_subtype = line.split(maxsplit=2)
 
@@ -549,65 +552,66 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 Tuple[str, Optional[str]],
                 Callable[
                     [str, str, Optional[str]],
-                    Tuple[FieldInfo, List[_FieldCommandMapping]],
+                    Generator[
+                        List[Get],
+                        Tuple[Union[List[str], str], ...],
+                        Tuple[str, FieldInfo],
+                    ],
                 ],
             ] = {
                 # Order matches that of PandA server's Field Types docs
-                ("time", None): self._commands_time,
-                ("bit_out", None): self._commands_bit_out,
-                ("pos_out", None): self._commands_pos_out,
-                ("ext_out", "timestamp"): self._commands_ext_out,
-                ("ext_out", "samples"): self._commands_ext_out,
+                # ("time", None): self._commands_time,
+                # ("bit_out", None): self._commands_bit_out,
+                # ("pos_out", None): self._commands_pos_out,
+                # ("ext_out", "timestamp"): self._commands_ext_out,
+                # ("ext_out", "samples"): self._commands_ext_out,
                 ("ext_out", "bits"): self._commands_ext_out_bits,
-                ("bit_mux", None): self._commands_bit_mux,
-                ("pos_mux", None): self._commands_pos_mux,
-                ("param", "uint"): self._commands_param_uint,
-                ("read", "uint"): self._commands_param_uint,
-                ("write", "uint"): self._commands_param_uint,
-                ("param", "scalar"): self._commands_scalar,
-                ("read", "scalar"): self._commands_scalar,
-                ("write", "scalar"): self._commands_scalar,
-                ("param", "time"): self._commands_subtype_time,
-                ("read", "time"): self._commands_subtype_time,
-                ("write", "time"): self._commands_subtype_time,
-                ("param", "enum"): self._commands_enum,
-                ("read", "enum"): self._commands_enum,
-                ("write", "enum"): self._commands_enum,
+                # ("bit_mux", None): self._commands_bit_mux,
+                # ("pos_mux", None): self._commands_pos_mux,
+                # ("param", "uint"): self._commands_param_uint,
+                # ("read", "uint"): self._commands_param_uint,
+                # ("write", "uint"): self._commands_param_uint,
+                # ("param", "scalar"): self._commands_scalar,
+                # ("read", "scalar"): self._commands_scalar,
+                # ("write", "scalar"): self._commands_scalar,
+                # ("param", "time"): self._commands_subtype_time,
+                # ("read", "time"): self._commands_subtype_time,
+                # ("write", "time"): self._commands_subtype_time,
+                # ("param", "enum"): self._commands_enum,
+                # ("read", "enum"): self._commands_enum,
+                # ("write", "enum"): self._commands_enum,
                 # TODO: Add TABLE support?
             }
 
-            if self.extended_metadata is False:
-                field_info = FieldInfo(field_type, subtype)
-            else:
+            # Always create default FieldInfo. If necessary we will replace it later
+            # with a more type-specific version.
+            field_info = FieldInfo(field_type, subtype)
 
-                try:
-                    # Create type-specific commands
-                    field_info, command_mapping = _commands_map[(field_type, subtype)](
-                        name, field_type, subtype
-                    )
-                except KeyError:
-                    # No type-specific commands to create
-                    # Note that this deliberately allows all types and subtypes, to
-                    # allow future changes to the server's types without breaking the
-                    # clients.
-                    # TODO: Add tests for unknown types and subtypes
-                    # TODO: Add a warning we encountered an unknown type
-                    field_info = FieldInfo(field_type, subtype)
-                    command_mapping = []
-
-                # Description is common to all fields
-                # Note that we don't get the description for any attributes - these are
-                # fixed strings and so not worth retrieving dynamically.
-                command_mapping.append(
-                    _FieldCommandMapping(
-                        Get(f"*DESC.{self.block}.{name}"),
-                        field_info,
-                        "description",
-                        str,
-                    )
+            try:
+                # Construct the list of type-specific generators
+                gets_list.append(
+                    _commands_map[(field_type, subtype)](name, field_type, subtype)
                 )
+            except KeyError:
+                # No type-specific commands to create
+                # Note that this deliberately allows all types and subtypes, to
+                # allow future changes to the server's types without breaking the
+                # clients.
+                # TODO: Add tests for unknown types and subtypes
+                # TODO: Add a warning we encountered an unknown type
+                pass
 
-                command_mapping_list.extend(command_mapping)
+            # Description is common to all fields
+            # Note that we don't get the description for any attributes - these are
+            # fixed strings and so not worth retrieving dynamically.
+            # command_mapping.append(
+            #     _FieldCommandMapping(
+            #         Get(f"*DESC.{self.block}.{name}"),
+            #         field_info,
+            #         "description",
+            #         str,
+            #     )
+            # )
 
             unsorted[int(index)] = (name, field_info)
 
@@ -618,27 +622,32 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             # Asked to not perform the requests for extra metadata.
             return fields
 
+        # Query each generator for each field for the list of Get commands
+        # it needs to perform
+        new_list = [next(item) for item in gets_list]
+
+        # Execute the (flattened) list of Get commands
         returned_values = yield from _execute_commands(
-            *[item.command for item in command_mapping_list]
+            *[item for sublist in new_list for item in sublist]
         )
 
-        for value, field_mapping in zip(returned_values, command_mapping_list):
-            field_info = field_mapping.field_info
-            attribute = field_mapping.attribute
+        # Convert the flat list of returned_values into a list that matches the shape
+        # of the original generators - i.e. a list of lists of responses, where each
+        # sub-list's length matches the number of Get requests that generator made.
+        items_per_generator = [len(item) for item in new_list]
+        split_vals = []
+        idx = 0
+        for count in items_per_generator:
+            split_vals.append(returned_values[idx : idx + count])
+            idx += count
 
-            assert hasattr(field_info, attribute)
-
-            # TODO: I'd like to do this, but it seems like we can't:
-            # "TypeError:Subscripted generics cannot be used with class and
-            # instance checks"
-            # This error appears when attemping to deal with List[str].
-            # We can either remove the "str" part, or check one of these
-            # libraries (or upgrade to Python3.8 for typing.get_args()!)
-            # https://stackoverflow.com/questions/51171908/extracting-data-from-typing-types
-            # types = typing.get_type_hints(field_info)
-            # assert isinstance(value, types[attribute].__args__[0])
-
-            setattr(field_info, attribute, field_mapping.type_func(value))
+        # Pass the values back to the generators and save the result
+        for i, generator in enumerate(gets_list):
+            try:
+                generator.send(split_vals[i])
+            except StopIteration as e:
+                field_name, field_info = e.value
+                fields[field_name] = field_info
 
         return fields
 
