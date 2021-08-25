@@ -339,173 +339,197 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _commands_param_uint(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = UintFieldInfo(field_type, field_subtype)
 
-        return (
-            field_info,
-            [
-                _FieldCommandMapping(
-                    Get(f"{self.block}1.{field_name}.MAX"), field_info, "max", int
-                )
-            ],
-        )
+        (max,) = yield (field_info, [Get(f"{self.block}1.{field_name}.MAX")])
+
+        assert isinstance(max, str)
+        field_info.max = int(max)
+        return field_name, field_info
 
     def _commands_scalar(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = ScalarFieldInfo(field_type, field_subtype)
 
-        return (
+        units, scale, offset = yield (
             field_info,
             [
-                _FieldCommandMapping(
-                    Get(f"{self.block}.{field_name}.UNITS"), field_info, "units", str
-                ),
-                _FieldCommandMapping(
-                    Get(f"{self.block}.{field_name}.SCALE"), field_info, "scale", float
-                ),
-                _FieldCommandMapping(
-                    Get(f"{self.block}.{field_name}.OFFSET"), field_info, "offset", int
-                ),
+                Get(f"{self.block}.{field_name}.UNITS"),
+                Get(f"{self.block}.{field_name}.SCALE"),
+                Get(f"{self.block}.{field_name}.OFFSET"),
             ],
         )
+        assert isinstance(scale, str)
+        assert isinstance(offset, str)
+        field_info.units = str(units)
+        field_info.scale = float(scale)
+        field_info.offset = int(offset)
+
+        return field_name, field_info
 
     def _commands_subtype_time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = SubtypeTimeFieldInfo(field_type, field_subtype)
-        return (
+
+        (units,) = yield (
             field_info,
             [
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
-                    field_info,
-                    "units_labels",
-                    list,
-                ),
+                Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
             ],
         )
+        field_info.units_labels = list(units)
+
+        return field_name, field_info
 
     def _commands_enum(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = EnumFieldInfo(field_type, field_subtype)
-        return (
+
+        (labels,) = yield (
             field_info,
             [
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}"),
-                    field_info,
-                    "labels",
-                    list,
-                ),
+                Get(f"*ENUMS.{self.block}.{field_name}"),
             ],
         )
+        field_info.labels = list(labels)
+
+        return field_name, field_info
 
     def _commands_time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = TimeFieldInfo(field_type, field_subtype)
-        return (
+
+        units, min = yield (
             field_info,
             [
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
-                    field_info,
-                    "units_labels",
-                    list,
-                ),
-                _FieldCommandMapping(
-                    Get(f"{self.block}1.{field_name}.MIN"), field_info, "min", float
-                ),
+                Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+                Get(f"{self.block}1.{field_name}.MIN"),
             ],
         )
+        assert isinstance(min, str)
+        field_info.units_labels = list(units)
+        field_info.min = float(min)
+
+        return field_name, field_info
 
     def _commands_bit_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = BitOutFieldInfo(field_type, field_subtype)
-        return (
+
+        capture_word, offset = yield (
             field_info,
             [
-                _FieldCommandMapping(
-                    Get(f"{self.block}1.{field_name}.CAPTURE_WORD"),
-                    field_info,
-                    "capture_word",
-                    str,
-                ),
-                _FieldCommandMapping(
-                    Get(f"{self.block}1.{field_name}.OFFSET"),
-                    field_info,
-                    "offset",
-                    int,
-                ),
+                Get(f"{self.block}1.{field_name}.CAPTURE_WORD"),
+                Get(f"{self.block}1.{field_name}.OFFSET"),
             ],
         )
+        assert isinstance(offset, str)
+        field_info.capture_word = str(capture_word)
+        field_info.offset = int(offset)
+
+        return field_name, field_info
 
     def _commands_bit_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = BitMuxFieldInfo(field_type, field_subtype)
-        return (
+
+        max_delay, labels = yield (
             field_info,
             [
-                _FieldCommandMapping(
-                    Get(f"{self.block}1.{field_name}.MAX_DELAY"),
-                    field_info,
-                    "max_delay",
-                    int,
-                ),
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}"), field_info, "labels", list
-                ),
+                Get(f"{self.block}1.{field_name}.MAX_DELAY"),
+                Get(f"*ENUMS.{self.block}.{field_name}"),
             ],
         )
+        assert isinstance(max_delay, str)
+        field_info.max_delay = int(max_delay)
+        field_info.labels = list(labels)
+
+        return field_name, field_info
 
     def _commands_pos_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = PosMuxFieldInfo(field_type, field_subtype)
-        return (
-            field_info,
-            [
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}"), field_info, "labels", list
-                ),
-            ],
-        )
+
+        (labels,) = yield (field_info, [Get(f"*ENUMS.{self.block}.{field_name}")])
+        field_info.labels = list(labels)
+        return field_name, field_info
 
     def _commands_pos_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = PosOutFieldInfo(field_type, field_subtype)
-        return (
+
+        (capture,) = yield (
             field_info,
-            [
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
-                    field_info,
-                    "capture_labels",
-                    list,
-                ),
-            ],
+            [Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")],
         )
+
+        field_info.capture_labels = list(capture)
+        return field_name, field_info
 
     def _commands_ext_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Tuple[FieldInfo, List[_FieldCommandMapping]]:
+    ) -> Generator[
+        Tuple[FieldInfo, List[Get]],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
         field_info = ExtOutFieldInfo(field_type, field_subtype)
-        return (
+
+        (capture,) = yield (
             field_info,
-            [
-                _FieldCommandMapping(
-                    Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
-                    field_info,
-                    "capture_labels",
-                    list,
-                ),
-            ],
+            [Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")],
+        )
+
+        field_info.capture_labels = list(capture)
+
+        return (
+            field_name,
+            field_info,
         )
 
     def _commands_ext_out_bits(
@@ -577,55 +601,56 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             ] = {
                 # TODO: No reason to have the "commands" part in all these method names
                 # Order matches that of PandA server's Field Types docs
-                # ("time", None): self._commands_time,
-                # ("bit_out", None): self._commands_bit_out,
-                # ("pos_out", None): self._commands_pos_out,
-                # ("ext_out", "timestamp"): self._commands_ext_out,
-                # ("ext_out", "samples"): self._commands_ext_out,
+                ("time", None): self._commands_time,
+                ("bit_out", None): self._commands_bit_out,
+                ("pos_out", None): self._commands_pos_out,
+                ("ext_out", "timestamp"): self._commands_ext_out,
+                ("ext_out", "samples"): self._commands_ext_out,
                 ("ext_out", "bits"): self._commands_ext_out_bits,
-                # ("bit_mux", None): self._commands_bit_mux,
-                # ("pos_mux", None): self._commands_pos_mux,
-                # ("param", "uint"): self._commands_param_uint,
-                # ("read", "uint"): self._commands_param_uint,
-                # ("write", "uint"): self._commands_param_uint,
-                # ("param", "scalar"): self._commands_scalar,
-                # ("read", "scalar"): self._commands_scalar,
-                # ("write", "scalar"): self._commands_scalar,
-                # ("param", "time"): self._commands_subtype_time,
-                # ("read", "time"): self._commands_subtype_time,
-                # ("write", "time"): self._commands_subtype_time,
-                # ("param", "enum"): self._commands_enum,
-                # ("read", "enum"): self._commands_enum,
-                # ("write", "enum"): self._commands_enum,
-                # TODO: Add TABLE support?
+                ("bit_mux", None): self._commands_bit_mux,
+                ("pos_mux", None): self._commands_pos_mux,
+                ("param", "uint"): self._commands_param_uint,
+                ("read", "uint"): self._commands_param_uint,
+                ("write", "uint"): self._commands_param_uint,
+                ("param", "scalar"): self._commands_scalar,
+                ("read", "scalar"): self._commands_scalar,
+                ("write", "scalar"): self._commands_scalar,
+                ("param", "time"): self._commands_subtype_time,
+                ("read", "time"): self._commands_subtype_time,
+                ("write", "time"): self._commands_subtype_time,
+                ("param", "enum"): self._commands_enum,
+                ("read", "enum"): self._commands_enum,
+                ("write", "enum"): self._commands_enum,
+                # TODO: Add TABLE support
             }
 
             # Always create default FieldInfo. If necessary we will replace it later
             # with a more type-specific version.
             field_info = FieldInfo(field_type, subtype)
 
-            try:
-                # Construct the list of type-specific generators
-                generators_list.append(
-                    _commands_map[(field_type, subtype)](name, field_type, subtype)
-                )
+            if self.extended_metadata:
+                try:
+                    # Construct the list of type-specific generators
+                    generators_list.append(
+                        _commands_map[(field_type, subtype)](name, field_type, subtype)
+                    )
+                    field_info, get_cmds = next(generators_list[-1])
+                    get_cmds_list.append(get_cmds)
+                except KeyError:
+                    # No type-specific commands to create
+                    # Note that this deliberately allows all types and subtypes, to
+                    # allow future changes to the server's types without breaking the
+                    # clients.
+                    # TODO: Add tests for unknown types and subtypes
+                    # TODO: Add a warning we encountered an unknown type
+                    pass
+
+                # Description is common to all fields
+                # Note that we don't get the description for any attributes - these are
+                # fixed strings and so not worth retrieving dynamically.
+                generators_list.append(self._description(name, field_info))
                 field_info, get_cmds = next(generators_list[-1])
                 get_cmds_list.append(get_cmds)
-            except KeyError:
-                # No type-specific commands to create
-                # Note that this deliberately allows all types and subtypes, to
-                # allow future changes to the server's types without breaking the
-                # clients.
-                # TODO: Add tests for unknown types and subtypes
-                # TODO: Add a warning we encountered an unknown type
-                pass
-
-            # Description is common to all fields
-            # Note that we don't get the description for any attributes - these are
-            # fixed strings and so not worth retrieving dynamically.
-            generators_list.append(self._description(name, field_info))
-            field_info, get_cmds = next(generators_list[-1])
-            get_cmds_list.append(get_cmds)
 
             unsorted[int(index)] = (name, field_info)
 
