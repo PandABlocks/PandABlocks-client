@@ -511,32 +511,32 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _commands_ext_out_bits(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> Generator[
-        List[Get],
+        Tuple[FieldInfo, List[Get]],
         Tuple[Union[List[str], str], ...],
         Tuple[str, FieldInfo],
     ]:
         field_info = ExtOutBitsFieldInfo(field_type, field_subtype)
 
-        desc, bits, capture_labels = yield [
-            Get(f"*DESC.{self.block}.{field_name}"),
-            Get(f"{self.block}.{field_name}.BITS"),
-            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
-        ]
-        field_info.description = str(desc)
+        bits, capture_labels = yield (
+            field_info,
+            [
+                Get(f"{self.block}.{field_name}.BITS"),
+                Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+            ],
+        )
         field_info.bits = list(bits)
         field_info.capture_labels = list(capture_labels)
 
         return field_name, field_info
 
     def _description(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self, field_name: str, field_info: FieldInfo
     ) -> Generator[
-        List[Get],
+        Tuple[FieldInfo, List[Get]],
         Tuple[Union[List[str], str], ...],
         Tuple[str, FieldInfo],
     ]:
-        field_info = FieldInfo(field_type, field_subtype)
-        (desc,) = yield [Get(f"*DESC.{self.block}.{field_name}")]
+        (desc,) = yield (field_info, [Get(f"*DESC.{self.block}.{field_name}")])
         field_info.description = str(desc)
 
         return field_name, field_info
@@ -545,9 +545,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         ex = Exchange(f"{self.block}.*?")
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
-        gets_list: List[
+        get_cmds_list: List[List[Get]] = []
+        generators_list: List[
             Generator[
-                List[Get],
+                Tuple[FieldInfo, List[Get]],
                 Tuple[Union[List[str], str], ...],
                 Tuple[str, FieldInfo],
             ]
@@ -568,13 +569,13 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 Callable[
                     [str, str, Optional[str]],
                     Generator[
-                        List[Get],
+                        Tuple[FieldInfo, List[Get]],
                         Tuple[Union[List[str], str], ...],
                         Tuple[str, FieldInfo],
                     ],
                 ],
             ] = {
-                # TODO: No reason to have the "commands" part in all these method names...
+                # TODO: No reason to have the "commands" part in all these method names
                 # Order matches that of PandA server's Field Types docs
                 # ("time", None): self._commands_time,
                 # ("bit_out", None): self._commands_bit_out,
@@ -605,9 +606,11 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
             try:
                 # Construct the list of type-specific generators
-                gets_list.append(
+                generators_list.append(
                     _commands_map[(field_type, subtype)](name, field_type, subtype)
                 )
+                field_info, get_cmds = next(generators_list[-1])
+                get_cmds_list.append(get_cmds)
             except KeyError:
                 # No type-specific commands to create
                 # Note that this deliberately allows all types and subtypes, to
@@ -615,8 +618,14 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 # clients.
                 # TODO: Add tests for unknown types and subtypes
                 # TODO: Add a warning we encountered an unknown type
-                gets_list.append(self._description(name, field_type, subtype))
                 pass
+
+            # Description is common to all fields
+            # Note that we don't get the description for any attributes - these are
+            # fixed strings and so not worth retrieving dynamically.
+            generators_list.append(self._description(name, field_info))
+            field_info, get_cmds = next(generators_list[-1])
+            get_cmds_list.append(get_cmds)
 
             unsorted[int(index)] = (name, field_info)
 
@@ -627,27 +636,27 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             # Asked to not perform the requests for extra metadata.
             return fields
 
-        # Query each generator for each field for the list of Get commands
-        # it needs to perform
-        new_list = [next(item) for item in gets_list]
-
         # Execute the (flattened) list of Get commands
         returned_values = yield from _execute_commands(
-            *[item for sublist in new_list for item in sublist]
+            *[item for sublist in get_cmds_list for item in sublist]
         )
 
         # Convert the flat list of returned_values into a list that matches the shape
         # of the original generators - i.e. a list of lists of responses, where each
         # sub-list's length matches the number of Get requests that generator made.
-        items_per_generator = [len(item) for item in new_list]
+        items_per_generator = [len(item) for item in get_cmds_list]
         split_vals = []
         idx = 0
         for count in items_per_generator:
             split_vals.append(returned_values[idx : idx + count])
             idx += count
 
+        assert len(split_vals) == len(
+            generators_list
+        ), f"Mismatched responses received when performing GetFieldInfo({self.block})"
+
         # Pass the values back to the generators and save the result
-        for i, generator in enumerate(gets_list):
+        for i, generator in enumerate(generators_list):
             try:
                 generator.send(split_vals[i])
             except StopIteration as e:
