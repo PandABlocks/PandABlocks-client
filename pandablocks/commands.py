@@ -517,12 +517,27 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ]:
         field_info = ExtOutBitsFieldInfo(field_type, field_subtype)
 
-        bits, capture_labels = yield [
+        desc, bits, capture_labels = yield [
+            Get(f"*DESC.{self.block}.{field_name}"),
             Get(f"{self.block}.{field_name}.BITS"),
             Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
         ]
+        field_info.description = str(desc)
         field_info.bits = list(bits)
         field_info.capture_labels = list(capture_labels)
+
+        return field_name, field_info
+
+    def _description(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> Generator[
+        List[Get],
+        Tuple[Union[List[str], str], ...],
+        Tuple[str, FieldInfo],
+    ]:
+        field_info = FieldInfo(field_type, field_subtype)
+        (desc,) = yield [Get(f"*DESC.{self.block}.{field_name}")]
+        field_info.description = str(desc)
 
         return field_name, field_info
 
@@ -559,6 +574,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                     ],
                 ],
             ] = {
+                # TODO: No reason to have the "commands" part in all these method names...
                 # Order matches that of PandA server's Field Types docs
                 # ("time", None): self._commands_time,
                 # ("bit_out", None): self._commands_bit_out,
@@ -599,19 +615,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 # clients.
                 # TODO: Add tests for unknown types and subtypes
                 # TODO: Add a warning we encountered an unknown type
+                gets_list.append(self._description(name, field_type, subtype))
                 pass
-
-            # Description is common to all fields
-            # Note that we don't get the description for any attributes - these are
-            # fixed strings and so not worth retrieving dynamically.
-            # command_mapping.append(
-            #     _FieldCommandMapping(
-            #         Get(f"*DESC.{self.block}.{name}"),
-            #         field_info,
-            #         "description",
-            #         str,
-            #     )
-            # )
 
             unsorted[int(index)] = (name, field_info)
 
