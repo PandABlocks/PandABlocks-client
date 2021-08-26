@@ -2,7 +2,6 @@
 
 import asyncio
 import inspect
-import sys
 from dataclasses import dataclass
 from string import digits
 from typing import Callable, Dict, List, Optional, Tuple
@@ -16,6 +15,7 @@ from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
     BlockInfo,
+    Changes,
     EnumFieldInfo,
     ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
@@ -30,7 +30,7 @@ from pandablocks.responses import (
 
 # Define the public API of this module
 # TODO!
-# __all__ = [""]
+__all__ = ["create_softioc"]
 
 TIMEOUT = 2
 
@@ -64,16 +64,25 @@ def _create_values_key(field_name: str) -> str:
     return field_name.replace(".", ":")
 
 
-def create_softioc():
-    """Main function of this file. Queries the PandA and creates records from it"""
+def create_softioc(host: str, record_prefix: str) -> None:
+    """Create a PythonSoftIOC from fields and attributes of a PandA.
+
+    This function will introspect a PandA for all defined Blocks, Fields of each Block,
+    and Attributes of each Field, and create appropriate EPICS records for each.
+
+
+    Args:
+        host: The address of the PandA, in IP or hostname form. No port number required.
+        record_prefix: The string prefix used for creation of all records.
+    """
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()
 
-    client = AsyncioClient(sys.argv[1])
+    client = AsyncioClient(host)
 
     asyncio.run_coroutine_threadsafe(client.connect(), dispatcher.loop).result(TIMEOUT)
 
     all_records = asyncio.run_coroutine_threadsafe(
-        create_records(client, dispatcher), dispatcher.loop
+        create_records(client, dispatcher, record_prefix), dispatcher.loop
     ).result()  # TODO add TIMEOUT and exception handling
 
     asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
@@ -106,12 +115,12 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     # Note order of requests is important as it is unpacked below
     returned_infos = await asyncio.gather(
         *[client.send(GetFieldInfo(block)) for block in block_dict],
-        client.send(GetChanges(ChangeGroup.ALL)),
+        client.send(GetChanges(ChangeGroup.ALL)),  # TODO: Add get_multiline=True
     )
 
-    field_infos = returned_infos[0:-1]
+    field_infos: List[Dict[str, FieldInfo]] = returned_infos[0:-1]
 
-    changes = returned_infos[-1]
+    changes: Changes = returned_infos[-1]
     if changes.in_error:
         raise Exception("TODO: Some better error handling")
     # TODO: Do something with changes.no_value ?
@@ -175,11 +184,14 @@ class IocRecordFactory:
         return ([label[:25] for label in labels], labels.index(record_value))
 
     def _check_num_values(self, values: Dict[str, str], num: int) -> None:
-        """Function to check that the number of values is the expected amount.
+        """Function to check that the number of values is at least the expected amount.
+        Allow extra values for future-proofing, if PandA has new fields/attributes the
+        client does not know about.
         Raises AssertionError if incorrect number of values."""
-        assert (
-            len(values) == num
-        ), f"Incorrect number of values, {len(values)}, expected {num}.\n {values}"
+        assert len(values) >= num, (
+            f"Incorrect number of values, {len(values)}, expected at least {num}.\n"
+            + "{values}"
+        )
 
     def _create_record_info(
         self,
@@ -196,15 +208,15 @@ class IocRecordFactory:
         record.
 
         Args:
-            record_name (str): The name this record will be created with
-            description (str): The description for this field. This will be truncated
+            record_name: The name this record will be created with
+            description: The description for this field. This will be truncated
                 to 40 characters due to EPICS limitations.
-            record_creation_func (Callable): The function that will be used to create
+            record_creation_func: The function that will be used to create
                 this record. Expects to be one of the builder.* functions.
-            data_type_func (Callable): The function to use to convert the value returned
+            data_type_func: The function to use to convert the value returned
                 from GetChanges, which will always be a string, into a type appropriate
                 for the record e.g. int, float.
-            labels (List[str]): If the record type being created is a mbbi or mbbo
+            labels: If the record type being created is a mbbi or mbbo
                 record, provide the list of valid labels here.
 
         Returns:
@@ -934,6 +946,7 @@ class IocRecordFactory:
 async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
+    record_prefix: str,
 ) -> Dict[str, _RecordInfo]:
     """Query the PandA and create the relevant records based on the information
     returned"""
@@ -943,7 +956,7 @@ async def create_records(
     # Dictionary containing every record of every type
     all_records: Dict[str, _RecordInfo] = {}
 
-    record_factory = IocRecordFactory("ABC")
+    record_factory = IocRecordFactory(record_prefix)
 
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
@@ -1013,7 +1026,3 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
             else:
                 record.set(record_info.data_type_func(value))
         await asyncio.sleep(1)
-
-
-if __name__ == "__main__":
-    create_softioc()
