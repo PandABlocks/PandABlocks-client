@@ -117,15 +117,15 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     # TODO: Do something with changes.no_value ?
 
     values: Dict[str, Dict[str, str]] = {}
-    for field_name, value in changes.values.items():
-        block_name_number, subfield_name = field_name.split(".", maxsplit=1)
+    for full_field_name, value in changes.values.items():
+        block_name_number, subfield_name = full_field_name.split(".", maxsplit=1)
         block_name = block_name_number.rstrip(digits)
 
-        field_name = _create_values_key(field_name)
+        full_field_name = _create_values_key(full_field_name)
 
         if block_name not in values:
             values[block_name] = {}
-        values[block_name][field_name] = value
+        values[block_name][full_field_name] = value
 
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
@@ -278,7 +278,7 @@ class IocRecordFactory:
 
         return record_dict
 
-    def _make_type_time_write(
+    def _make_type_time(
         self,
         record_name: str,
         field_info: FieldInfo,
@@ -411,6 +411,9 @@ class IocRecordFactory:
             str,
             initial_value=values[units_rec],
         )
+
+        # TODO: Work out how to test SCALED, as well as all tabular,
+        # records as they aren't returned at all
 
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
@@ -860,15 +863,15 @@ class IocRecordFactory:
             Dict[str, _RecordInfo]: A dictionary of all records created and their
                 associated _RecordInfo object
         """
-        key = (field_info.type, field_info.subtype)
-        if key not in self._field_record_mapping:
-            raise Exception(
-                f'Unrecognised type-subtype pair "{key}" when creating {record_name}.'
-                + "Could not create record."
+        try:
+            key = (field_info.type, field_info.subtype)
+            return self._field_record_mapping[key](
+                self, record_name, field_info, field_values
             )
-        return self._field_record_mapping[key](
-            self, record_name, field_info, field_values
-        )
+        except KeyError:
+            # Unrecognised type-subtype key, ignore this item
+            # TODO: Emit a warning
+            return {}
 
     # Map a field's (type, subtype) to a function that creates and returns record(s)
     _field_record_mapping: Dict[
@@ -879,7 +882,7 @@ class IocRecordFactory:
         ],
     ] = {
         # Order matches that of PandA server's Field Types docs
-        ("time", None): _make_type_time_write,
+        ("time", None): _make_type_time,
         ("bit_out", None): _make_bit_out,
         ("pos_out", None): _make_pos_out,
         ("ext_out", "timestamp"): _make_ext_out,
@@ -950,17 +953,16 @@ async def create_records(
         for field, field_info in panda_info.fields.items():
 
             for block_num in range(block_info.number):
-                # ":" separator for EPICS Record names, unlike PandA's "."
-                record_name = block + ":" + field
                 if block_info.number > 1:
                     # If more than 1 block, the block number becomes part of the PandA
                     # block name and hence should become part of the record.
                     # Note PandA block counter is 1-indexed, hence +1
-                    # Only replace first instance to avoid problems with awkward field
-                    # names like "DIV1:DIVISOR"
-                    record_name = record_name.replace(
-                        block, block + str(block_num + 1), 1
-                    )
+                    block_number = block + str(block_num + 1)
+                else:
+                    block_number = block
+
+                # ":" separator for EPICS Record names, unlike PandA's "."
+                record_name = block_number + ":" + field
 
                 # Get the value of the field and all its sub-fields
                 # Watch for cases where the record name is a prefix to multiple
