@@ -57,8 +57,8 @@ class _RecordInfo:
 
 
 def _create_values_key(field_name: str) -> str:
-    """Convert the dictionary key style used in `GetChanges.values` to that used
-    throughout this application"""
+    """Convert the dictionary key style used in `GetChanges.values` to EPICS style,
+    which is used throughout this module"""
     # EPICS record names use ":" as separators rather than PandA's ".".
     # GraphQL doesn't care, so we'll standardise on EPICS version.
     return field_name.replace(".", ":")
@@ -112,10 +112,10 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     block_dict = await client.send(GetBlockInfo())
 
     # Concurrently request info for all fields of all blocks
-    # Note order of requests is important as it is unpacked below
+    # Note order of requests is important as it is unpacked by index below
     returned_infos = await asyncio.gather(
         *[client.send(GetFieldInfo(block)) for block in block_dict],
-        client.send(GetChanges(ChangeGroup.ALL)),  # TODO: Add get_multiline=True
+        client.send(GetChanges(ChangeGroup.ALL, True)),
     )
 
     field_infos: List[Dict[str, FieldInfo]] = returned_infos[0:-1]
@@ -125,16 +125,36 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
         raise Exception("TODO: Some better error handling")
     # TODO: Do something with changes.no_value ?
 
+    # Create a dict which maps block name to all values for all instances
+    # of that block (e.g. {"TTLIN" : {"TTLIN1:VAL": "1", "TTLIN2:VAL" : "5", ...} })
     values: Dict[str, Dict[str, str]] = {}
-    for full_field_name, value in changes.values.items():
-        block_name_number, subfield_name = full_field_name.split(".", maxsplit=1)
-        block_name = block_name_number.rstrip(digits)
+    for block_and_field_name, value in changes.values.items():
+        block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
 
-        full_field_name = _create_values_key(full_field_name)
+        # For consistency across different numbering conventions always suffix a
+        # block number, even when the value coming from PandA did not have it.
+        # This works because PandA ignores the "1" suffix when there is only
+        # one instance of a block.
+        if not block_name_number[-1].isdigit():
+            block_and_field_name = block_and_field_name.replace(
+                block_name_number, block_name_number + "1", 1
+            )
+
+        # Parse *METADATA.LABEL_<block><num> into "<block>" key and
+        # "<block><num>:LABEL" value
+        if block_name_number.startswith("*METADATA") and field_name.startswith(
+            "LABEL_"
+        ):
+            _, block_name_number = field_name.split("_", maxsplit=1)
+            block_and_field_name = block_name_number + ":LABEL"
+        else:
+            block_and_field_name = _create_values_key(block_and_field_name)
+
+        block_name = block_name_number.rstrip(digits)
 
         if block_name not in values:
             values[block_name] = {}
-        values[block_name][full_field_name] = value
+        values[block_name][block_and_field_name] = value
 
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
@@ -929,6 +949,25 @@ class IocRecordFactory:
         ("write", "time"): _make_subtype_time_write,
     }
 
+    def create_block_records(
+        self, block_info: BlockInfo, block_values: Dict[str, str]
+    ) -> Dict[str, _RecordInfo]:
+        """Create the block-level records. Currently this is just the LABEL record
+        for each block"""
+
+        record_dict = {}
+        for key, value in block_values.items():
+            # LABEL will either get its value from the block_values if present,
+            # or fall back to the block_info description field.
+            if (value == "" or value is None) and block_info.description:
+                value = block_info.description
+
+            record_dict[key] = self._create_record_info(
+                key, None, builder.stringIn, str, initial_value=value
+            )
+
+        return record_dict
+
     def initialise(self, dispatcher: asyncio_dispatcher.AsyncioDispatcher) -> None:
         """Perform any final initialisation code to create the records. No new
         records may be created after this method is called.
@@ -963,16 +1002,24 @@ async def create_records(
         block_info = panda_info.block_info
         values = panda_info.values
 
+        # Create block-level records
+        block_vals = {
+            key: value for key, value in values.items() if key.endswith(":LABEL")
+        }
+        block_records = record_factory.create_block_records(block_info, block_vals)
+
+        for new_record in block_records:
+            if new_record in all_records:
+                raise Exception(f"Duplicate record name {new_record} detected.")
+
+        all_records.update(block_records)
+
         for field, field_info in panda_info.fields.items():
 
             for block_num in range(block_info.number):
-                if block_info.number > 1:
-                    # If more than 1 block, the block number becomes part of the PandA
-                    # block name and hence should become part of the record.
-                    # Note PandA block counter is 1-indexed, hence +1
-                    block_number = block + str(block_num + 1)
-                else:
-                    block_number = block
+                # For consistency in this module, always suffix the block with its
+                # number. This means all records will have the block number.
+                block_number = block + str(block_num + 1)
 
                 # ":" separator for EPICS Record names, unlike PandA's "."
                 record_name = block_number + ":" + field
