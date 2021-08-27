@@ -310,6 +310,16 @@ class _FieldCommandMapping:
     type_func: Callable
 
 
+# The type of the generators used for creating the Get commands for each field
+# and setting the returned data into the FieldInfo structure
+_FieldGeneratorType = Generator[
+    Union[Exchange, List[Exchange]],
+    # Tuple[Union[List[str], str], ...],
+    None,
+    Tuple[str, FieldInfo],
+]
+
+
 @dataclass
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     """Get the fields of a block, returning a `FieldInfo` (or appropriate subclass) for
@@ -339,14 +349,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _param_uint(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = UintFieldInfo(field_type, field_subtype)
 
-        (max,) = yield (field_info, [Get(f"{self.block}1.{field_name}.MAX")])
+        (max,) = yield from _execute_commands(Get(f"{self.block}1.{field_name}.MAX"))
 
         assert isinstance(max, str)
         field_info.max = int(max)
@@ -354,20 +360,13 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _scalar(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = ScalarFieldInfo(field_type, field_subtype)
 
-        units, scale, offset = yield (
-            field_info,
-            [
-                Get(f"{self.block}.{field_name}.UNITS"),
-                Get(f"{self.block}.{field_name}.SCALE"),
-                Get(f"{self.block}.{field_name}.OFFSET"),
-            ],
+        units, scale, offset = yield from _execute_commands(
+            Get(f"{self.block}.{field_name}.UNITS"),
+            Get(f"{self.block}.{field_name}.SCALE"),
+            Get(f"{self.block}.{field_name}.OFFSET"),
         )
         assert isinstance(scale, str)
         assert isinstance(offset, str)
@@ -379,18 +378,11 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _subtype_time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = SubtypeTimeFieldInfo(field_type, field_subtype)
 
-        (units,) = yield (
-            field_info,
-            [
-                Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
-            ],
+        (units,) = yield from _execute_commands(
+            Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
         )
         field_info.units_labels = list(units)
 
@@ -398,18 +390,11 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _enum(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = EnumFieldInfo(field_type, field_subtype)
 
-        (labels,) = yield (
-            field_info,
-            [
-                Get(f"*ENUMS.{self.block}.{field_name}"),
-            ],
+        (labels,) = yield from _execute_commands(
+            Get(f"*ENUMS.{self.block}.{field_name}"),
         )
         field_info.labels = list(labels)
 
@@ -417,19 +402,12 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = TimeFieldInfo(field_type, field_subtype)
 
-        units, min = yield (
-            field_info,
-            [
-                Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
-                Get(f"{self.block}1.{field_name}.MIN"),
-            ],
+        units, min = yield from _execute_commands(
+            Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+            Get(f"{self.block}1.{field_name}.MIN"),
         )
         assert isinstance(min, str)
         field_info.units_labels = list(units)
@@ -439,19 +417,12 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _bit_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = BitOutFieldInfo(field_type, field_subtype)
 
-        capture_word, offset = yield (
-            field_info,
-            [
-                Get(f"{self.block}1.{field_name}.CAPTURE_WORD"),
-                Get(f"{self.block}1.{field_name}.OFFSET"),
-            ],
+        capture_word, offset = yield from _execute_commands(
+            Get(f"{self.block}1.{field_name}.CAPTURE_WORD"),
+            Get(f"{self.block}1.{field_name}.OFFSET"),
         )
         assert isinstance(offset, str)
         field_info.capture_word = str(capture_word)
@@ -461,19 +432,12 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _bit_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = BitMuxFieldInfo(field_type, field_subtype)
 
-        max_delay, labels = yield (
-            field_info,
-            [
-                Get(f"{self.block}1.{field_name}.MAX_DELAY"),
-                Get(f"*ENUMS.{self.block}.{field_name}"),
-            ],
+        max_delay, labels = yield from _execute_commands(
+            Get(f"{self.block}1.{field_name}.MAX_DELAY"),
+            Get(f"*ENUMS.{self.block}.{field_name}"),
         )
         assert isinstance(max_delay, str)
         field_info.max_delay = int(max_delay)
@@ -483,29 +447,22 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _pos_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = PosMuxFieldInfo(field_type, field_subtype)
 
-        (labels,) = yield (field_info, [Get(f"*ENUMS.{self.block}.{field_name}")])
+        (labels,) = yield from _execute_commands(
+            Get(f"*ENUMS.{self.block}.{field_name}")
+        )
         field_info.labels = list(labels)
         return field_name, field_info
 
     def _pos_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = PosOutFieldInfo(field_type, field_subtype)
 
-        (capture,) = yield (
-            field_info,
-            [Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")],
+        (capture,) = yield from _execute_commands(
+            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")
         )
 
         field_info.capture_labels = list(capture)
@@ -513,16 +470,11 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _ext_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = ExtOutFieldInfo(field_type, field_subtype)
 
-        (capture,) = yield (
-            field_info,
-            [Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")],
+        (capture,) = yield from _execute_commands(
+            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")
         )
 
         field_info.capture_labels = list(capture)
@@ -534,69 +486,40 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
     def _ext_out_bits(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
+    ) -> _FieldGeneratorType:
         field_info = ExtOutBitsFieldInfo(field_type, field_subtype)
-
-        bits, capture_labels = yield (
-            field_info,
-            [
-                Get(f"{self.block}.{field_name}.BITS"),
-                Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
-            ],
+        bits, capture_labels = yield from _execute_commands(
+            Get(f"{self.block}.{field_name}.BITS"),
+            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
         )
         field_info.bits = list(bits)
         field_info.capture_labels = list(capture_labels)
-
-        return field_name, field_info
-
-    def _description(
-        self, field_name: str, field_info: FieldInfo
-    ) -> Generator[
-        Tuple[FieldInfo, List[Get]],
-        Tuple[Union[List[str], str], ...],
-        Tuple[str, FieldInfo],
-    ]:
-        (desc,) = yield (field_info, [Get(f"*DESC.{self.block}.{field_name}")])
-        field_info.description = str(desc)
-
         return field_name, field_info
 
     def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
-        get_cmds_list: List[List[Get]] = []
-        generators_list: List[
-            Generator[
-                Tuple[FieldInfo, List[Get]],
-                Tuple[Union[List[str], str], ...],
-                Tuple[str, FieldInfo],
-            ]
-        ] = []
+        field_generators: List[ExchangeGenerator] = []
+        desc_generators: List[ExchangeGenerator] = []
+
         for line in ex.multiline:
-            name, index, type_subtype = line.split(maxsplit=2)
+            field_name, index, type_subtype = line.split(maxsplit=2)
 
             # Append "None" to list below so there are always at least 2 elements
             # so we can always unpack into subtype, even if no split occurs.
             field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
 
             # Map a (type, subtype) to a method that returns the appropriate
-            # subclasss of FieldInfo, and a list of all the Commands to request
+            # subclasss of FieldInfo, and a list of all the Commands to request.
+            # Note that fields that do not have additional attributes are not listed.
             # TODO: This is static so should live somewhere not inline - but it can't
             # live on the Dataclass itself due to Python restrictions...
             _commands_map: Dict[
                 Tuple[str, Optional[str]],
                 Callable[
                     [str, str, Optional[str]],
-                    Generator[
-                        Tuple[FieldInfo, List[Get]],
-                        Tuple[Union[List[str], str], ...],
-                        Tuple[str, FieldInfo],
-                    ],
+                    _FieldGeneratorType,
                 ],
             ] = {
                 # TODO: No reason to have the "commands" part in all these method names
@@ -631,16 +554,16 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             if self.extended_metadata:
                 try:
                     # Construct the list of type-specific generators
-                    generators_list.append(
-                        _commands_map[(field_type, subtype)](name, field_type, subtype)
+                    field_generators.append(
+                        _commands_map[(field_type, subtype)](
+                            field_name, field_type, subtype
+                        )
                     )
-                    field_info, get_cmds = next(generators_list[-1])
-                    get_cmds_list.append(get_cmds)
+
                 except KeyError:
                     # No type-specific commands to create
-                    # Note that this deliberately allows all types and subtypes, to
-                    # allow future changes to the server's types without breaking the
-                    # clients.
+                    # Many fields have no attributes so this is frequently expected
+                    # Also serves for future-proofing if new types/subtypes are defined
                     # TODO: Add tests for unknown types and subtypes
                     # TODO: Add a warning we encountered an unknown type
                     pass
@@ -648,45 +571,42 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 # Description is common to all fields
                 # Note that we don't get the description for any attributes - these are
                 # fixed strings and so not worth retrieving dynamically.
-                generators_list.append(self._description(name, field_info))
-                field_info, get_cmds = next(generators_list[-1])
-                get_cmds_list.append(get_cmds)
+                desc_generators.append(
+                    Get(f"*DESC.{self.block}.{field_name}").execute()
+                )
 
-            unsorted[int(index)] = (name, field_info)
+            # Keep track of order of fields as returned by PandA. Important for later
+            # matching descriptions back to their field.
+            unsorted[int(index)] = (field_name, field_info)
 
         # Dict keeps insertion order, so insert in the order the server said
+        # TODO: Confirm with Tom regarding the order of fields - the docs and the
+        # comments imply the order of the server should be respected, but the
+        # line below calls sorted().
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
         if self.extended_metadata is False:
             # Asked to not perform the requests for extra metadata.
             return fields
 
-        # Execute the (flattened) list of Get commands
-        returned_values = yield from _execute_commands(
-            *[item for sublist in get_cmds_list for item in sublist]
+        # The first <len(fields)> elements are type Tuple[str, FieldInfo]
+        # The second half of the elements are type str (field descriptions)
+        infos_and_descriptions = yield from _zip_with_return(
+            field_generators + desc_generators
         )
 
-        # Convert the flat list of returned_values into a list that matches the shape
-        # of the original generators - i.e. a list of lists of responses, where each
-        # sub-list's length matches the number of Get requests that generator made.
-        items_per_generator = [len(item) for item in get_cmds_list]
-        split_vals = []
-        idx = 0
-        for count in items_per_generator:
-            split_vals.append(returned_values[idx : idx + count])
-            idx += count
+        field_name_info: Tuple[Tuple[str, FieldInfo], ...] = infos_and_descriptions[
+            : len(field_generators)
+        ]
 
-        assert len(split_vals) == len(
-            generators_list
-        ), f"Mismatched responses received when performing GetFieldInfo({self.block})"
+        fields.update(field_name_info)
 
-        # Pass the values back to the generators and save the result
-        for i, generator in enumerate(generators_list):
-            try:
-                generator.send(split_vals[i])
-            except StopIteration as e:
-                field_name, field_info = e.value
-                fields[field_name] = field_info
+        desc: str
+        for field_name, desc in zip(
+            [item[0] for item in unsorted.values()],
+            infos_and_descriptions[len(field_generators) :],
+        ):
+            fields[field_name].description = desc
 
         return fields
 

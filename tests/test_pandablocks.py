@@ -216,16 +216,16 @@ def test_get_fields():
     # First yield, the response to "LUT.*?"
     assert (
         conn.receive_bytes(b"!TYPEA 5 param enum\n!INPA 1 bit_mux\n.\n")
-        == b"*ENUMS.LUT.TYPEA?\n*DESC.LUT.TYPEA?\nLUT1.INPA.MAX_DELAY?\n"
-        + b"*ENUMS.LUT.INPA?\n*DESC.LUT.INPA?\n"
+        == b"*ENUMS.LUT.TYPEA?\nLUT1.INPA.MAX_DELAY?\n*ENUMS.LUT.INPA?\n"
+        + b"*DESC.LUT.TYPEA?\n*DESC.LUT.INPA?\n"
     )
 
     # Responses to the 2 *DESC, 2 *ENUM, and MAX_DELAY commands
     responses = [
         b"!Input-Level\n!Pulse-On-Rising-Edge\n.\n",
-        b"OK =Source of the value of A for calculation\n",
         b"OK =10\n",
         b"!TTLIN1.VAL\n!LVDSIN1.VAL\n.\n",
+        b"OK =Source of the value of A for calculation\n",
         b"OK =Input A\n",
     ]
     for response in responses:
