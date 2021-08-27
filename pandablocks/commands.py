@@ -747,6 +747,11 @@ class GetChanges(Command[Changes]):
 
     Args:
         group: Restrict to a particular `ChangeGroup`
+        get_multiline: If `True`, return values of multiline fields in the
+            `multiline_values` attribute. Note that this will invoke additional network
+            requests.
+            If `False` these fields will instead be returned in the `no_value`
+            attribute. Default value is `False`.
 
     For example::
 
@@ -754,23 +759,50 @@ class GetChanges(Command[Changes]):
             value={"PCAP.TRIG": "PULSE1.OUT"},
             no_value=["SEQ1.TABLE"],
             in_error=["BAD.ENUM"],
+            multiline_values={}
+        )
+
+        GetChanges(ChangeGroup.ALL, True) -> Changes(
+            value={"PCAP.TRIG": "PULSE1.OUT"},
+            no_value=[],
+            in_error=["BAD.ENUM"],
+            multiline_values={"SEQ1.TABLE" : ["1", "2", "3",...]}
         )
     """
 
     group: ChangeGroup = ChangeGroup.ALL
+    get_multiline: bool = False
 
     def execute(self) -> ExchangeGenerator[Changes]:
         ex = Exchange(f"*CHANGES{self.group.value}?")
         yield ex
-        changes = Changes({}, [], [])
+        changes = Changes({}, [], [], {})
+        multivalue_get_commands: List[Tuple[str, Get]] = []
         for line in ex.multiline:
             if line[-1] == "<":
-                changes.no_value.append(line[:-1])
+                if self.get_multiline:
+                    field = line[0:-1]
+                    multivalue_get_commands.append((field, Get(field)))
+
+                else:
+                    changes.no_value.append(line[:-1])
             elif line.endswith("(error)"):
                 changes.in_error.append(line.split(" ", 1)[0])
             else:
                 field, value = line.split("=", maxsplit=1)
                 changes.values[field] = value
+
+        if self.get_multiline:
+            multiline_vals = yield from _execute_commands(
+                *[item[1] for item in multivalue_get_commands]
+            )
+
+            for field, value in zip(
+                [item[0] for item in multivalue_get_commands], multiline_vals
+            ):
+                assert isinstance(value, list)
+                changes.multiline_values[field] = value
+
         return changes
 
 

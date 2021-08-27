@@ -159,6 +159,8 @@ class Changes:
     no_value: List[str]
     #: The fields that were in error
     in_error: List[str]
+    #: Map field -> value for multi-line values that were returned
+    multiline_values: Dict[str, List[str]]
 
 
 # Data

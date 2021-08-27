@@ -3,9 +3,11 @@ from typing import Iterator, OrderedDict
 import pytest
 
 from pandablocks.commands import (
+    ChangeGroup,
     CommandException,
     Get,
     GetBlockInfo,
+    GetChanges,
     GetFieldInfo,
     GetPcapBitsLabels,
     GetState,
@@ -22,6 +24,7 @@ from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
     BlockInfo,
+    Changes,
     Data,
     EnumFieldInfo,
     ExtOutBitsFieldInfo,
@@ -690,6 +693,142 @@ def test_expected_exception_when_receive_without_send():
     conn = ControlConnection()
     with pytest.raises(NoContextAvailable):
         conn.receive_bytes(b"abc\n")
+
+
+def test_get_changes_values():
+    """Test that the `values` field returned from `GetChanges` is correctly populated"""
+    conn = ControlConnection()
+    cmd = GetChanges()
+
+    assert conn.send(cmd) == b"*CHANGES?\n"
+
+    assert conn.receive_bytes(b"!Field 1=Value1\n!Field2=Other Value\n.\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            Changes(
+                values={"Field 1": "Value1", "Field2": "Other Value"},
+                no_value=[],
+                in_error=[],
+                multiline_values={},
+            ),
+        )
+    ]
+
+
+def test_get_changes_values_empty():
+    """Test that the `values` field returned from `GetChanges` is correctly populated
+    when the value of a field is empty"""
+    conn = ControlConnection()
+    cmd = GetChanges()
+
+    assert conn.send(cmd) == b"*CHANGES?\n"
+
+    assert conn.receive_bytes(b"!Field 1=\n.\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            Changes(
+                values={"Field 1": ""},
+                no_value=[],
+                in_error=[],
+                multiline_values={},
+            ),
+        )
+    ]
+
+
+def test_get_changes_no_value():
+    """Test that the `no_value` field returned from `GetChanges` is correctly
+    populated"""
+    conn = ControlConnection()
+    cmd = GetChanges()
+
+    assert conn.send(cmd) == b"*CHANGES?\n"
+
+    assert conn.receive_bytes(b"!Field 1<\n!Field2<\n.\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            Changes(
+                values={},
+                no_value=["Field 1", "Field2"],
+                in_error=[],
+                multiline_values={},
+            ),
+        )
+    ]
+
+
+def test_get_changes_error():
+    """Test that the `error` field returned from `GetChanges` is correctly populated"""
+    conn = ControlConnection()
+    cmd = GetChanges()
+
+    assert conn.send(cmd) == b"*CHANGES?\n"
+
+    assert conn.receive_bytes(b"!Field1 (error)\n!Field2 (error)\n.\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            Changes(
+                values={},
+                no_value=[],
+                in_error=["Field1", "Field2"],
+                multiline_values={},
+            ),
+        )
+    ]
+
+
+def test_get_changes_multiline():
+    """Test that the `multiline_values` field returned from `GetChanges` is correctly
+    populated"""
+    conn = ControlConnection()
+    cmd = GetChanges(ChangeGroup.ALL, True)
+
+    assert conn.send(cmd) == b"*CHANGES?\n"
+
+    assert conn.receive_bytes(b"!Field1<\n.\n") == b"Field1?\n"
+
+    assert get_responses(conn, b"!Val1\n!Val2\n.\n") == [
+        (
+            cmd,
+            Changes(
+                values={},
+                no_value=[],
+                in_error=[],
+                multiline_values={"Field1": ["Val1", "Val2"]},
+            ),
+        )
+    ]
+
+
+def test_get_changes_multiline_no_multiline_fields():
+    """Test retrieving multiline fields when none are defined returns expected empty
+    multiline_values field."""
+    conn = ControlConnection()
+    cmd = GetChanges(ChangeGroup.ALL, True)
+
+    assert conn.send(cmd) == b"*CHANGES?\n"
+
+    assert conn.receive_bytes(b"!Field1=Value1\n.\n") == b""
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            Changes(
+                values={"Field1": "Value1"},
+                no_value=[],
+                in_error=[],
+                multiline_values={},
+            ),
+        )
+    ]
 
 
 def test_save():
