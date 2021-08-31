@@ -352,7 +352,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = UintFieldInfo(field_type, field_subtype)
 
-        (max,) = yield from _execute_commands(Get(f"{self.block}1.{field_name}.MAX"))
+        max = yield from Get(f"{self.block}1.{field_name}.MAX").execute()
 
         assert isinstance(max, str)
         field_info.max = int(max)
@@ -381,9 +381,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = SubtypeTimeFieldInfo(field_type, field_subtype)
 
-        (units,) = yield from _execute_commands(
-            Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
-        )
+        units = yield from Get(f"*ENUMS.{self.block}.{field_name}.UNITS").execute()
         field_info.units_labels = list(units)
 
         return field_name, field_info
@@ -393,9 +391,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = EnumFieldInfo(field_type, field_subtype)
 
-        (labels,) = yield from _execute_commands(
-            Get(f"*ENUMS.{self.block}.{field_name}"),
-        )
+        labels = yield from Get(f"*ENUMS.{self.block}.{field_name}").execute()
         field_info.labels = list(labels)
 
         return field_name, field_info
@@ -450,9 +446,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = PosMuxFieldInfo(field_type, field_subtype)
 
-        (labels,) = yield from _execute_commands(
-            Get(f"*ENUMS.{self.block}.{field_name}")
-        )
+        labels = yield from Get(f"*ENUMS.{self.block}.{field_name}").execute()
+
         field_info.labels = list(labels)
         return field_name, field_info
 
@@ -461,9 +456,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = PosOutFieldInfo(field_type, field_subtype)
 
-        (capture,) = yield from _execute_commands(
-            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")
-        )
+        capture = yield from Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE").execute()
 
         field_info.capture_labels = list(capture)
         return field_name, field_info
@@ -473,9 +466,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = ExtOutFieldInfo(field_type, field_subtype)
 
-        (capture,) = yield from _execute_commands(
-            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE")
-        )
+        capture = yield from Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE").execute()
 
         field_info.capture_labels = list(capture)
 
