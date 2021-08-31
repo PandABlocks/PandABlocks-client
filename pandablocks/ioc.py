@@ -10,7 +10,13 @@ from softioc import asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import ChangeGroup, GetBlockInfo, GetChanges, GetFieldInfo
+from pandablocks.commands import (
+    ChangeGroup,
+    GetBlockInfo,
+    GetChanges,
+    GetFieldInfo,
+    Put,
+)
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
@@ -49,7 +55,9 @@ class _BlockAndFieldInfo:
 @dataclass
 class _RecordInfo:
     """A container for a record and extra information needed to later update
-    the record"""
+    the record.
+
+    If `labels` is not None, the record is an enum type"""
 
     record: RecordWrapper
     data_type_func: Callable
@@ -165,11 +173,56 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     return panda_dict
 
 
+@dataclass
+class _RecordUpdater:
+    """Handles Put'ing data back to the PandA when an EPICS record is updated"""
+
+    # TODO: Argument docs
+
+    # TODO: Is this better as an inner class inside IocRecordFactory?
+    # May depend how GraphQL will handle its records and subsequent PandA updates.
+
+    # TODO: Work out how to do this for records that aren't created
+    # through _create_record_info
+
+    record_name: str
+    client: AsyncioClient
+    data_type_func: Callable
+    labels: Optional[List[str]] = None
+
+    # TODO: It appears that if there's an exception (e.g. a Put fails) this function
+    # is never subsequently called - something permanently breaks until restarted.
+
+    # TODO: Try this with non-stringOut fields. And it'll probably need more work
+    # once we get to Tables too...
+    async def update(self, new_val):
+        panda_field = self.record_name.replace(":", ".")
+        try:
+            # If this is an enum record, retrieve the string value
+            if self.labels:
+                assert int(new_val) < len(
+                    self.labels
+                ), f"Invalid label index {new_val}, only {len(self.values)} labels"
+                val = self.labels[int(new_val)]
+            else:
+                # Necessary to wrap the data_type_func call in str() as we must
+                # differentiate between ints and floats - some PandA fields will not
+                # accept the wrong number format.
+                val = str(self.data_type_func(new_val))
+
+            await self.client.send(Put(panda_field, val))
+        except Exception as e:
+            print(e)
+
+
 class IocRecordFactory:
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
 
     _record_prefix: str
+    # TODO: I really don't like having to pass in this client, purely for the inner
+    # _RecordUpdater class to get access to it. Revisit this design decision.
+    _client: AsyncioClient
 
     _pos_out_row_counter: int = 0
 
@@ -183,8 +236,9 @@ class IocRecordFactory:
     ZNAM_STR: str = "0"
     ONAM_STR: str = "1"
 
-    def __init__(self, record_prefix: str):
+    def __init__(self, record_prefix: str, client: AsyncioClient):
         self._record_prefix = record_prefix
+        self._client = client
 
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
@@ -207,7 +261,7 @@ class IocRecordFactory:
         """Function to check that the number of values is at least the expected amount.
         Allow extra values for future-proofing, if PandA has new fields/attributes the
         client does not know about.
-        Raises AssertionError if incorrect number of values."""
+        Raises AssertionError if too few values."""
         assert len(values) >= num, (
             f"Incorrect number of values, {len(values)}, expected at least {num}.\n"
             + "{values}"
@@ -257,7 +311,28 @@ class IocRecordFactory:
         ):
             assert len(labels) <= 16, f"Too many labels to create record {record_name}"
 
-        record = record_creation_func(record_name, *labels, *args, **kwargs)
+        if record_creation_func in [
+            builder.aOut,
+            builder.boolOut,
+            builder.mbbOut,
+            builder.longOut,
+            builder.stringOut,
+            builder.WaveformOut,
+        ]:
+            # TODO: Where is the update actually going to run? This thread?
+            record_updater = _RecordUpdater(
+                record_name,
+                self._client,
+                data_type_func,
+                labels=labels if labels else None,
+            )
+            update_kwarg = {"on_update": record_updater.update}
+        else:
+            update_kwarg = {}
+
+        record = record_creation_func(
+            record_name, *labels, *args, **update_kwarg, **kwargs
+        )
 
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
@@ -399,7 +474,7 @@ class IocRecordFactory:
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
-            builder.aOut,
+            builder.aIn,
             float,
             initial_value=float(values[record_name]),
         )
@@ -882,18 +957,17 @@ class IocRecordFactory:
         the parameters.
 
         Args:
-            record_name (str): The name of the record to create, with colons separating
+            record_name: The name of the record to create, with colons separating
                 words in EPICS style.
-            field_info (FieldInfo): The field info for the record being created
-            field_values (Dict[str, str]): The dictionary of values for the record and
+            field_info: The field info for the record being created
+            field_values: The dictionary of values for the record and
                 all child records. The keys are in EPICS style.
-
-        Raises:
-            Exception: Raised when the field's type and subtype are unrecognised
 
         Returns:
             Dict[str, _RecordInfo]: A dictionary of all records created and their
                 associated _RecordInfo object
+                #TODO: Update this once decided whether need to return POSITION, BITS,
+                # and TABLE records (and any other records created in unusual ways)
         """
         try:
             key = (field_info.type, field_info.subtype)
@@ -901,7 +975,8 @@ class IocRecordFactory:
                 self, record_name, field_info, field_values
             )
         except KeyError:
-            # Unrecognised type-subtype key, ignore this item
+            # Unrecognised type-subtype key, ignore this item. This allows the server
+            # to define new types without breaking the client.
             # TODO: Emit a warning
             return {}
 
@@ -923,28 +998,28 @@ class IocRecordFactory:
         ("bit_mux", None): _make_bit_mux,
         ("pos_mux", None): _make_pos_mux,
         ("table", None): _make_table,
-        ("param", "uint"): _make_uint_read,
+        ("param", "uint"): _make_uint_write,
         ("read", "uint"): _make_uint_read,
         ("write", "uint"): _make_uint_write,
-        ("param", "int"): _make_int_read,
+        ("param", "int"): _make_int_write,
         ("read", "int"): _make_int_read,
         ("write", "int"): _make_int_write,
-        ("param", "scalar"): _make_scalar_read,
+        ("param", "scalar"): _make_scalar_write,
         ("read", "scalar"): _make_scalar_read,
         ("write", "scalar"): _make_scalar_write,
-        ("param", "bit"): _make_bit_read,
+        ("param", "bit"): _make_bit_write,
         ("read", "bit"): _make_bit_read,
         ("write", "bit"): _make_bit_write,
-        ("param", "action"): _make_action_read,
+        ("param", "action"): _make_action_write,
         ("read", "action"): _make_action_read,
         ("write", "action"): _make_action_write,
-        ("param", "lut"): _make_lut_read,
+        ("param", "lut"): _make_lut_write,
         ("read", "lut"): _make_lut_read,
         ("write", "lut"): _make_lut_write,
-        ("param", "enum"): _make_enum_read,
+        ("param", "enum"): _make_enum_write,
         ("read", "enum"): _make_enum_read,
         ("write", "enum"): _make_enum_write,
-        ("param", "time"): _make_subtype_time_read,
+        ("param", "time"): _make_subtype_time_write,
         ("read", "time"): _make_subtype_time_read,
         ("write", "time"): _make_subtype_time_write,
     }
@@ -995,7 +1070,7 @@ async def create_records(
     # Dictionary containing every record of every type
     all_records: Dict[str, _RecordInfo] = {}
 
-    record_factory = IocRecordFactory(record_prefix)
+    record_factory = IocRecordFactory(record_prefix, client)
 
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
