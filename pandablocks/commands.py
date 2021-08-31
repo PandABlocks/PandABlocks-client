@@ -40,6 +40,8 @@ __all__ = [
     "CommandException",
     "Raw",
     "Get",
+    "GetLine",
+    "GetMultiline",
     "Put",
     "Arm",
     "Disarm",
@@ -187,6 +189,9 @@ class Raw(Command[List[str]]):
 class Get(Command[Union[str, List[str]]]):
     """Get the value of a field or star command.
 
+    If the form of the expected return is known, consider using `GetLine`
+    or `GetMultiline` instead.
+
     Args:
         field: The field, attribute, or star command to get
 
@@ -209,6 +214,50 @@ class Get(Command[Union[str, List[str]]]):
             line = ex.line
             assert line.startswith("OK =")
             return line[4:]
+
+
+@dataclass
+class GetLine(Get):
+    """Get the value of a field or star command, when the result is expected to be a
+    single line.
+
+    Args:
+        field: The field, attribute, or star command to get
+
+    For example::
+
+        Get("PCAP.ACTIVE") -> "1"
+        Get("*IDN") -> "PandA 1.1..."
+    """
+
+    def execute(self) -> ExchangeGenerator[str]:
+        line = yield from super().execute()
+        assert isinstance(
+            line, str
+        ), "Received multiline response when single line expected"
+        return line
+
+
+@dataclass
+class GetMultiline(Get):
+    """Get the value of a field or star command, when the result is expected to be a
+    multiline response.
+
+    Args:
+        field: The field, attribute, or star command to get
+
+    For example::
+
+        Get("SEQ1.TABLE") -> ["1048576", "0", "1000", "1000"]
+        Get("*METADATA.*") -> ["LABEL_FILTER1", "APPNAME", ...]
+    """
+
+    def execute(self) -> ExchangeGenerator[List[str]]:
+        lines = yield from super().execute()
+        assert isinstance(
+            lines, list
+        ), "Received single line response when multiline expected"
+        return lines
 
 
 @dataclass
@@ -285,7 +334,7 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
         for line in ex.multiline:
             block, num = line.split()
             blocks_list.append((block, int(num)))
-            commands.append(Get(f"*DESC.{block}"))
+            commands.append(GetLine(f"*DESC.{block}"))
 
         if self.skip_description:
             # Must use tuple() to match type returned by _execute_commands
@@ -299,15 +348,6 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
         }
 
         return block_infos
-
-
-# TODO: docstring
-@dataclass
-class _FieldCommandMapping:
-    command: Get
-    field_info: FieldInfo
-    attribute: str
-    type_func: Callable
 
 
 # The type of the generators used for creating the Get commands for each field
@@ -352,9 +392,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = UintFieldInfo(field_type, field_subtype)
 
-        max = yield from Get(f"{self.block}1.{field_name}.MAX").execute()
+        max = yield from GetLine(f"{self.block}1.{field_name}.MAX").execute()
 
-        assert isinstance(max, str)
         field_info.max = int(max)
         return field_name, field_info
 
@@ -364,13 +403,15 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info = ScalarFieldInfo(field_type, field_subtype)
 
         units, scale, offset = yield from _execute_commands(
-            Get(f"{self.block}.{field_name}.UNITS"),
-            Get(f"{self.block}.{field_name}.SCALE"),
-            Get(f"{self.block}.{field_name}.OFFSET"),
+            GetLine(f"{self.block}.{field_name}.UNITS"),
+            GetLine(f"{self.block}.{field_name}.SCALE"),
+            GetLine(f"{self.block}.{field_name}.OFFSET"),
         )
+        assert isinstance(units, str)
         assert isinstance(scale, str)
         assert isinstance(offset, str)
-        field_info.units = str(units)
+
+        field_info.units = units
         field_info.scale = float(scale)
         field_info.offset = int(offset)
 
@@ -381,8 +422,9 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = SubtypeTimeFieldInfo(field_type, field_subtype)
 
-        units = yield from Get(f"*ENUMS.{self.block}.{field_name}.UNITS").execute()
-        field_info.units_labels = list(units)
+        field_info.units_labels = yield from GetMultiline(
+            f"*ENUMS.{self.block}.{field_name}.UNITS"
+        ).execute()
 
         return field_name, field_info
 
@@ -391,8 +433,9 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = EnumFieldInfo(field_type, field_subtype)
 
-        labels = yield from Get(f"*ENUMS.{self.block}.{field_name}").execute()
-        field_info.labels = list(labels)
+        field_info.labels = yield from GetMultiline(
+            f"*ENUMS.{self.block}.{field_name}"
+        ).execute()
 
         return field_name, field_info
 
@@ -402,8 +445,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info = TimeFieldInfo(field_type, field_subtype)
 
         units, min = yield from _execute_commands(
-            Get(f"*ENUMS.{self.block}.{field_name}.UNITS"),
-            Get(f"{self.block}1.{field_name}.MIN"),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+            GetLine(f"{self.block}1.{field_name}.MIN"),
         )
         assert isinstance(min, str)
         field_info.units_labels = list(units)
@@ -417,8 +460,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info = BitOutFieldInfo(field_type, field_subtype)
 
         capture_word, offset = yield from _execute_commands(
-            Get(f"{self.block}1.{field_name}.CAPTURE_WORD"),
-            Get(f"{self.block}1.{field_name}.OFFSET"),
+            GetLine(f"{self.block}1.{field_name}.CAPTURE_WORD"),
+            GetLine(f"{self.block}1.{field_name}.OFFSET"),
         )
         assert isinstance(offset, str)
         field_info.capture_word = str(capture_word)
@@ -432,8 +475,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info = BitMuxFieldInfo(field_type, field_subtype)
 
         max_delay, labels = yield from _execute_commands(
-            Get(f"{self.block}1.{field_name}.MAX_DELAY"),
-            Get(f"*ENUMS.{self.block}.{field_name}"),
+            GetLine(f"{self.block}1.{field_name}.MAX_DELAY"),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
         )
         assert isinstance(max_delay, str)
         field_info.max_delay = int(max_delay)
@@ -446,9 +489,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = PosMuxFieldInfo(field_type, field_subtype)
 
-        labels = yield from Get(f"*ENUMS.{self.block}.{field_name}").execute()
+        field_info.labels = yield from GetMultiline(
+            f"*ENUMS.{self.block}.{field_name}"
+        ).execute()
 
-        field_info.labels = list(labels)
         return field_name, field_info
 
     def _pos_out(
@@ -456,9 +500,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = PosOutFieldInfo(field_type, field_subtype)
 
-        capture = yield from Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE").execute()
+        field_info.capture_labels = yield from GetMultiline(
+            f"*ENUMS.{self.block}.{field_name}.CAPTURE"
+        ).execute()
 
-        field_info.capture_labels = list(capture)
         return field_name, field_info
 
     def _ext_out(
@@ -466,9 +511,9 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = ExtOutFieldInfo(field_type, field_subtype)
 
-        capture = yield from Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE").execute()
-
-        field_info.capture_labels = list(capture)
+        field_info.capture_labels = yield from GetMultiline(
+            f"*ENUMS.{self.block}.{field_name}.CAPTURE"
+        ).execute()
 
         return (
             field_name,
@@ -480,8 +525,8 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = ExtOutBitsFieldInfo(field_type, field_subtype)
         bits, capture_labels = yield from _execute_commands(
-            Get(f"{self.block}.{field_name}.BITS"),
-            Get(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+            GetMultiline(f"{self.block}.{field_name}.BITS"),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
         )
         field_info.bits = list(bits)
         field_info.capture_labels = list(capture_labels)
@@ -563,7 +608,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 # Note that we don't get the description for any attributes - these are
                 # fixed strings and so not worth retrieving dynamically.
                 desc_generators.append(
-                    Get(f"*DESC.{self.block}.{field_name}").execute()
+                    GetLine(f"*DESC.{self.block}.{field_name}").execute()
                 )
 
             # Keep track of order of fields as returned by PandA. Important for later
@@ -688,12 +733,12 @@ class GetChanges(Command[Changes]):
         ex = Exchange(f"*CHANGES{self.group.value}?")
         yield ex
         changes = Changes({}, [], [], {})
-        multivalue_get_commands: List[Tuple[str, Get]] = []
+        multivalue_get_commands: List[Tuple[str, GetMultiline]] = []
         for line in ex.multiline:
             if line[-1] == "<":
                 if self.get_multiline:
                     field = line[0:-1]
-                    multivalue_get_commands.append((field, Get(field)))
+                    multivalue_get_commands.append((field, GetMultiline(field)))
 
                 else:
                     changes.no_value.append(line[:-1])
