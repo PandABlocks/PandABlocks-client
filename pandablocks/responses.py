@@ -128,6 +128,14 @@ class PosMuxFieldInfo(FieldInfo):
 
 
 @dataclass
+class TableFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type `table`"""
+
+    max_length: Optional[int] = None
+    fields: Optional[List[str]] = None
+
+
+@dataclass
 class PosOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `pos_out`"""
 

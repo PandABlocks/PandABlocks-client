@@ -4,7 +4,7 @@ import asyncio
 import inspect
 from dataclasses import dataclass
 from string import digits
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from softioc import asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
@@ -48,7 +48,7 @@ class _BlockAndFieldInfo:
 
     block_info: BlockInfo
     fields: Dict[str, FieldInfo]
-    values: Dict[str, str]
+    values: Dict[str, Union[str, List[str]]]
     # See `_create_values_key` to create key for Dict from keys returned from GetChanges
 
 
@@ -102,6 +102,37 @@ def create_softioc(host: str, record_prefix: str) -> None:
     asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result(TIMEOUT)
 
 
+# TODO: rename this function!
+def _ensure_block_number_present(block_and_field_name: str, block_name_number: str):
+    """Ensure that the block instance number is always present on the end of the block
+    name. If it is not present, add "1" to it.
+
+    This works as PandA alias's the <1> suffix if there is only a single instance of a
+    block
+
+    Args:
+        block_and_field_name: A string containing the block and the field name,
+        e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK".
+
+        block_name_number (str): A string containg just the block and possibly the
+        instance number, e.g. "SYSTEM" or "INENC2"
+
+    Returns:
+        str: The block and field name which will have an instance number.
+        e.g. "SYSTEM1.TEMP_ZYNQ", or "INENC2.CLK".
+    """
+    # For consistency across different numbering conventions always suffix a
+    # block number, even when the value coming from PandA did not have it.
+    # This works because PandA ignores the "1" suffix when there is only
+    # one instance of a block.
+    if not block_name_number[-1].isdigit():
+        return block_and_field_name.replace(
+            block_name_number, block_name_number + "1", 1
+        )
+
+    return block_and_field_name
+
+
 async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInfo]:
     """Query the PandA for all its Blocks, Fields of each Block, and Values of each Field
 
@@ -115,6 +146,36 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
         Dict[str, BlockAndFieldInfo]: Dictionary containing all information on
             the block
     """
+
+    def _store_values(
+        block_and_field_name: str,
+        value: Union[str, List[str]],
+        values: Dict[str, Dict[str, Union[str, List[str]]]],
+    ):
+        """Parse the data given in `block_and_field_name` and `value` into a new entry
+        in the `values` dictionary"""
+
+        block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
+
+        block_and_field_name = _ensure_block_number_present(
+            block_and_field_name, block_name_number
+        )
+
+        # Parse *METADATA.LABEL_<block><num> into "<block>" key and
+        # "<block><num>:LABEL" value
+        if block_name_number.startswith("*METADATA") and field_name.startswith(
+            "LABEL_"
+        ):
+            _, block_name_number = field_name.split("_", maxsplit=1)
+            block_and_field_name = block_name_number + ":LABEL"
+        else:
+            block_and_field_name = _create_values_key(block_and_field_name)
+
+        block_name = block_name_number.rstrip(digits)
+
+        if block_name not in values:
+            values[block_name] = {}
+        values[block_name][block_and_field_name] = value
 
     # Get the list of all blocks in the PandA
     block_dict = await client.send(GetBlockInfo())
@@ -135,34 +196,13 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
 
     # Create a dict which maps block name to all values for all instances
     # of that block (e.g. {"TTLIN" : {"TTLIN1:VAL": "1", "TTLIN2:VAL" : "5", ...} })
-    values: Dict[str, Dict[str, str]] = {}
+    values: Dict[str, Dict[str, Union[str, List[str]]]] = {}
     for block_and_field_name, value in changes.values.items():
-        block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
+        _store_values(block_and_field_name, value, values)
 
-        # For consistency across different numbering conventions always suffix a
-        # block number, even when the value coming from PandA did not have it.
-        # This works because PandA ignores the "1" suffix when there is only
-        # one instance of a block.
-        if not block_name_number[-1].isdigit():
-            block_and_field_name = block_and_field_name.replace(
-                block_name_number, block_name_number + "1", 1
-            )
-
-        # Parse *METADATA.LABEL_<block><num> into "<block>" key and
-        # "<block><num>:LABEL" value
-        if block_name_number.startswith("*METADATA") and field_name.startswith(
-            "LABEL_"
-        ):
-            _, block_name_number = field_name.split("_", maxsplit=1)
-            block_and_field_name = block_name_number + ":LABEL"
-        else:
-            block_and_field_name = _create_values_key(block_and_field_name)
-
-        block_name = block_name_number.rstrip(digits)
-
-        if block_name not in values:
-            values[block_name] = {}
-        values[block_name][block_and_field_name] = value
+    # Parse the multiline data into the same values structure
+    for block_and_field_name, multiline_value in changes.multiline_values.items():
+        _store_values(block_and_field_name, multiline_value, values)
 
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
@@ -951,7 +991,10 @@ class IocRecordFactory:
         return self._make_enum(record_name, field_info, values, builder.mbbOut)
 
     def create_record(
-        self, record_name: str, field_info: FieldInfo, field_values: Dict[str, str]
+        self,
+        record_name: str,
+        field_info: FieldInfo,
+        field_values: Dict[str, Union[str, List[str]]],
     ) -> Dict[str, _RecordInfo]:
         """Create the record (and any child records) for the PandA field specified in
         the parameters.
@@ -972,7 +1015,7 @@ class IocRecordFactory:
         try:
             key = (field_info.type, field_info.subtype)
             return self._field_record_mapping[key](
-                self, record_name, field_info, field_values
+                self, record_name, field_info, field_values  # type: ignore
             )
         except KeyError:
             # Unrecognised type-subtype key, ignore this item. This allows the server
@@ -1079,7 +1122,9 @@ async def create_records(
 
         # Create block-level records
         block_vals = {
-            key: value for key, value in values.items() if key.endswith(":LABEL")
+            key: value
+            for key, value in values.items()
+            if key.endswith(":LABEL") and isinstance(value, str)
         }
         block_records = record_factory.create_block_records(block_info, block_vals)
 
@@ -1129,22 +1174,34 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly"""
     while True:
-        changes = await client.send(GetChanges(ChangeGroup.ALL))
-        if changes.in_error:
-            pass
-            # TODO: We should continue processing here, but log an error somehow
-            # TODO: Combine with getChanges error handling in introspect_panda?
-            # TODO: Use changes.no_value?
+        try:
+            changes = await client.send(GetChanges(ChangeGroup.ALL, True))
+            if changes.in_error:
+                pass
+                # TODO: We should continue processing here, but log an error somehow
+                # TODO: Combine with getChanges error handling in introspect_panda?
+                # TODO: Use changes.no_value?
 
-        for field, value in changes.values.items():
-            field = _create_values_key(field)
-            if field not in all_records:
-                raise Exception("Unknown record returned from GetChanges")
-            record_info = all_records[field]
-            record = record_info.record
-            if record_info.labels:
-                # Record is enum, convert string the PandA returns into an int index
-                record.set(record_info.labels.index(value))
-            else:
-                record.set(record_info.data_type_func(value))
-        await asyncio.sleep(1)
+            for field, value in changes.values.items():
+                field = _create_values_key(field)
+                block_name_number, _ = field.split(":", maxsplit=1)
+                field = _ensure_block_number_present(field, block_name_number)
+                if field not in all_records:
+                    raise Exception("Unknown record returned from GetChanges")
+                record_info = all_records[field]
+                record = record_info.record
+                if record_info.labels:
+                    # Record is enum, convert string the PandA returns into an int index
+                    record.set(record_info.labels.index(value))
+                else:
+                    record.set(record_info.data_type_func(value))
+
+                for field, value_list in changes.multiline_values.items():
+                    pass
+                    # TODO: Come back to this once we have table support
+
+            await asyncio.sleep(1)
+        except Exception as e:
+            # TODO: report warning
+            print(e)
+            pass

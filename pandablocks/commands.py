@@ -30,6 +30,7 @@ from .responses import (
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
+    TableFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
 )
@@ -495,6 +496,21 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
         return field_name, field_info
 
+    def _table(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+        field_info = TableFieldInfo(field_type, field_subtype)
+
+        max_length, fields = yield from _execute_commands(
+            GetLine(f"{self.block}1.{field_name}.MAX_LENGTH"),
+            GetMultiline(f"{self.block}1.{field_name}.FIELDS"),
+        )
+
+        field_info.max_length = int(max_length)
+        field_info.fields = list(fields)
+
+        return field_name, field_info
+
     def _pos_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
@@ -558,7 +574,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                     _FieldGeneratorType,
                 ],
             ] = {
-                # TODO: No reason to have the "commands" part in all these method names
                 # Order matches that of PandA server's Field Types docs
                 ("time", None): self._time,
                 ("bit_out", None): self._bit_out,
@@ -568,6 +583,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 ("ext_out", "bits"): self._ext_out_bits,
                 ("bit_mux", None): self._bit_mux,
                 ("pos_mux", None): self._pos_mux,
+                ("table", None): self._table,
                 ("param", "uint"): self._param_uint,
                 ("read", "uint"): self._param_uint,
                 ("write", "uint"): self._param_uint,
@@ -580,7 +596,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 ("param", "enum"): self._enum,
                 ("read", "enum"): self._enum,
                 ("write", "enum"): self._enum,
-                # TODO: Add TABLE support
             }
 
             # Always create default FieldInfo. If necessary we will replace it later
