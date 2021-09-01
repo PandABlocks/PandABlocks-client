@@ -217,7 +217,7 @@ class Get(Command[Union[str, List[str]]]):
 
 
 @dataclass
-class GetLine(Get):
+class GetLine(Command[str]):
     """Get the value of a field or star command, when the result is expected to be a
     single line.
 
@@ -230,12 +230,15 @@ class GetLine(Get):
         Get("*IDN") -> "PandA 1.1..."
     """
 
+    field: str
+
     def execute(self) -> ExchangeGenerator[str]:
-        line = yield from super().execute()
-        assert isinstance(
-            line, str
-        ), "Received multiline response when single line expected"
-        return line
+        ex = Exchange(f"{self.field}?")
+        yield ex
+        # Expect "OK =value"
+        line = ex.line
+        assert line.startswith("OK ="), 'Response did not start "OK ="'
+        return line[4:]
 
 
 @dataclass
@@ -252,12 +255,12 @@ class GetMultiline(Get):
         Get("*METADATA.*") -> ["LABEL_FILTER1", "APPNAME", ...]
     """
 
+    field: str
+
     def execute(self) -> ExchangeGenerator[List[str]]:
-        lines = yield from super().execute()
-        assert isinstance(
-            lines, list
-        ), "Received single line response when multiline expected"
-        return lines
+        ex = Exchange(f"{self.field}?")
+        yield ex
+        return ex.multiline
 
 
 @dataclass
@@ -407,9 +410,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             GetLine(f"{self.block}.{field_name}.SCALE"),
             GetLine(f"{self.block}.{field_name}.OFFSET"),
         )
-        assert isinstance(units, str)
-        assert isinstance(scale, str)
-        assert isinstance(offset, str)
 
         field_info.units = units
         field_info.scale = float(scale)
@@ -448,7 +448,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
             GetLine(f"{self.block}1.{field_name}.MIN"),
         )
-        assert isinstance(min, str)
+
         field_info.units_labels = list(units)
         field_info.min = float(min)
 
@@ -463,7 +463,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             GetLine(f"{self.block}1.{field_name}.CAPTURE_WORD"),
             GetLine(f"{self.block}1.{field_name}.OFFSET"),
         )
-        assert isinstance(offset, str)
+
         field_info.capture_word = str(capture_word)
         field_info.offset = int(offset)
 
@@ -478,7 +478,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             GetLine(f"{self.block}1.{field_name}.MAX_DELAY"),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
         )
-        assert isinstance(max_delay, str)
+
         field_info.max_delay = int(max_delay)
         field_info.labels = list(labels)
 
@@ -794,11 +794,11 @@ class GetState(Command[List[str]]):
         for field in table.no_value:
             # Get tables as base64
             multiline_keys.append(f"{field}<B")
-            commands.append(Get(f"{field}.B"))
+            commands.append(GetMultiline(f"{field}.B"))
         for field in metadata.no_value:
             # Get metadata as string list
             multiline_keys.append(f"{field}<")
-            commands.append(Get(f"{field}"))
+            commands.append(GetMultiline(f"{field}"))
         multiline_values = yield from _execute_commands(*commands)
         for k, v in zip(multiline_keys, multiline_values):
             state += [k] + v + [""]

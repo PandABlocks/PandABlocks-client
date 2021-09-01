@@ -9,6 +9,8 @@ from pandablocks.commands import (
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
+    GetLine,
+    GetMultiline,
     GetPcapBitsLabels,
     GetState,
     Put,
@@ -60,6 +62,68 @@ def test_connection_gets_muliline():
     assert not get_responses(conn, b"!1048576\n!0\n!10")
     assert get_responses(conn, b"00\n!1000\n.\n") == [
         (cmd, ["1048576", "0", "1000", "1000"])
+    ]
+
+
+def test_get_line():
+    conn = ControlConnection()
+    cmd = GetLine("PCAP.ACTIVE")
+    assert conn.send(cmd) == b"PCAP.ACTIVE?\n"
+    assert get_responses(conn, b"OK =1\n") == [(cmd, "1")]
+
+
+def test_get_line_error_when_multiline():
+    conn = ControlConnection()
+    cmd = GetLine("PCAP.ACTIVE")
+    assert conn.send(cmd) == b"PCAP.ACTIVE?\n"
+    assert get_responses(conn, b"!ACTIVE 5 bit_out\n.\n") == [
+        (
+            cmd,
+            ACommandException(
+                "GetLine(field='PCAP.ACTIVE') ->\n    ACTIVE 5 bit_out\n"
+                + "AssertionError:Response was multiline"
+            ),
+        )
+    ]
+
+
+def test_get_line_error_no_ok():
+    conn = ControlConnection()
+    cmd = GetLine("PCAP.ACTIVE")
+    assert conn.send(cmd) == b"PCAP.ACTIVE?\n"
+    assert get_responses(conn, b"NOT OK\n") == [
+        (
+            cmd,
+            ACommandException(
+                "GetLine(field='PCAP.ACTIVE') -> NOT OK\n"
+                + 'AssertionError:Response did not start "OK ="'
+            ),
+        )
+    ]
+
+
+def test_get_multiline():
+    conn = ControlConnection()
+    cmd = GetMultiline("PCAP.*")
+    assert conn.send(cmd) == b"PCAP.*?\n"
+    assert get_responses(conn, b"!ACTIVE 5 bit_out\n.\n") == [
+        (cmd, ["ACTIVE 5 bit_out"])
+    ]
+
+
+def test_get_multiline_error_when_single_line():
+    conn = ControlConnection()
+    cmd = GetMultiline("PCAP.*")
+    assert conn.send(cmd) == b"PCAP.*?\n"
+
+    assert get_responses(conn, b"1\n") == [
+        (
+            cmd,
+            ACommandException(
+                "GetMultiline(field='PCAP.*') -> 1\n"
+                + "AssertionError:Response was single line"
+            ),
+        )
     ]
 
 
