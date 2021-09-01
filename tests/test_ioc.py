@@ -19,6 +19,7 @@ def ioc_record_factory():
 
 TEST_RECORD = "TEST:RECORD"
 
+
 # TODO: A test for every known type-subtype pairing
 @pytest.mark.parametrize(
     "field_info, values, expected_records",
