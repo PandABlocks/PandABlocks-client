@@ -237,7 +237,7 @@ class GetLine(Command[str]):
         yield ex
         # Expect "OK =value"
         line = ex.line
-        assert line.startswith("OK ="), 'Response did not start "OK ="'
+        assert line.startswith("OK =")
         return line[4:]
 
 

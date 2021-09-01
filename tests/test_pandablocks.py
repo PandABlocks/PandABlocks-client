@@ -79,10 +79,7 @@ def test_get_line_error_when_multiline():
     assert get_responses(conn, b"!ACTIVE 5 bit_out\n.\n") == [
         (
             cmd,
-            ACommandException(
-                "GetLine(field='PCAP.ACTIVE') ->\n    ACTIVE 5 bit_out\n"
-                + "AssertionError:Response was multiline"
-            ),
+            ACommandException("GetLine(field='PCAP.ACTIVE') ->\n    ACTIVE 5 bit_out"),
         )
     ]
 
@@ -94,10 +91,7 @@ def test_get_line_error_no_ok():
     assert get_responses(conn, b"NOT OK\n") == [
         (
             cmd,
-            ACommandException(
-                "GetLine(field='PCAP.ACTIVE') -> NOT OK\n"
-                + 'AssertionError:Response did not start "OK ="'
-            ),
+            ACommandException("GetLine(field='PCAP.ACTIVE') -> NOT OK"),
         )
     ]
 
@@ -119,10 +113,7 @@ def test_get_multiline_error_when_single_line():
     assert get_responses(conn, b"1\n") == [
         (
             cmd,
-            ACommandException(
-                "GetMultiline(field='PCAP.*') -> 1\n"
-                + "AssertionError:Response was single line"
-            ),
+            ACommandException("GetMultiline(field='PCAP.*') -> 1"),
         )
     ]
 
