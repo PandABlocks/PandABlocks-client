@@ -722,7 +722,7 @@ class IocRecordFactory:
         return record_dict
 
     def _make_table(
-        self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
+        self, record_name: str, field_info: FieldInfo, values: Dict[str, List[str]]
     ) -> Dict[str, _RecordInfo]:
         # TODO: Implement this!
         return {}
@@ -1012,11 +1012,26 @@ class IocRecordFactory:
                 #TODO: Update this once decided whether need to return POSITION, BITS,
                 # and TABLE records (and any other records created in unusual ways)
         """
+
         try:
             key = (field_info.type, field_info.subtype)
+            if key == ("table", None):
+                # Table expects vals in Dict[str, List[str]]
+                # TODO: Can I do this without creating a new dictionary?
+                list_vals = {
+                    k: v for (k, v) in field_values.items() if isinstance(v, list)
+                }
+
+                return self._make_table(record_name, field_info, list_vals)
+
+            # All fields expect field_values to be Dict[str,str]
+            # TODO: Can I do this without creating a new dictionary?
+            str_vals = {k: v for (k, v) in field_values.items() if isinstance(v, str)}
+
             return self._field_record_mapping[key](
-                self, record_name, field_info, field_values  # type: ignore
+                self, record_name, field_info, str_vals
             )
+
         except KeyError:
             # Unrecognised type-subtype key, ignore this item. This allows the server
             # to define new types without breaking the client.
@@ -1040,7 +1055,7 @@ class IocRecordFactory:
         ("ext_out", "bits"): _make_ext_out_bits,
         ("bit_mux", None): _make_bit_mux,
         ("pos_mux", None): _make_pos_mux,
-        ("table", None): _make_table,
+        # ("table", None): _make_table, TABLE handled separately
         ("param", "uint"): _make_uint_write,
         ("read", "uint"): _make_uint_read,
         ("write", "uint"): _make_uint_write,
@@ -1183,11 +1198,14 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
                 # TODO: Use changes.no_value?
 
             for field, value in changes.values.items():
+
+                # Convert PandA field name to EPICS name
                 field = _create_values_key(field)
                 block_name_number, _ = field.split(":", maxsplit=1)
                 field = _ensure_block_number_present(field, block_name_number)
                 if field not in all_records:
                     raise Exception("Unknown record returned from GetChanges")
+
                 record_info = all_records[field]
                 record = record_info.record
                 if record_info.labels:

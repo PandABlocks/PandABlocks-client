@@ -31,6 +31,7 @@ from .responses import (
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
     TableFieldInfo,
+    TableFieldParams,
     TimeFieldInfo,
     UintFieldInfo,
 )
@@ -501,13 +502,50 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = TableFieldInfo(field_type, field_subtype)
 
+        # Ignore the ROW_WORDS attribute as it is new and so won't be present everywhere
         max_length, fields = yield from _execute_commands(
             GetLine(f"{self.block}1.{field_name}.MAX_LENGTH"),
             GetMultiline(f"{self.block}1.{field_name}.FIELDS"),
         )
 
         field_info.max_length = int(max_length)
-        field_info.fields = list(fields)
+
+        # Keep track of highest bit index
+        max_bit_offset: int = 0
+
+        enum_field_gets: List[GetMultiline] = []
+        enum_field_names: List[str] = []
+        for field in fields:
+            # Fields are of the form
+            bit_range, name, subtype = field.split()
+            bit_high_str, bit_low_str = bit_range.split(":")
+            bit_high = int(bit_high_str)
+            bit_low = int(bit_low_str)
+
+            if bit_high > max_bit_offset:
+                max_bit_offset = bit_high
+
+            if subtype == "enum":
+                enum_field_gets.append(
+                    GetMultiline(f"*ENUMS.{self.block}1.{field_name}[].{name}")
+                )
+                enum_field_names.append(name)
+
+            info = TableFieldParams(subtype, bit_low, bit_high)
+
+            if field_info.fields is None:
+                field_info.fields = {}
+
+            field_info.fields[name] = info
+
+        # Calculate the number of 32 bit words that comprises one table row
+        field_info.row_words = max_bit_offset // 32 + 1
+
+        enum_labels = yield from _execute_commands(*enum_field_gets)
+
+        for name, labels in zip(enum_field_names, enum_labels):
+            assert field_info.fields
+            field_info.fields[name].labels = labels
 
         return field_name, field_info
 
