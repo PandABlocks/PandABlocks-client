@@ -764,8 +764,8 @@ class GetChanges(Command[Changes]):
             If `False` these fields will instead be returned in the `no_value`
             attribute. Default value is `False`.
         multiline_base64: If `True` any multiline values retrieved will use Base64
-            encoding if possible, returning data as a single BAse64 encoded value rather
-            than a list of values. Only has an effect if `get_multiline` is `True`.
+            encoding if possible, returning data as a single Base64 encoded value rather
+            than a list of values. Only has an effect if ``get_multiline`` is `True`.
             This will typically increase network traffic by ~33% for table data.
             Default `False`.
 
