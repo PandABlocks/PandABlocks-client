@@ -30,8 +30,8 @@ from .responses import (
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
+    TableFieldDetails,
     TableFieldInfo,
-    TableFieldParams,
     TimeFieldInfo,
     UintFieldInfo,
 )
@@ -502,7 +502,9 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ) -> _FieldGeneratorType:
         field_info = TableFieldInfo(field_type, field_subtype)
 
-        # Ignore the ROW_WORDS attribute as it is new and so won't be present everywhere
+        # Ignore the ROW_WORDS attribute as it's new and won't be present on all PandAs,
+        # and there's no easy way to try it and catch an error while also running other
+        # Get commands at the same time
         max_length, fields = yield from _execute_commands(
             GetLine(f"{self.block}1.{field_name}.MAX_LENGTH"),
             GetMultiline(f"{self.block}1.{field_name}.FIELDS"),
@@ -531,7 +533,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 )
                 enum_field_names.append(name)
 
-            info = TableFieldParams(subtype, bit_low, bit_high)
+            info = TableFieldDetails(subtype, bit_low, bit_high)
 
             if field_info.fields is None:
                 field_info.fields = {}
@@ -761,6 +763,11 @@ class GetChanges(Command[Changes]):
             requests.
             If `False` these fields will instead be returned in the `no_value`
             attribute. Default value is `False`.
+        multiline_base64: If `True` any multiline values retrieved will use Base64
+            encoding if possible, returning data as a single BAse64 encoded value rather
+            than a list of values. Only has an effect if `get_multiline` is `True`.
+            This will typically increase network traffic by ~33% for table data.
+            Default `False`.
 
     For example::
 
@@ -781,6 +788,7 @@ class GetChanges(Command[Changes]):
 
     group: ChangeGroup = ChangeGroup.ALL
     get_multiline: bool = False
+    multiline_base64: bool = False
 
     def execute(self) -> ExchangeGenerator[Changes]:
         ex = Exchange(f"*CHANGES{self.group.value}?")
@@ -791,7 +799,16 @@ class GetChanges(Command[Changes]):
             if line[-1] == "<":
                 if self.get_multiline:
                     field = line[0:-1]
-                    multivalue_get_commands.append((field, GetMultiline(field)))
+
+                    # The METADATA tables are strings, and cannot be requested in Base64
+                    if self.multiline_base64 and "*METADATA" not in field:
+                        base64 = ".B"
+                    else:
+                        base64 = ""
+
+                    multivalue_get_commands.append(
+                        (field, GetMultiline(field + base64))
+                    )
 
                 else:
                     changes.no_value.append(line[:-1])

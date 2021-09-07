@@ -128,10 +128,9 @@ class PosMuxFieldInfo(FieldInfo):
 
 
 @dataclass
-class TableFieldParams:
+class TableFieldDetails:
     """Info for each field in a table"""
 
-    # TODO: Rename this class?
     subtype: str
     bit_low: int
     bit_high: int
@@ -143,7 +142,7 @@ class TableFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `table`"""
 
     max_length: Optional[int] = None
-    fields: Optional[Dict[str, TableFieldParams]] = None
+    fields: Optional[Dict[str, TableFieldDetails]] = None
     row_words: Optional[int] = None
 
 

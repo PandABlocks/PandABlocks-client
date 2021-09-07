@@ -114,17 +114,13 @@ def _ensure_block_number_present(block_and_field_name: str, block_name_number: s
         block_and_field_name: A string containing the block and the field name,
         e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK".
 
-        block_name_number (str): A string containg just the block and possibly the
+        block_name_number: A string containg just the block and possibly the
         instance number, e.g. "SYSTEM" or "INENC2"
 
     Returns:
         str: The block and field name which will have an instance number.
         e.g. "SYSTEM1.TEMP_ZYNQ", or "INENC2.CLK".
     """
-    # For consistency across different numbering conventions always suffix a
-    # block number, even when the value coming from PandA did not have it.
-    # This works because PandA ignores the "1" suffix when there is only
-    # one instance of a block.
     if not block_name_number[-1].isdigit():
         return block_and_field_name.replace(
             block_name_number, block_name_number + "1", 1
@@ -184,7 +180,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     # Note order of requests is important as it is unpacked by index below
     returned_infos = await asyncio.gather(
         *[client.send(GetFieldInfo(block)) for block in block_dict],
-        client.send(GetChanges(ChangeGroup.ALL, True)),
+        client.send(GetChanges(ChangeGroup.ALL, True, True)),
     )
 
     field_infos: List[Dict[str, FieldInfo]] = returned_infos[0:-1]
@@ -561,6 +557,8 @@ class IocRecordFactory:
 
         # TODO: Work out how to test SCALED, as well as all tabular,
         # records as they aren't returned at all
+
+        # TODO: Descriptions of records created inline below
 
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
