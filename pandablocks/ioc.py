@@ -729,6 +729,15 @@ class IocRecordFactory:
         assert field_info.fields
         assert field_info.row_words
 
+        def unpack(fields, packed):
+            unpacked = []
+            for width, offset in fields:
+                word_offset = offset // 32
+                bit_offset = offset & 0x1F
+                mask = (1 << width) - 1
+                unpacked.append((packed[word_offset] >> bit_offset) & mask)
+            return unpacked
+
         # Empty tables will have no values. Full tables will have 1 entry, the base64
         # respresentation of their contents
         table_value = values[record_name]
@@ -736,66 +745,27 @@ class IocRecordFactory:
             # TODO: Warning
             return {}
 
-        # temp var
-        sum = 0
-
-        # Construct dtype describing data format
-        types: List[Tuple[str, Type[np.signedinteger[Any]]]] = []
-
         # TODO: Move this sort into Gets instead?
         sorted_fields = sorted(
             field_info.fields.items(), key=lambda item: item[1].bit_low
         )
 
-        # for field_name, table_field_info in field_info.fields.items():
-        for field_name, table_field_info in sorted_fields:
+        field_defs: List[Tuple[int, int]] = []
+
+        for field_name, table_field_values in sorted_fields:
 
             # Calculate number of bits this field uses
-            bit_len = table_field_info.bit_high - table_field_info.bit_low + 1
+            bit_len = table_field_values.bit_high - table_field_values.bit_low + 1
 
-            field_type: Type[np.signedinteger[Any]]
-            # TODO: Should I use <=? It feels imprecise - especially for e.g. 4 byte
-            # fields such as enums. But this is what pymalcolm does.
-            if bit_len < 1:
-                raise Exception(
-                    "Field too small!"
-                )  # TODO: Revisit when we can print warnings
-            elif bit_len == 1:
-                field_type = np.bool8
-                sum += 1
-            elif bit_len <= 4:
-                field_type = "placeholder"
-            elif bit_len <= 8:
-                field_type = np.int8
-                sum += 8
-            elif bit_len <= 16:
-                field_type = np.int16
-                sum += 16
-            elif bit_len <= 32:
-                field_type = np.int32
-                sum += 32
-            elif bit_len <= 64:
-                field_type = np.int64
-                sum += 64
-            else:
-                raise Exception(
-                    "Field size not recognised!"
-                )  # TODO: Revisit when we can print warnings
+            field_defs.append((bit_len, table_field_values.bit_low))
 
-            if field_type == "placeholder":
-                types.append((field_name + "1", np.bool8))
-                types.append((field_name + "2", np.bool8))
-                types.append((field_name + "3", np.bool8))
-                types.append((field_name + "4", np.bool8))
-            else:
-                types.append((field_name, field_type))
-
-        dtype = np.dtype(types)
         encoded_val = table_value[0].encode()
-        # foo = np.frombuffer(base64.decodebytes(encoded_val), dtype=dtype)
         foo = np.frombuffer(base64.decodebytes(encoded_val), dtype=np.int32)
 
         bar = foo.reshape(len(foo) // field_info.row_words, field_info.row_words)
+        # bar = foo.reshape(field_info.row_words, len(foo) // field_info.row_words)
+
+        baz = unpack(field_defs, bar.T)
 
         return {}
 
