@@ -515,10 +515,11 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         # Keep track of highest bit index
         max_bit_offset: int = 0
 
+        desc_gets: List[GetLine] = []
         enum_field_gets: List[GetMultiline] = []
         enum_field_names: List[str] = []
         for field in fields:
-            # Fields are of the form
+            # Fields are of the form <bit_high>:<bit_low> <name> <subtype>
             bit_range, name, subtype = field.split()
             bit_high_str, bit_low_str = bit_range.split(":")
             bit_high = int(bit_high_str)
@@ -540,14 +541,28 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
             field_info.fields[name] = info
 
+            desc_gets.append(GetLine(f"*DESC.{self.block}1.{field_name}[].{name}"))
+
         # Calculate the number of 32 bit words that comprises one table row
         field_info.row_words = max_bit_offset // 32 + 1
 
-        enum_labels = yield from _execute_commands(*enum_field_gets)
+        # The first len(enum_field_gets) items are enum labels, type List[str]
+        # The second part of the list are descriptions, type str
+        labels_and_descriptions = yield from _execute_commands(
+            *enum_field_gets, *desc_gets
+        )
 
-        for name, labels in zip(enum_field_names, enum_labels):
-            assert field_info.fields
+        assert field_info.fields
+
+        for name, labels in zip(
+            enum_field_names, labels_and_descriptions[: len(enum_field_gets)]
+        ):
             field_info.fields[name].labels = labels
+
+        for name, desc in zip(
+            field_info.fields.keys(), labels_and_descriptions[len(enum_field_gets) :]
+        ):
+            field_info.fields[name].description = desc
 
         return field_name, field_info
 
@@ -681,7 +696,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             return fields
 
         # The first <len(fields)> elements are type Tuple[str, FieldInfo]
-        # The second half of the elements are type str (field descriptions)
+        # The second section of the elements are type str (field descriptions)
         infos_and_descriptions = yield from _zip_with_return(
             field_generators + desc_generators
         )

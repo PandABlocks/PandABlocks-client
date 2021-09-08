@@ -36,6 +36,8 @@ from pandablocks.responses import (
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
+    TableFieldDetails,
+    TableFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
 )
@@ -390,6 +392,7 @@ def test_get_fields_non_existant_block():
 
 
 # TODO: Confirm I've listed every possible type-subtype pair once
+# Table field handled in separate test due to extra round of network calls required
 @pytest.mark.parametrize(
     "field_type, field_subtype, expected_get_string, responses, expected_field_info",
     [
@@ -656,6 +659,83 @@ def test_get_fields_parameterized_type(
         (
             cmd,
             {"TEST_FIELD": expected_field_info},
+        )
+    ]
+
+
+def test_get_fields_type_table():
+    """Test for table field type, including descriptions and retrieving enum labels"""
+    conn = ControlConnection()
+    cmd = GetFieldInfo("SEQ")
+    assert conn.send(cmd) == b"SEQ.*?\n"
+
+    assert (
+        conn.receive_bytes(b"!TABLE 7 table\n.\n")
+        == b"SEQ1.TABLE.MAX_LENGTH?\nSEQ1.TABLE.FIELDS?\n*DESC.SEQ.TABLE?\n"
+    )
+
+    assert conn.receive_bytes(b"OK =16384\n") == b""
+
+    assert (
+        conn.receive_bytes(
+            b"!15:0 REPEATS uint\n!19:16 TRIGGER enum\n!63:32 POSITION int\n.\n"
+        )
+        == b""
+    )
+
+    assert conn.receive_bytes(b"OK =Sequencer table of lines\n") == (
+        b"*ENUMS.SEQ1.TABLE[].TRIGGER?\n*DESC.SEQ1.TABLE[].REPEATS?\n"
+        b"*DESC.SEQ1.TABLE[].TRIGGER?\n*DESC.SEQ1.TABLE[].POSITION?\n"
+    )
+
+    responses = [
+        b"!Immediate\n!BITA=0\n.\n",
+        b"OK =Number of times the line will repeat\n",
+        b"OK =The trigger condition to start the phases\n",
+        b"OK =The position that can be used in trigger condition\n",
+    ]
+    for response in responses:
+        assert (
+            conn.receive_bytes(response) == b""
+        )  # Expect no bytes back as none of these trigger further commands
+
+    assert get_responses(conn) == [
+        (
+            cmd,
+            {
+                "TABLE": TableFieldInfo(
+                    type="table",
+                    subtype=None,
+                    description="Sequencer table of lines",
+                    max_length=16384,
+                    row_words=2,  # Calculated from POSITION field's highest used bit
+                    fields={
+                        "REPEATS": TableFieldDetails(
+                            subtype="uint",
+                            bit_low=0,
+                            bit_high=15,
+                            description="Number of times the line will repeat",
+                            labels=None,
+                        ),
+                        "TRIGGER": TableFieldDetails(
+                            subtype="enum",
+                            bit_low=16,
+                            bit_high=19,
+                            description="The trigger condition to start the phases",
+                            labels=["Immediate", "BITA=0"],
+                        ),
+                        "POSITION": TableFieldDetails(
+                            subtype="int",
+                            bit_low=32,
+                            bit_high=63,
+                            description=(
+                                "The position that can be used in trigger condition"
+                            ),
+                            labels=None,
+                        ),
+                    },
+                )
+            },
         )
     ]
 
