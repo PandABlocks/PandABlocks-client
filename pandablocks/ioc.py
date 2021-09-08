@@ -1,11 +1,13 @@
 # Creating PythonSoftIOCs directly from PandA Blocks and Fields
 
 import asyncio
+import base64
 import inspect
 from dataclasses import dataclass
 from string import digits
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
+import numpy as np
 from softioc import asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
 
@@ -30,6 +32,7 @@ from pandablocks.responses import (
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
+    TableFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
 )
@@ -722,7 +725,78 @@ class IocRecordFactory:
     def _make_table(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, List[str]]
     ) -> Dict[str, _RecordInfo]:
-        # TODO: Implement this!
+        assert isinstance(field_info, TableFieldInfo)
+        assert field_info.fields
+        assert field_info.row_words
+
+        # Empty tables will have no values. Full tables will have 1 entry, the base64
+        # respresentation of their contents
+        table_value = values[record_name]
+        if len(table_value) != 1:
+            # TODO: Warning
+            return {}
+
+        # temp var
+        sum = 0
+
+        # Construct dtype describing data format
+        types: List[Tuple[str, Type[np.signedinteger[Any]]]] = []
+
+        # TODO: Move this sort into Gets instead?
+        sorted_fields = sorted(
+            field_info.fields.items(), key=lambda item: item[1].bit_low
+        )
+
+        # for field_name, table_field_info in field_info.fields.items():
+        for field_name, table_field_info in sorted_fields:
+
+            # Calculate number of bits this field uses
+            bit_len = table_field_info.bit_high - table_field_info.bit_low + 1
+
+            field_type: Type[np.signedinteger[Any]]
+            # TODO: Should I use <=? It feels imprecise - especially for e.g. 4 byte
+            # fields such as enums. But this is what pymalcolm does.
+            if bit_len < 1:
+                raise Exception(
+                    "Field too small!"
+                )  # TODO: Revisit when we can print warnings
+            elif bit_len == 1:
+                field_type = np.bool8
+                sum += 1
+            elif bit_len <= 4:
+                field_type = "placeholder"
+            elif bit_len <= 8:
+                field_type = np.int8
+                sum += 8
+            elif bit_len <= 16:
+                field_type = np.int16
+                sum += 16
+            elif bit_len <= 32:
+                field_type = np.int32
+                sum += 32
+            elif bit_len <= 64:
+                field_type = np.int64
+                sum += 64
+            else:
+                raise Exception(
+                    "Field size not recognised!"
+                )  # TODO: Revisit when we can print warnings
+
+            if field_type == "placeholder":
+                types.append((field_name + "1", np.bool8))
+                types.append((field_name + "2", np.bool8))
+                types.append((field_name + "3", np.bool8))
+                types.append((field_name + "4", np.bool8))
+            else:
+                types.append((field_name, field_type))
+
+        dtype = np.dtype(types)
+        encoded_val = table_value[0].encode()
+        # foo = np.frombuffer(base64.decodebytes(encoded_val), dtype=dtype)
+        foo = np.frombuffer(base64.decodebytes(encoded_val), dtype=np.int32)
+
+        bar = foo.reshape(len(foo) // field_info.row_words, field_info.row_words)
+
         return {}
 
     def _make_uint(
@@ -1034,6 +1108,8 @@ class IocRecordFactory:
             # Unrecognised type-subtype key, ignore this item. This allows the server
             # to define new types without breaking the client.
             # TODO: Emit a warning
+            # TODO: This catches exceptions from within mapping functions too! probably
+            # need another try-except block inside this one?
             return {}
 
     # Map a field's (type, subtype) to a function that creates and returns record(s)
