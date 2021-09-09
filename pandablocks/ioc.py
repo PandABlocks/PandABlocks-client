@@ -5,7 +5,7 @@ import base64
 import inspect
 from dataclasses import dataclass
 from string import digits
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from softioc import asyncio_dispatcher, builder, softioc
@@ -32,6 +32,7 @@ from pandablocks.responses import (
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
+    TableFieldDetails,
     TableFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
@@ -232,8 +233,8 @@ class _RecordUpdater:
     # TODO: It appears that if there's an exception (e.g. a Put fails) this function
     # is never subsequently called - something permanently breaks until restarted.
 
-    # TODO: Try this with non-stringOut fields. And it'll probably need more work
-    # once we get to Tables too...
+    # TODO: Try this with non-stringOut fields.
+    # TODO: See if this works at all for tables!
     async def update(self, new_val):
         panda_field = self.record_name.replace(":", ".")
         try:
@@ -729,13 +730,37 @@ class IocRecordFactory:
         assert field_info.fields
         assert field_info.row_words
 
-        def unpack(fields, packed):
+        def _unpack(fields: List[Tuple[str, TableFieldDetails]], packed):
+            """Unpacks the given `packed` data based on the fields provided.
+            Returns the unpacked data in column-indexed format
+            # TODO: There is more precise technical language I could use here...
+            Args:
+                fields: The list of fields present in the packed data
+                packed (numpy array): The packed data, in a multi-dimensional array
+                where each row is the nth element in the table (e.g. packed[0] contains
+                the 0th item of each row from PandA, packed[1] contains the 1st, etc.).
+                Data is expected to be in `np.int32` dtype format.
+
+            Returns:
+                numpy array: A list of 1-D numpy arrays, one item per field. Each item
+                will have the same length as the input array's rows.
+            """
             unpacked = []
-            for width, offset in fields:
+            for name, field_details in fields:
+                offset = field_details.bit_low
+                bit_len = field_details.bit_high - field_details.bit_low + 1
+
+                # The word offset indicates which column this field is in
+                # (each column is one 32-bit word)
                 word_offset = offset // 32
+
+                # bit offset is location of field inside the word
                 bit_offset = offset & 0x1F
-                mask = (1 << width) - 1
+
+                # Mask to remove every bit that isn't in the range we want
+                mask = (1 << bit_len) - 1
                 unpacked.append((packed[word_offset] >> bit_offset) & mask)
+
             return unpacked
 
         # Empty tables will have no values. Full tables will have 1 entry, the base64
@@ -745,29 +770,52 @@ class IocRecordFactory:
             # TODO: Warning
             return {}
 
-        # TODO: Move this sort into Gets instead?
+        # The field order will be whatever was configured in the PandA.
+        # Sort fields into bit order from lowest to highest so we can parse data
         sorted_fields = sorted(
             field_info.fields.items(), key=lambda item: item[1].bit_low
         )
 
-        field_defs: List[Tuple[int, int]] = []
-
-        for field_name, table_field_values in sorted_fields:
-
-            # Calculate number of bits this field uses
-            bit_len = table_field_values.bit_high - table_field_values.bit_low + 1
-
-            field_defs.append((bit_len, table_field_values.bit_low))
-
+        # TODO: I no longer really need the base64 output, change to use regular output
         encoded_val = table_value[0].encode()
-        foo = np.frombuffer(base64.decodebytes(encoded_val), dtype=np.int32)
+        data = np.frombuffer(base64.decodebytes(encoded_val), dtype=np.uint32)
+        # Convert 1-D array into 2-D, one row element per row in the PandA table
+        data = data.reshape(len(data) // field_info.row_words, field_info.row_words)
+        data = data.T
 
-        bar = foo.reshape(len(foo) // field_info.row_words, field_info.row_words)
-        # bar = foo.reshape(field_info.row_words, len(foo) // field_info.row_words)
+        field_data = _unpack(sorted_fields, data)
 
-        baz = unpack(field_defs, bar.T)
+        record_dict = {}
 
-        return {}
+        for (field_name, field_details), data in zip(
+            field_info.fields.items(), field_data
+        ):
+            bit_len = field_details.bit_high - field_details.bit_low + 1
+            if bit_len < 1:
+                raise Exception("Field too short!")  # TODO: Better warning/error
+            elif bit_len <= 8:
+                ftvl_str = "UCHAR"
+            elif bit_len <= 16:
+                ftvl_str = "USHORT"
+            elif bit_len <= 32:
+                ftvl_str = "ULONG"
+            else:
+                raise Exception("Field too long!")  # TODO: Better warning/error
+
+            full_name = record_name + ":" + field_name
+            record_dict[full_name] = self._create_record_info(
+                full_name,
+                field_details.description,
+                builder.WaveformOut,
+                lambda x: None,  # Tables are handled separately
+                # TODO: Am I happy with this special case?
+                NELM=field_info.max_length,
+                # FTVL=ftvl_str,
+                # initial_value=data.tolist(),
+                initial_value=data,
+            )
+
+        return record_dict
 
     def _make_uint(
         self,
