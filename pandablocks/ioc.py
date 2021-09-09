@@ -790,18 +790,6 @@ class IocRecordFactory:
         for (field_name, field_details), data in zip(
             field_info.fields.items(), field_data
         ):
-            bit_len = field_details.bit_high - field_details.bit_low + 1
-            if bit_len < 1:
-                raise Exception("Field too short!")  # TODO: Better warning/error
-            elif bit_len <= 8:
-                ftvl_str = "UCHAR"
-            elif bit_len <= 16:
-                ftvl_str = "USHORT"
-            elif bit_len <= 32:
-                ftvl_str = "ULONG"
-            else:
-                raise Exception("Field too long!")  # TODO: Better warning/error
-
             full_name = record_name + ":" + field_name
             record_dict[full_name] = self._create_record_info(
                 full_name,
@@ -810,9 +798,8 @@ class IocRecordFactory:
                 lambda x: None,  # Tables are handled separately
                 # TODO: Am I happy with this special case?
                 NELM=field_info.max_length,
-                # FTVL=ftvl_str,
-                # initial_value=data.tolist(),
                 initial_value=data,
+                # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
             )
 
         return record_dict
