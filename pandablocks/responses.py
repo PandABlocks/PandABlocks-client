@@ -134,7 +134,7 @@ class TableFieldDetails:
     subtype: str
     bit_low: int
     bit_high: int
-    description: str = None
+    description: Optional[str] = None
     labels: Optional[List[str]] = None
 
 
