@@ -228,8 +228,8 @@ class GetLine(Command[str]):
 
     For example::
 
-        Get("PCAP.ACTIVE") -> "1"
-        Get("*IDN") -> "PandA 1.1..."
+        GetLine("PCAP.ACTIVE") -> "1"
+        GetLine("*IDN") -> "PandA 1.1..."
     """
 
     field: str
@@ -253,8 +253,8 @@ class GetMultiline(Get):
 
     For example::
 
-        Get("SEQ1.TABLE") -> ["1048576", "0", "1000", "1000"]
-        Get("*METADATA.*") -> ["LABEL_FILTER1", "APPNAME", ...]
+        GetMultiline("SEQ1.TABLE") -> ["1048576", "0", "1000", "1000"]
+        GetMultiline("*METADATA.*") -> ["LABEL_FILTER1", "APPNAME", ...]
     """
 
     field: str
@@ -781,7 +781,7 @@ class GetChanges(Command[Changes]):
         multiline_base64: If `True` any multiline values retrieved will use Base64
             encoding if possible, returning data as a single Base64 encoded value rather
             than a list of values. Only has an effect if ``get_multiline`` is `True`.
-            This will typically increase network traffic by ~33% for table data.
+            This will typically increase data sent over the network.
             Default `False`.
 
     For example::
