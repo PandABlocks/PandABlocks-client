@@ -1,12 +1,11 @@
 # Creating PythonSoftIOCs directly from PandA Blocks and Fields
 
 import asyncio
-import base64
 import inspect
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from softioc import asyncio_dispatcher, builder, softioc
@@ -279,6 +278,7 @@ class TablePacking:
         """Unpacks the given `packed` data based on the fields provided.
         Returns the unpacked data in column-indexed format
         # TODO: There is more precise technical language I could use here...
+        # TODO: Work out type of returned list
         Args:
             fields: The list of fields present in the packed data
             packed (numpy array): The packed data, in a multi-dimensional array
@@ -305,6 +305,7 @@ class TablePacking:
             # Mask to remove every bit that isn't in the range we want
             mask = (1 << bit_len) - 1
 
+            val: Any  # TODO: Fix this numpy typing workaround
             if field_details.subtype == "int":
                 # First convert from 2's complement to offset, then add in offset.
                 val = np.int32(
@@ -312,6 +313,12 @@ class TablePacking:
                 )
             else:
                 val = (packed[word_offset] >> bit_offset) & mask
+
+                # Use shorter types, as these are used in waveform creation
+                if bit_len <= 8:
+                    val = np.uint8(val)
+                elif bit_len <= 16:
+                    val = np.uint16(val)
 
             unpacked.append(val)
 
@@ -344,6 +351,7 @@ class TablePacking:
             table_fields, table_records.values()
         ):
             curr_val = record_info.record.get()
+            curr_val = np.uint32(curr_val)
             offset = field_details.bit_low
 
             # The word offset indicates which column this field is in
@@ -969,9 +977,7 @@ class IocRecordFactory:
             self._client, record_name, field_info, sorted_fields, record_dict
         )
 
-        for (field_name, field_details), data in zip(
-            field_info.fields.items(), field_data
-        ):
+        for (field_name, field_details), data in zip(sorted_fields, field_data):
             full_name = record_name + ":" + field_name
             record_dict[full_name] = self._create_record_info(
                 full_name,
