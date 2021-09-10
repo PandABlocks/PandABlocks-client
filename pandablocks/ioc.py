@@ -18,6 +18,7 @@ from pandablocks.commands import (
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
+    GetMultiline,
     Put,
 )
 from pandablocks.responses import (
@@ -64,6 +65,9 @@ class _RecordInfo:
     the record.
 
     If `labels` is not None, the record is an enum type"""
+
+    # TODO: This class has become used in a lot of places. Might need to lose
+    # leading "_"
 
     record: RecordWrapper
     data_type_func: Callable
@@ -191,7 +195,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     # Note order of requests is important as it is unpacked by index below
     returned_infos = await asyncio.gather(
         *[client.send(GetFieldInfo(block)) for block in block_dict],
-        client.send(GetChanges(ChangeGroup.ALL, True, True)),
+        client.send(GetChanges(ChangeGroup.ALL, True)),
     )
 
     field_infos: List[Dict[str, FieldInfo]] = returned_infos[0:-1]
@@ -269,75 +273,75 @@ class _RecordUpdater:
             print(e)  # TODO: Some better warning
 
 
-class TableModeEnum(Enum):
-    """Operation modes for the MODES record on PandA table fields"""
+class TablePacking:
+    @staticmethod
+    def unpack(fields: List[Tuple[str, TableFieldDetails]], packed):
+        """Unpacks the given `packed` data based on the fields provided.
+        Returns the unpacked data in column-indexed format
+        # TODO: There is more precise technical language I could use here...
+        Args:
+            fields: The list of fields present in the packed data
+            packed (numpy array): The packed data, in a multi-dimensional array
+            where each row is the nth element in the table (e.g. packed[0] contains
+            the 0th item of each row from PandA, packed[1] contains the 1st, etc.).
+            Data is expected to be in `np.int32` dtype format.
 
-    VIEW = 0  # Discard all EPICS record updates, process all PandA updates
-    EDIT = 1  # Process all EPICS record updates, discard all PandA updates
-    SUBMIT = 2  # Push EPICS records to PandA, overriding current PandA data
-    DISCARD = 3  # Discard all EPICS records, regenerate from PandA
+        Returns:
+            numpy array: A list of 1-D numpy arrays, one item per field. Each item
+            will have the same length as the input array's rows.
+        """
+        unpacked = []
+        for name, field_details in fields:
+            offset = field_details.bit_low
+            bit_len = field_details.bit_high - field_details.bit_low + 1
 
+            # The word offset indicates which column this field is in
+            # (each column is one 32-bit word)
+            word_offset = offset // 32
 
-@dataclass
-class _TableUpdater:
-    """Class to handle updating table records, batching PUTs into the smallest number
-    possible to avoid unnecessary/unwanted processing on the PandA"""
+            # bit offset is location of field inside the word
+            bit_offset = offset & 0x1F
 
-    # TODO: Document params, e.g that the table_fields list must be sorted in
-    # bit-ascending order
-    client: AsyncioClient
-    field_info: TableFieldInfo
-    table_fields: List[Tuple[str, TableFieldDetails]]
-    table_records: Dict[str, _RecordInfo]
+            # Mask to remove every bit that isn't in the range we want
+            mask = (1 << bit_len) - 1
 
-    async def update(self, new_val: int):
-        # This method should only be called for the :MODE record.
-        # Extract that record from the list
+            if field_details.subtype == "int":
+                # First convert from 2's complement to offset, then add in offset.
+                val = np.int32(
+                    (packed[word_offset] ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1))
+                )
+            else:
+                val = (packed[word_offset] >> bit_offset) & mask
 
-        filtered_dict = dict(
-            filter(lambda item: item[0].endswith(":MODE"), self.table_records.items())
-        )
-        assert len(filtered_dict) == 1, "Found too many MODE records"
+            unpacked.append(val)
 
-        mode_rec_info = next(iter(filtered_dict.values()))
-        # We know the MODE record has labels
-        assert mode_rec_info.labels
+        return unpacked
 
-        new_label = mode_rec_info.labels[new_val]
-
-        if new_label == TableModeEnum.SUBMIT.name:
-            # Extract table name from leading part of the MODE record name
-            table_name, _ = next(iter(filtered_dict.keys())).rsplit(":", maxsplit=1)
-            packed_data = self._pack()
-            try:
-                panda_name = _epics_to_panda_name(table_name)
-                await self.client.send(Put(panda_name, [str(x) for x in packed_data]))
-                # Already in on_update of this record, so disable processing
-                mode_rec_info.record.set(TableModeEnum.VIEW.value, process=False)
-            except KeyError as e:
-                print(e)  # TODO: Better warning
-                # TODO: Do I need this here? Not like I can do anything if it fails
-
-    def _pack(self) -> List[int]:
+    @staticmethod
+    def pack(
+        field_info: TableFieldInfo,
+        table_records: Dict[str, _RecordInfo],
+        table_fields: List[Tuple[str, TableFieldDetails]],
+    ) -> List[str]:
         """Pack the records based on the field definitions into the format PandA expects
         for table writes.
 
         Returns:
-            List[int]: The list of data ready to be sent to PandA
+            List[str]: The list of data ready to be sent to PandA
         """
-        assert self.field_info.row_words
+        assert field_info.row_words
 
         # Every column should have same length, so just use first
-        table_length = len(next(iter(self.table_records.values())).record.get())
+        table_length = len(next(iter(table_records.values())).record.get())
 
         # Create 1-D array sufficiently long to exactly hold the entire table
-        packed = np.zeros((table_length, self.field_info.row_words), dtype=np.uint32)
+        packed = np.zeros((table_length, field_info.row_words), dtype=np.uint32)
 
         # Iterate over the zipped fields and their associated records to construct the
         # packed array. Note that the MODE record is at the end of the table_records,
         # and so will be ignored by zip() as it has no associated value in table_fields
         for (name, field_details), record_info in zip(
-            self.table_fields, self.table_records.values()
+            table_fields, table_records.values()
         ):
             curr_val = record_info.record.get()
             offset = field_details.bit_low
@@ -352,7 +356,103 @@ class _TableUpdater:
             # bit shift the value to the relevant bits of the word
             packed[:, word_offset] |= curr_val << bit_offset
 
-        return packed.flatten().tolist()
+        # 2-D array -> 1-D array -> list[int] -> list[str]
+        return [str(x) for x in packed.flatten().tolist()]
+
+
+class TableModeEnum(Enum):
+    """Operation modes for the MODES record on PandA table fields"""
+
+    VIEW = 0  # Discard all EPICS record updates, process all PandA updates
+    EDIT = 1  # Process all EPICS record updates, discard all PandA updates
+    SUBMIT = 2  # Push EPICS records to PandA, overriding current PandA data
+    DISCARD = 3  # Discard all EPICS records, re-fetch from PandA
+
+
+@dataclass
+class _TableUpdater:
+    """Class to handle updating table records, batching PUTs into the smallest number
+    possible to avoid unnecessary/unwanted processing on the PandA"""
+
+    # TODO: Document params, e.g that the table_fields list must be sorted in
+    # bit-ascending order
+    client: AsyncioClient
+    table_name: str  # The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
+    field_info: TableFieldInfo
+    table_fields: List[Tuple[str, TableFieldDetails]]
+    table_records: Dict[str, _RecordInfo]
+
+    def validate(self, record: RecordWrapper, new_val) -> bool:
+        """Controls whether updates to the EPICS records are processed, based on the
+        value of the MODE record.
+
+        Args:
+            record (RecordWrapper): The record currently being validated
+            new_val (Any): The new value attempting to be written
+
+        Returns:
+            bool: `True` to allow record update, `False` otherwise.
+        """
+        print("HERE!")
+
+        record_val = self._mode_record_info.record.get()
+
+        if record_val == TableModeEnum.VIEW.value:
+            print("VIEW value")
+            return False
+        elif record_val == TableModeEnum.EDIT.value:
+            print("EDIT value")
+            return True
+        elif record_val == TableModeEnum.SUBMIT.value:
+            # SUBMIT only present when currently writing out data to PandA.
+            # TODO: Better warning mechanism
+            print(
+                "WARNING! Update of EPICS record attempted while MODE was SUBMIT."
+                + "New value will be discarded."
+            )
+            return False
+        elif record_val == TableModeEnum.DISCARD.value:
+            # DISCARD only present when currently overriding local data with PandA data
+            # TODO: Better warning mechanism
+            print(
+                "WARNING! Update of EPICS record attempted while MODE was DISCARD."
+                + "New value will be discarded."
+            )
+        else:
+            # TODO: Better error/warning
+            raise Exception("Mode record was unrecognised value: " + str(record_val))
+
+        return False
+
+    async def update(self, new_val: int):
+        # This method should only be called for the :MODE record.
+        # We know the MODE record has labels
+        assert self._mode_record_info.labels
+
+        new_label = self._mode_record_info.labels[new_val]
+
+        if new_label == TableModeEnum.SUBMIT.name:
+            # Send all EPICS data to PandA
+            packed_data = TablePacking.pack(
+                self.field_info, self.table_records, self.table_fields
+            )
+
+            panda_field_name = _epics_to_panda_name(self.table_name)
+            # TODO: Gotta do something in case this fails
+            await self.client.send(Put(panda_field_name, packed_data))
+            # Already in on_update of this record, so disable processing to
+            # avoid recursion
+            self._mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
+        elif new_label == TableModeEnum.DISCARD.name:
+            # Recreate EPICS data from PandA data
+            panda_field_name = _epics_to_panda_name(self.table_name)
+            # panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
+
+            # field_data = TablePacking.unpack(self.table_fields, packed_data)
+
+    def set_mode_record(self, record_info: _RecordInfo) -> None:
+        """Set the special MODE record that controls the behaviour of this table"""
+        self._mode_record_info = record_info
 
 
 class IocRecordFactory:
@@ -833,77 +933,41 @@ class IocRecordFactory:
         assert field_info.fields
         assert field_info.row_words
 
-        def _unpack(fields: List[Tuple[str, TableFieldDetails]], packed):
-            """Unpacks the given `packed` data based on the fields provided.
-            Returns the unpacked data in column-indexed format
-            # TODO: There is more precise technical language I could use here...
-            Args:
-                fields: The list of fields present in the packed data
-                packed (numpy array): The packed data, in a multi-dimensional array
-                where each row is the nth element in the table (e.g. packed[0] contains
-                the 0th item of each row from PandA, packed[1] contains the 1st, etc.).
-                Data is expected to be in `np.int32` dtype format.
-
-            Returns:
-                numpy array: A list of 1-D numpy arrays, one item per field. Each item
-                will have the same length as the input array's rows.
-            """
-            unpacked = []
-            for name, field_details in fields:
-                offset = field_details.bit_low
-                bit_len = field_details.bit_high - field_details.bit_low + 1
-
-                # The word offset indicates which column this field is in
-                # (each column is one 32-bit word)
-                word_offset = offset // 32
-
-                # bit offset is location of field inside the word
-                bit_offset = offset & 0x1F
-
-                # Mask to remove every bit that isn't in the range we want
-                mask = (1 << bit_len) - 1
-
-                if field_details.subtype == "int":
-                    # First convert from 2's complement to offset, then add in offset.
-                    val = np.uint32(
-                        (packed[word_offset] ^ (1 << (bit_len - 1)))
-                        + (-1 << (bit_len - 1))
-                    )
-                else:
-                    val = (packed[word_offset] >> bit_offset) & mask
-
-                unpacked.append(val)
-
-            return unpacked
-
         # Empty tables will have no values. Full tables will have 1 entry, the base64
         # respresentation of their contents
         # TODO: Still need to create the records for the empty tables!
-        table_value = values[record_name]
-        if len(table_value) != 1:
-            # TODO: Warning
-            return {}
+        # table_value = values[record_name]
+        # if len(table_value) != 1:
+        #     # TODO: Warning
+        #     return {}
 
         # The field order will be whatever was configured in the PandA.
-        # Sort fields into bit order from lowest to highest so we can parse data
+        # Ensure fields in bit order from lowest to highest so we can parse data
         sorted_fields = sorted(
             field_info.fields.items(), key=lambda item: item[1].bit_low
         )
 
         # TODO: I no longer really need the base64 output, change to use regular output
-        encoded_val = table_value[0].encode()
-        data = np.frombuffer(base64.decodebytes(encoded_val), dtype=np.uint32)
+        # encoded_val = table_value[0].encode()
+        # data = np.frombuffer(base64.decodebytes(encoded_val), dtype=np.uint32)
+        data = np.array(values[record_name], dtype=np.uint32)
         # Convert 1-D array into 2-D, one row element per row in the PandA table
         data = data.reshape(len(data) // field_info.row_words, field_info.row_words)
         data = data.T
 
-        field_data = _unpack(sorted_fields, data)
+        field_data = TablePacking.unpack(sorted_fields, data)
 
-        record_dict = {}
+        record_dict: Dict[str, _RecordInfo] = {}
 
         # TODO: Put this elsewhere?
+        # TODO: May not even need this...
         def _raiseIgnoreException(ignored):
             raise IgnoreException("This item should be ignored")
+
+        # Create the updater
+        table_updater = _TableUpdater(
+            self._client, record_name, field_info, sorted_fields, record_dict
+        )
 
         for (field_name, field_details), data in zip(
             field_info.fields.items(), field_data
@@ -916,13 +980,11 @@ class IocRecordFactory:
                 _raiseIgnoreException,
                 NELM=field_info.max_length,
                 initial_value=data,
+                validate=table_updater.validate,
                 # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
             )
 
-        # Create the updater
-        table_updater = _TableUpdater(
-            self._client, field_info, sorted_fields, record_dict
-        )
+            # table_updater.add_record(full_name, record_dict[full_name])
 
         # Create the mode record that controls when to Put back to PandA
         labels, index_value = self._process_labels(
@@ -944,6 +1006,8 @@ class IocRecordFactory:
             labels=labels,
             initial_value=index_value,
         )
+
+        table_updater.set_mode_record(record_dict[mode_record_name])
 
         return record_dict
 
