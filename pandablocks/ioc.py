@@ -213,6 +213,10 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     return panda_dict
 
 
+class IgnoreException(Exception):
+    """Raised to indicate the current item should not be handled"""
+
+
 @dataclass
 class _RecordUpdater:
     """Handles Put'ing data back to the PandA when an EPICS record is updated"""
@@ -251,8 +255,72 @@ class _RecordUpdater:
                 val = str(self.data_type_func(new_val))
 
             await self.client.send(Put(panda_field, val))
+        except IgnoreException:
+            # Some values, e.g. tables, do not use this update mechanism
+            pass
         except Exception as e:
             print(e)
+
+
+@dataclass
+class _TableUpdater:
+    """Class to handle updating table records, batching PUTs into the smallest number
+    possible to avoid unnecessary/unwanted processing on the PandA"""
+
+    # TODO: Document params, e.g that the table_fields list must be sorted in
+    # bit-ascending order
+    field_info: TableFieldInfo
+    table_fields: List[Tuple[str, TableFieldDetails]]
+    table_records: Dict[str, _RecordInfo]
+
+    async def update(self, new_val):
+        # This method should only be called for the :MODE record.
+        # Extract that record from the list
+        filtered_dict = dict(
+            filter(lambda item: item[0].endswith(":MODE"), self.table_records.items())
+        )
+        assert len(filtered_dict) == 1, "Found too many MODE records"
+
+        mode_rec_info = next(iter(filtered_dict.values()))
+
+        new_label = mode_rec_info.labels[new_val]
+
+        # TODO: Probably should make labels into enum?
+        if new_label == "SUBMIT":
+            packed_data = self._pack()
+
+        pass
+
+    def _pack(self):
+        # Every column should have same length, so just use first
+        table_length = len(next(iter(self.table_records.values())).record.get())
+
+        # Create 1-D array sufficiently long to exactly hold the entire table
+        # packed = [0] * table_length * self.field_info.row_words
+
+        # packed = np.zeros((self.field_info.row_words, table_length), dtype=np.uint32)
+        packed = np.zeros((table_length, self.field_info.row_words), dtype=np.uint32)
+
+        # Iterate over the zipped fields and their associated records to construct the
+        # packed array. Note that the MODE record is at the end of the table_records,
+        # and so will be ignored by zip() as it has no associated value in table_fields
+        for (name, field_details), record_info in zip(
+            self.table_fields, self.table_records.values()
+        ):
+            curr_val = record_info.record.get()
+            offset = field_details.bit_low
+
+            # The word offset indicates which column this field is in
+            # (each column is one 32-bit word)
+            word_offset = offset // 32
+            # bit offset is location of field inside the word
+            bit_offset = offset & 0x1F
+
+            # Slice to get the column to apply the values to.
+            # bit shift the value to the relevant bits of the word
+            packed[:, word_offset] |= curr_val << bit_offset
+
+        return packed
 
 
 class IocRecordFactory:
@@ -314,6 +382,7 @@ class IocRecordFactory:
         record_creation_func: Callable,
         data_type_func: Callable,
         labels: List[str] = [],
+        record_updater=None,  # TODO: Typing, but that involves inheritance...
         *args,
         **kwargs,
     ) -> _RecordInfo:
@@ -359,13 +428,15 @@ class IocRecordFactory:
             builder.stringOut,
             builder.WaveformOut,
         ]:
-            # TODO: Where is the update actually going to run? This thread?
-            record_updater = _RecordUpdater(
-                record_name,
-                self._client,
-                data_type_func,
-                labels=labels if labels else None,
-            )
+            # TODO: See how this interacts with the update on PandA changes thread
+            # If the caller hasn't provided an update method, create it now
+            if record_updater is None:
+                record_updater = _RecordUpdater(
+                    record_name,
+                    self._client,
+                    data_type_func,
+                    labels=labels if labels else None,
+                )
             update_kwarg = {"on_update": record_updater.update}
         else:
             update_kwarg = {}
@@ -759,12 +830,23 @@ class IocRecordFactory:
 
                 # Mask to remove every bit that isn't in the range we want
                 mask = (1 << bit_len) - 1
-                unpacked.append((packed[word_offset] >> bit_offset) & mask)
+
+                if field_details.subtype == "int":
+                    # First convert from 2's complement to offset, then add in offset.
+                    val = np.uint32(
+                        (packed[word_offset] ^ (1 << (bit_len - 1)))
+                        + (-1 << (bit_len - 1))
+                    )
+                else:
+                    val = (packed[word_offset] >> bit_offset) & mask
+
+                unpacked.append(val)
 
             return unpacked
 
         # Empty tables will have no values. Full tables will have 1 entry, the base64
         # respresentation of their contents
+        # TODO: Still need to create the records for the empty tables!
         table_value = values[record_name]
         if len(table_value) != 1:
             # TODO: Warning
@@ -787,6 +869,10 @@ class IocRecordFactory:
 
         record_dict = {}
 
+        # TODO: Put this elsewhere?
+        def _raiseIgnoreException(ignored):
+            raise IgnoreException("This item should be ignored")
+
         for (field_name, field_details), data in zip(
             field_info.fields.items(), field_data
         ):
@@ -795,12 +881,29 @@ class IocRecordFactory:
                 full_name,
                 field_details.description,
                 builder.WaveformOut,
-                lambda x: None,  # Tables are handled separately
-                # TODO: Am I happy with this special case?
+                _raiseIgnoreException,
                 NELM=field_info.max_length,
                 initial_value=data,
                 # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
             )
+
+        # Create the updater
+        table_updater = _TableUpdater(field_info, sorted_fields, record_dict)
+
+        # Create the mode record that controls when to Put back to PandA
+        labels, index_value = self._process_labels(
+            ["VIEW", "EDIT", "SUBMIT", "DISCORD"], "VIEW"  # Default start in VIEW mode
+        )
+        mode_record_name = record_name + ":" + "MODE"
+        record_dict[mode_record_name] = self._create_record_info(
+            mode_record_name,
+            "Controls when data will write to PandA",  # TODO: Re-word?
+            builder.mbbOut,
+            _raiseIgnoreException,
+            record_updater=table_updater,
+            labels=labels,
+            initial_value=index_value,
+        )
 
         return record_dict
 
