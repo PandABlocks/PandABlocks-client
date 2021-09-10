@@ -172,6 +172,14 @@ def test_connect_put_multi_line():
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
 
 
+def test_connect_put_multi_line_bad_list_format():
+    """Confirm that an invalid data format raises the expected exception"""
+    conn = ControlConnection()
+    cmd = Put("SEQ1.TABLE", [1, 2, 3])
+    with pytest.raises(TypeError):
+        assert conn.send(cmd) == b""
+
+
 def test_get_block_info():
     conn = ControlConnection()
     cmd = GetBlockInfo()

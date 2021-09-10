@@ -4,6 +4,7 @@ import asyncio
 import base64
 import inspect
 from dataclasses import dataclass
+from enum import Enum
 from string import digits
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -53,7 +54,8 @@ class _BlockAndFieldInfo:
     block_info: BlockInfo
     fields: Dict[str, FieldInfo]
     values: Dict[str, Union[str, List[str]]]
-    # See `_create_values_key` to create key for Dict from keys returned from GetChanges
+    # See `_panda_to_epics_name` to create key for Dict from keys returned
+    # from GetChanges
 
 
 @dataclass
@@ -68,12 +70,17 @@ class _RecordInfo:
     labels: Optional[List[str]] = None
 
 
-def _create_values_key(field_name: str) -> str:
-    """Convert the dictionary key style used in `GetChanges.values` to EPICS style,
-    which is used throughout this module"""
-    # EPICS record names use ":" as separators rather than PandA's ".".
-    # GraphQL doesn't care, so we'll standardise on EPICS version.
+# TODO: Be fancy and turn this into a custom type for Dict keys etc?
+def _panda_to_epics_name(field_name: str) -> str:
+    """Convert PandA naming convention to EPICS convention. This module defaults to
+    EPICS names internally, only converting back to PandA names when necessary."""
     return field_name.replace(".", ":")
+
+
+def _epics_to_panda_name(field_name: str) -> str:
+    """Convert EPICS naming convention to PandA convention. This module defaults to
+    EPICS names internally, only converting back to PandA names when necessary."""
+    return field_name.replace(":", ".")
 
 
 def create_softioc(host: str, record_prefix: str) -> None:
@@ -169,7 +176,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
             _, block_name_number = field_name.split("_", maxsplit=1)
             block_and_field_name = block_name_number + ":LABEL"
         else:
-            block_and_field_name = _create_values_key(block_and_field_name)
+            block_and_field_name = _panda_to_epics_name(block_and_field_name)
 
         block_name = block_name_number.rstrip(digits)
 
@@ -239,8 +246,8 @@ class _RecordUpdater:
 
     # TODO: Try this with non-stringOut fields.
     # TODO: See if this works at all for tables!
+    # TODO: Add type to new_val
     async def update(self, new_val):
-        panda_field = self.record_name.replace(":", ".")
         try:
             # If this is an enum record, retrieve the string value
             if self.labels:
@@ -253,13 +260,22 @@ class _RecordUpdater:
                 # differentiate between ints and floats - some PandA fields will not
                 # accept the wrong number format.
                 val = str(self.data_type_func(new_val))
-
+            panda_field = _epics_to_panda_name(self.record_name)
             await self.client.send(Put(panda_field, val))
         except IgnoreException:
             # Some values, e.g. tables, do not use this update mechanism
             pass
         except Exception as e:
-            print(e)
+            print(e)  # TODO: Some better warning
+
+
+class TableModeEnum(Enum):
+    """Operation modes for the MODES record on PandA table fields"""
+
+    VIEW = 0  # Discard all EPICS record updates, process all PandA updates
+    EDIT = 1  # Process all EPICS record updates, discard all PandA updates
+    SUBMIT = 2  # Push EPICS records to PandA, overriding current PandA data
+    DISCARD = 3  # Discard all EPICS records, regenerate from PandA
 
 
 @dataclass
@@ -269,36 +285,52 @@ class _TableUpdater:
 
     # TODO: Document params, e.g that the table_fields list must be sorted in
     # bit-ascending order
+    client: AsyncioClient
     field_info: TableFieldInfo
     table_fields: List[Tuple[str, TableFieldDetails]]
     table_records: Dict[str, _RecordInfo]
 
-    async def update(self, new_val):
+    async def update(self, new_val: int):
         # This method should only be called for the :MODE record.
         # Extract that record from the list
+
         filtered_dict = dict(
             filter(lambda item: item[0].endswith(":MODE"), self.table_records.items())
         )
         assert len(filtered_dict) == 1, "Found too many MODE records"
 
         mode_rec_info = next(iter(filtered_dict.values()))
+        # We know the MODE record has labels
+        assert mode_rec_info.labels
 
         new_label = mode_rec_info.labels[new_val]
 
-        # TODO: Probably should make labels into enum?
-        if new_label == "SUBMIT":
+        if new_label == TableModeEnum.SUBMIT.name:
+            # Extract table name from leading part of the MODE record name
+            table_name, _ = next(iter(filtered_dict.keys())).rsplit(":", maxsplit=1)
             packed_data = self._pack()
+            try:
+                panda_name = _epics_to_panda_name(table_name)
+                await self.client.send(Put(panda_name, [str(x) for x in packed_data]))
+                # Already in on_update of this record, so disable processing
+                mode_rec_info.record.set(TableModeEnum.VIEW.value, process=False)
+            except KeyError as e:
+                print(e)  # TODO: Better warning
+                # TODO: Do I need this here? Not like I can do anything if it fails
 
-        pass
+    def _pack(self) -> List[int]:
+        """Pack the records based on the field definitions into the format PandA expects
+        for table writes.
 
-    def _pack(self):
+        Returns:
+            List[int]: The list of data ready to be sent to PandA
+        """
+        assert self.field_info.row_words
+
         # Every column should have same length, so just use first
         table_length = len(next(iter(self.table_records.values())).record.get())
 
         # Create 1-D array sufficiently long to exactly hold the entire table
-        # packed = [0] * table_length * self.field_info.row_words
-
-        # packed = np.zeros((self.field_info.row_words, table_length), dtype=np.uint32)
         packed = np.zeros((table_length, self.field_info.row_words), dtype=np.uint32)
 
         # Iterate over the zipped fields and their associated records to construct the
@@ -320,7 +352,7 @@ class _TableUpdater:
             # bit shift the value to the relevant bits of the word
             packed[:, word_offset] |= curr_val << bit_offset
 
-        return packed
+        return packed.flatten().tolist()
 
 
 class IocRecordFactory:
@@ -888,11 +920,19 @@ class IocRecordFactory:
             )
 
         # Create the updater
-        table_updater = _TableUpdater(field_info, sorted_fields, record_dict)
+        table_updater = _TableUpdater(
+            self._client, field_info, sorted_fields, record_dict
+        )
 
         # Create the mode record that controls when to Put back to PandA
         labels, index_value = self._process_labels(
-            ["VIEW", "EDIT", "SUBMIT", "DISCORD"], "VIEW"  # Default start in VIEW mode
+            [
+                TableModeEnum.VIEW.name,
+                TableModeEnum.EDIT.name,
+                TableModeEnum.SUBMIT.name,
+                TableModeEnum.DISCARD.name,
+            ],
+            TableModeEnum.VIEW.name,  # Default state is VIEW mode
         )
         mode_record_name = record_name + ":" + "MODE"
         record_dict[mode_record_name] = self._create_record_info(
@@ -1382,7 +1422,7 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
             for field, value in changes.values.items():
 
                 # Convert PandA field name to EPICS name
-                field = _create_values_key(field)
+                field = _panda_to_epics_name(field)
                 block_name_number, _ = field.split(":", maxsplit=1)
                 field = _ensure_block_number_present(field, block_name_number)
                 if field not in all_records:
