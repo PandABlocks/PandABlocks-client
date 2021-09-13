@@ -273,23 +273,23 @@ class _RecordUpdater:
 class TablePacking:
     @staticmethod
     def unpack(
-        fields: List[Tuple[str, TableFieldDetails]],
         field_info: TableFieldInfo,
+        table_fields: Dict[str, TableFieldDetails],
         table_data: List[str],
     ) -> List[np.ndarray]:
         """Unpacks the given `packed` data based on the fields provided.
         Returns the unpacked data in column-indexed format
-        # TODO: There is more precise technical language I could use here...
+
         Args:
-            fields: The list of fields present in the packed data
-            packed (numpy array): The packed data, in a multi-dimensional array
-            where each row is the nth element in the table (e.g. packed[0] contains
-            the 0th item of each row from PandA, packed[1] contains the 1st, etc.).
-            Data is expected to be in `np.int32` dtype format.
+            field_info: The FieldInfo structure of the TABLE field.
+            table_fields: The list of fields present in the packed data. Must be ordered
+                in bit-ascending order (i.e. lowest bit_low field first)
+            table_data: The list of data for this table, from PandA. Each item is
+                expected to be the string representation of a uint32.
 
         Returns:
             numpy array: A list of 1-D numpy arrays, one item per field. Each item
-            will have the same length as the input array's rows.
+            will have length equal to the PandA table's number of rows.
         """
         assert field_info.row_words
 
@@ -299,12 +299,12 @@ class TablePacking:
         packed = data.T
 
         unpacked = []
-        for name, field_details in fields:
+        for name, field_details in table_fields.items():
             offset = field_details.bit_low
             bit_len = field_details.bit_high - field_details.bit_low + 1
 
             # The word offset indicates which column this field is in
-            # (each column is one 32-bit word)
+            # (column is exactly one 32-bit word)
             word_offset = offset // 32
 
             # bit offset is location of field inside the word
@@ -313,6 +313,7 @@ class TablePacking:
             # Mask to remove every bit that isn't in the range we want
             mask = (1 << bit_len) - 1
 
+            # Can't use proper numpy types, that's only available in 1.21+
             val: Any = (packed[word_offset] >> bit_offset) & mask
 
             if field_details.subtype == "int":
@@ -334,7 +335,7 @@ class TablePacking:
     def pack(
         field_info: TableFieldInfo,
         table_records: Dict[str, _RecordInfo],
-        table_fields: List[Tuple[str, TableFieldDetails]],
+        table_fields: Dict[str, TableFieldDetails],
     ) -> List[str]:
         """Pack the records based on the field definitions into the format PandA expects
         for table writes.
@@ -354,7 +355,7 @@ class TablePacking:
         # packed array. Note that the MODE record is at the end of the table_records,
         # and so will be ignored by zip() as it has no associated value in table_fields
         for (name, field_details), record_info in zip(
-            table_fields, table_records.values()
+            table_fields.items(), table_records.values()
         ):
             curr_val = record_info.record.get()
             curr_val = np.uint32(curr_val)
@@ -403,11 +404,16 @@ class _TableUpdater:
     client: AsyncioClient
     table_name: str
     field_info: TableFieldInfo
-    table_fields: List[Tuple[str, TableFieldDetails]]
+    table_fields: Dict[str, TableFieldDetails]
     table_records: Dict[str, _RecordInfo]
 
-    # def __post_init__(self):
-    # Called at the end of dataclass's __init__
+    def __post_init__(self):
+        # Called at the end of dataclass's __init__
+        # The field order will be whatever was configured in the PandA.
+        # Ensure fields in bit order from lowest to highest so we can parse data
+        self.table_fields = dict(
+            sorted(self.table_fields.items(), key=lambda item: item[1].bit_low)
+        )
 
     def validate(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the EPICS records are processed, based on the
@@ -451,8 +457,8 @@ class _TableUpdater:
         return False
 
     async def update(self, new_val: int):
-        # This method should only be called for the :MODE record.
-        # We know the MODE record has labels
+        # This method should only be called for the MODE record of a table.
+
         assert self._mode_record_info.labels
 
         new_label = self._mode_record_info.labels[new_val]
@@ -476,7 +482,7 @@ class _TableUpdater:
 
             # TODO: panda_vals is already a list, but the type system doesn't know that
             field_data = TablePacking.unpack(
-                self.table_fields, self.field_info, list(panda_vals)
+                self.field_info, self.table_fields, list(panda_vals)
             )
 
             for (record_name, record_info), data in zip(
@@ -500,7 +506,7 @@ class _TableUpdater:
 
         if curr_mode == TableModeEnum.VIEW:
             field_data = TablePacking.unpack(
-                self.table_fields, self.field_info, list(new_values)
+                self.field_info, self.table_fields, list(new_values)
             )
 
             for (record_name, record_info), data in zip(
@@ -579,20 +585,21 @@ class IocRecordFactory:
         record_creation_func: Callable,
         data_type_func: Callable,
         labels: List[str] = [],
-        record_updater=None,  # TODO: Typing, but that involves inheritance...
         *args,
         **kwargs,
     ) -> _RecordInfo:
         """Create the record, using the given function and passing all optional
         arguments and keyword arguments, and then set the description field for the
         record.
+        If the record is an Out type, a default on_update mechanism will be added. This
+        can be overriden by specifying a custom "on_update=..." keyword.
 
         Args:
             record_name: The name this record will be created with
             description: The description for this field. This will be truncated
                 to 40 characters due to EPICS limitations.
             record_creation_func: The function that will be used to create
-                this record. Expects to be one of the builder.* functions.
+                this record. Must be one of the builder.* functions.
             data_type_func: The function to use to convert the value returned
                 from GetChanges, which will always be a string, into a type appropriate
                 for the record e.g. int, float.
@@ -615,7 +622,8 @@ class IocRecordFactory:
                 len(labels) <= 16
             ), f"Too many labels ({len(labels)}) to create record {record_name}"
 
-        if record_creation_func in [
+        # If there is no on_update, and the record type allows one, create it
+        if "on_update" not in kwargs and record_creation_func in [
             builder.aOut,
             builder.boolOut,
             builder.mbbOut,
@@ -625,13 +633,12 @@ class IocRecordFactory:
         ]:
             # TODO: See how this interacts with the update on PandA changes thread
             # If the caller hasn't provided an update method, create it now
-            if record_updater is None:
-                record_updater = _RecordUpdater(
-                    record_name,
-                    self._client,
-                    data_type_func,
-                    labels=labels if labels else None,
-                )
+            record_updater = _RecordUpdater(
+                record_name,
+                self._client,
+                data_type_func,
+                labels=labels if labels else None,
+            )
             update_kwarg = {"on_update": record_updater.update}
         else:
             update_kwarg = {}
@@ -996,18 +1003,10 @@ class IocRecordFactory:
         assert field_info.fields
         assert field_info.row_words
 
-        # The field order will be whatever was configured in the PandA.
-        # Ensure fields in bit order from lowest to highest so we can parse data
-        # TODO: Shift this logic into _TableUpdater - probably need an init function
-        # to perform this logic
-        sorted_fields = sorted(
-            field_info.fields.items(), key=lambda item: item[1].bit_low
-        )
-
         record_dict: Dict[str, _RecordInfo] = {}
 
-        # TODO: Put this elsewhere?
-        # TODO: May not even need this...
+        # A mechanism to stop the EPICS on_update processing from occurring
+        # for table records - their updates are handled through the _TableUpdater
         def _raiseIgnoreException(ignored):
             raise IgnoreException("This item should be ignored")
 
@@ -1016,13 +1015,17 @@ class IocRecordFactory:
             self._client,
             record_name,
             field_info,
-            sorted_fields,
+            field_info.fields,
             record_dict,
         )
 
-        field_data = TablePacking.unpack(sorted_fields, field_info, values[record_name])
+        field_data = TablePacking.unpack(
+            field_info, table_updater.table_fields, values[record_name]
+        )
 
-        for (field_name, field_details), data in zip(sorted_fields, field_data):
+        for (field_name, field_details), data in zip(
+            table_updater.table_fields.items(), field_data
+        ):
             full_name = record_name + ":" + field_name
             record_dict[full_name] = self._create_record_info(
                 full_name,
@@ -1050,12 +1053,12 @@ class IocRecordFactory:
         mode_record_name = record_name + ":" + "MODE"
         record_dict[mode_record_name] = self._create_record_info(
             mode_record_name,
-            "Controls when data will write to PandA",  # TODO: Re-word?
+            "Controls PandA <-> EPICS data interface",
             builder.mbbOut,
             _raiseIgnoreException,
-            record_updater=table_updater,
             labels=labels,
             initial_value=index_value,
+            on_update=table_updater.update,
         )
 
         record_dict[mode_record_name].table_updater = table_updater
@@ -1240,7 +1243,7 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         raise Exception(
             "Documentation says this field isn't useful for non-write types"
-        )  # TODO: Should I still create a record here?
+        )  # TODO: Maybe just a warning? Should I still create a record here?
 
     def _make_action_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
@@ -1369,12 +1372,13 @@ class IocRecordFactory:
                 self, record_name, field_info, str_vals
             )
 
-        except KeyError:
+        except KeyError as e:
             # Unrecognised type-subtype key, ignore this item. This allows the server
             # to define new types without breaking the client.
             # TODO: Emit a warning
             # TODO: This catches exceptions from within mapping functions too! probably
             # need another try-except block inside this one?
+            print(e)
             return {}
 
     # Map a field's (type, subtype) to a function that creates and returns record(s)
@@ -1532,9 +1536,8 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
             changes = await client.send(GetChanges(ChangeGroup.ALL, True))
             if changes.in_error:
                 pass
-                # TODO: We should continue processing here, but log an error somehow
+                # TODO: Warning/error here
                 # TODO: Combine with getChanges error handling in introspect_panda?
-                # TODO: Use changes.no_value?
 
             for field, value in changes.values.items():
 
@@ -1562,7 +1565,6 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
                     table_updater
                 ), f"No table updater found for {table_field} MODE record"
                 table_updater.update_table(value_list)
-                # TODO: Come back to this once we have table support
 
             await asyncio.sleep(1)
         except Exception as e:
