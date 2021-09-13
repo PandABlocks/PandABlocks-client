@@ -1,11 +1,11 @@
-# Creating PythonSoftIOCs directly from PandA Blocks and Fields
+# Creating EPICS records directly from PandA Blocks and Fields
 
 import asyncio
 import inspect
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from softioc import asyncio_dispatcher, builder, softioc
@@ -63,7 +63,12 @@ class _RecordInfo:
     """A container for a record and extra information needed to later update
     the record.
 
-    If `labels` is not None, the record is an enum type"""
+    `record`: The PythonSoftIOC RecordWrapper instance
+    `data_type_func`: Function to convert string data to form appropriate for the record
+    `labels`: List of valid values for the record. If not None, the `record` is
+        an enum type.
+    `table_updater`: Class instance that managed updating table records. If present
+        the `record` is part of a larger table."""
 
     # TODO: This class has become used in a lot of places. Might need to lose
     # leading "_"
@@ -71,6 +76,7 @@ class _RecordInfo:
     record: RecordWrapper
     data_type_func: Callable
     labels: Optional[List[str]] = None
+    table_updater: Optional["_TableUpdater"] = None
 
 
 # TODO: Be fancy and turn this into a custom type for Dict keys etc?
@@ -116,8 +122,9 @@ def create_softioc(host: str, record_prefix: str) -> None:
     asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result(TIMEOUT)
 
 
-# TODO: rename this function!
-def _ensure_block_number_present(block_and_field_name: str, block_name_number: str):
+def _ensure_block_number_present(
+    block_and_field_name: str, block_name_number: str
+) -> str:
     """Ensure that the block instance number is always present on the end of the block
     name. If it is not present, add "1" to it.
 
@@ -148,9 +155,6 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
 
     Args:
         client (AsyncioClient): Client used for commuication with the PandA
-
-    Raises:
-        Exception: TODO
 
     Returns:
         Dict[str, BlockAndFieldInfo]: Dictionary containing all information on
@@ -202,7 +206,6 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
     changes: Changes = returned_infos[-1]
     if changes.in_error:
         raise Exception("TODO: Some better error handling")
-    # TODO: Do something with changes.no_value ?
 
     # Create a dict which maps block name to all values for all instances
     # of that block (e.g. {"TTLIN" : {"TTLIN1:VAL": "1", "TTLIN2:VAL" : "5", ...} })
@@ -244,11 +247,6 @@ class _RecordUpdater:
     data_type_func: Callable
     labels: Optional[List[str]] = None
 
-    # TODO: It appears that if there's an exception (e.g. a Put fails) this function
-    # is never subsequently called - something permanently breaks until restarted.
-
-    # TODO: Try this with non-stringOut fields.
-    # TODO: See if this works at all for tables!
     # TODO: Add type to new_val
     async def update(self, new_val):
         try:
@@ -278,11 +276,10 @@ class TablePacking:
         fields: List[Tuple[str, TableFieldDetails]],
         field_info: TableFieldInfo,
         table_data: List[str],
-    ) -> List:
+    ) -> List[np.ndarray]:
         """Unpacks the given `packed` data based on the fields provided.
         Returns the unpacked data in column-indexed format
         # TODO: There is more precise technical language I could use here...
-        # TODO: Work out type of returned list
         Args:
             fields: The list of fields present in the packed data
             packed (numpy array): The packed data, in a multi-dimensional array
@@ -316,12 +313,11 @@ class TablePacking:
             # Mask to remove every bit that isn't in the range we want
             mask = (1 << bit_len) - 1
 
-            val = (packed[word_offset] >> bit_offset) & mask
+            val: Any = (packed[word_offset] >> bit_offset) & mask
 
-            # val: Any  # TODO: Fix this numpy typing workaround
             if field_details.subtype == "int":
                 # First convert from 2's complement to offset, then add in offset.
-
+                # TODO: Test this with extreme values - int_max, int_min, etc.
                 val = np.int32((val ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1)))
             else:
                 # Use shorter types, as these are used in waveform creation
@@ -381,7 +377,7 @@ class TablePacking:
 class TableModeEnum(Enum):
     """Operation modes for the MODES record on PandA table fields"""
 
-    VIEW = 0  # Discard all EPICS record updates, process all PandA updates
+    VIEW = 0  # Discard all EPICS record updates, process all PandA updates (default)
     EDIT = 1  # Process all EPICS record updates, discard all PandA updates
     SUBMIT = 2  # Push EPICS records to PandA, overriding current PandA data
     DISCARD = 3  # Discard all EPICS records, re-fetch from PandA
@@ -390,15 +386,28 @@ class TableModeEnum(Enum):
 @dataclass
 class _TableUpdater:
     """Class to handle updating table records, batching PUTs into the smallest number
-    possible to avoid unnecessary/unwanted processing on the PandA"""
+    possible to avoid unnecessary/unwanted processing on the PandA
 
-    # TODO: Document params, e.g that the table_fields list must be sorted in
-    # bit-ascending order
+    `client`: The client to be used to read/write to the PandA
+
+    `table_name`: The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
+
+    `field_info`: The TableFieldInfo structure for this table
+
+    `table_fields`: The list of all fields in the table. Must be ordered in
+    bit-ascending order
+    TODO: Shift the logic to sort table into this class?
+
+    `table_records`: The list of records that comprises this table"""
+
     client: AsyncioClient
-    table_name: str  # The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
+    table_name: str
     field_info: TableFieldInfo
     table_fields: List[Tuple[str, TableFieldDetails]]
     table_records: Dict[str, _RecordInfo]
+
+    # def __post_init__(self):
+    # Called at the end of dataclass's __init__
 
     def validate(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the EPICS records are processed, based on the
@@ -411,15 +420,14 @@ class _TableUpdater:
         Returns:
             bool: `True` to allow record update, `False` otherwise.
         """
-        print("HERE!")
 
         record_val = self._mode_record_info.record.get()
 
         if record_val == TableModeEnum.VIEW.value:
-            print("VIEW value")
+            print("VIEW value")  # TODO: Delete
             return False
         elif record_val == TableModeEnum.EDIT.value:
-            print("EDIT value")
+            print("EDIT value")  # TODO: Delete
             return True
         elif record_val == TableModeEnum.SUBMIT.value:
             # SUBMIT only present when currently writing out data to PandA.
@@ -480,6 +488,34 @@ class _TableUpdater:
             # avoid recursion
             self._mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
 
+    def update_table(self, new_values: List[str]) -> None:
+        """Update the EPICS records with the given values from the PandA, depending
+        on the value of the table's MODE record
+
+        Args:
+            new_values: The list of new values from the PandA
+        """
+
+        curr_mode = TableModeEnum(self._mode_record_info.record.get())
+
+        if curr_mode == TableModeEnum.VIEW:
+            field_data = TablePacking.unpack(
+                self.table_fields, self.field_info, list(new_values)
+            )
+
+            for (record_name, record_info), data in zip(
+                self.table_records.items(), field_data
+            ):
+                # Must skip processing as the validate method would reject the update
+                record_info.record.set(data, process=False)
+        else:
+            # No other mode allows PandA updates to EPICS records
+            # TODO: Better warning/error
+            print(
+                f"WARNING: update attempted on table {self.table_name} when MODE was "
+                "not VIEW. Data discarded."
+            )
+
     def set_mode_record(self, record_info: _RecordInfo) -> None:
         """Set the special MODE record that controls the behaviour of this table"""
         self._mode_record_info = record_info
@@ -490,8 +526,7 @@ class IocRecordFactory:
     a PandA"""
 
     _record_prefix: str
-    # TODO: I really don't like having to pass in this client, purely for the inner
-    # _RecordUpdater class to get access to it. Revisit this design decision.
+    # TODO: Not sure whether I like passing the client in, purely for child classes...
     _client: AsyncioClient
 
     _pos_out_row_counter: int = 0
@@ -524,7 +559,7 @@ class IocRecordFactory:
         Raises ValueError if `record_value` not found in `labels`."""
         assert labels
         assert len(labels) > 0
-        # TODO: Warn on truncation? Similar to warn on description truncation.
+        # TODO: Warn on truncation. Similar to warn on description truncation.
         return ([label[:25] for label in labels], labels.index(record_value))
 
     def _check_num_values(self, values: Dict[str, str], num: int) -> None:
@@ -572,15 +607,13 @@ class IocRecordFactory:
             record_creation_func in self._builder_methods
         ), "Unrecognised record creation function passed to _create_record_info"
 
-        # TODO: Take another go at validating the data_type_func. Can't use
-        # inspect.isbuiltin,could do something like
-        # isinstance(data_type_func, type(float)) but that seems hacky
-
         if (
             record_creation_func == builder.mbbIn
             or record_creation_func == builder.mbbOut
         ):
-            assert len(labels) <= 16, f"Too many labels to create record {record_name}"
+            assert (
+                len(labels) <= 16
+            ), f"Too many labels ({len(labels)}) to create record {record_name}"
 
         if record_creation_func in [
             builder.aOut,
@@ -965,11 +998,11 @@ class IocRecordFactory:
 
         # The field order will be whatever was configured in the PandA.
         # Ensure fields in bit order from lowest to highest so we can parse data
+        # TODO: Shift this logic into _TableUpdater - probably need an init function
+        # to perform this logic
         sorted_fields = sorted(
             field_info.fields.items(), key=lambda item: item[1].bit_low
         )
-
-        field_data = TablePacking.unpack(sorted_fields, field_info, values[record_name])
 
         record_dict: Dict[str, _RecordInfo] = {}
 
@@ -980,8 +1013,14 @@ class IocRecordFactory:
 
         # Create the updater
         table_updater = _TableUpdater(
-            self._client, record_name, field_info, sorted_fields, record_dict
+            self._client,
+            record_name,
+            field_info,
+            sorted_fields,
+            record_dict,
         )
+
+        field_data = TablePacking.unpack(sorted_fields, field_info, values[record_name])
 
         for (field_name, field_details), data in zip(sorted_fields, field_data):
             full_name = record_name + ":" + field_name
@@ -1018,6 +1057,8 @@ class IocRecordFactory:
             labels=labels,
             initial_value=index_value,
         )
+
+        record_dict[mode_record_name].table_updater = table_updater
 
         table_updater.set_mode_record(record_dict[mode_record_name])
 
@@ -1512,9 +1553,16 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
                 else:
                     record.set(record_info.data_type_func(value))
 
-                for field, value_list in changes.multiline_values.items():
-                    pass
-                    # TODO: Come back to this once we have table support
+            for table_field, value_list in changes.multiline_values.items():
+                # Convert PandA field name to EPICS name
+                table_field = _panda_to_epics_name(table_field)
+                # Tables must have a MODE record defined - use it to update the table
+                table_updater = all_records[table_field + ":MODE"].table_updater
+                assert (
+                    table_updater
+                ), f"No table updater found for {table_field} MODE record"
+                table_updater.update_table(value_list)
+                # TODO: Come back to this once we have table support
 
             await asyncio.sleep(1)
         except Exception as e:
