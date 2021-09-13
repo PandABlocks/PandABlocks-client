@@ -5,7 +5,7 @@ import inspect
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from softioc import asyncio_dispatcher, builder, softioc
@@ -274,7 +274,11 @@ class _RecordUpdater:
 
 class TablePacking:
     @staticmethod
-    def unpack(fields: List[Tuple[str, TableFieldDetails]], packed):
+    def unpack(
+        fields: List[Tuple[str, TableFieldDetails]],
+        field_info: TableFieldInfo,
+        table_data: List[str],
+    ) -> List:
         """Unpacks the given `packed` data based on the fields provided.
         Returns the unpacked data in column-indexed format
         # TODO: There is more precise technical language I could use here...
@@ -290,6 +294,13 @@ class TablePacking:
             numpy array: A list of 1-D numpy arrays, one item per field. Each item
             will have the same length as the input array's rows.
         """
+        assert field_info.row_words
+
+        data = np.array(table_data, dtype=np.uint32)
+        # Convert 1-D array into 2-D, one row element per row in the PandA table
+        data = data.reshape(len(data) // field_info.row_words, field_info.row_words)
+        packed = data.T
+
         unpacked = []
         for name, field_details in fields:
             offset = field_details.bit_low
@@ -305,15 +316,14 @@ class TablePacking:
             # Mask to remove every bit that isn't in the range we want
             mask = (1 << bit_len) - 1
 
-            val: Any  # TODO: Fix this numpy typing workaround
+            val = (packed[word_offset] >> bit_offset) & mask
+
+            # val: Any  # TODO: Fix this numpy typing workaround
             if field_details.subtype == "int":
                 # First convert from 2's complement to offset, then add in offset.
-                val = np.int32(
-                    (packed[word_offset] ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1))
-                )
-            else:
-                val = (packed[word_offset] >> bit_offset) & mask
 
+                val = np.int32((val ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1)))
+            else:
                 # Use shorter types, as these are used in waveform creation
                 if bit_len <= 8:
                     val = np.uint8(val)
@@ -454,9 +464,21 @@ class _TableUpdater:
         elif new_label == TableModeEnum.DISCARD.name:
             # Recreate EPICS data from PandA data
             panda_field_name = _epics_to_panda_name(self.table_name)
-            # panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
+            panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
-            # field_data = TablePacking.unpack(self.table_fields, packed_data)
+            # TODO: panda_vals is already a list, but the type system doesn't know that
+            field_data = TablePacking.unpack(
+                self.table_fields, self.field_info, list(panda_vals)
+            )
+
+            for (record_name, record_info), data in zip(
+                self.table_records.items(), field_data
+            ):
+                record_info.record.set(data)
+
+            # Already in on_update of this record, so disable processing to
+            # avoid recursion
+            self._mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
 
     def set_mode_record(self, record_info: _RecordInfo) -> None:
         """Set the special MODE record that controls the behaviour of this table"""
@@ -941,29 +963,13 @@ class IocRecordFactory:
         assert field_info.fields
         assert field_info.row_words
 
-        # Empty tables will have no values. Full tables will have 1 entry, the base64
-        # respresentation of their contents
-        # TODO: Still need to create the records for the empty tables!
-        # table_value = values[record_name]
-        # if len(table_value) != 1:
-        #     # TODO: Warning
-        #     return {}
-
         # The field order will be whatever was configured in the PandA.
         # Ensure fields in bit order from lowest to highest so we can parse data
         sorted_fields = sorted(
             field_info.fields.items(), key=lambda item: item[1].bit_low
         )
 
-        # TODO: I no longer really need the base64 output, change to use regular output
-        # encoded_val = table_value[0].encode()
-        # data = np.frombuffer(base64.decodebytes(encoded_val), dtype=np.uint32)
-        data = np.array(values[record_name], dtype=np.uint32)
-        # Convert 1-D array into 2-D, one row element per row in the PandA table
-        data = data.reshape(len(data) // field_info.row_words, field_info.row_words)
-        data = data.T
-
-        field_data = TablePacking.unpack(sorted_fields, data)
+        field_data = TablePacking.unpack(sorted_fields, field_info, values[record_name])
 
         record_dict: Dict[str, _RecordInfo] = {}
 
