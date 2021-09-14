@@ -1169,7 +1169,9 @@ class IocRecordFactory:
         values: Dict[str, str],
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 0)
-        return self._make_uint(record_name, field_info, builder.aOut)
+        return self._make_uint(
+            record_name, field_info, builder.aOut, always_update=True
+        )
 
     def _make_int_param(
         self,
@@ -1220,6 +1222,7 @@ class IocRecordFactory:
                 field_info.description,
                 builder.aOut,
                 int,
+                always_update=True,
             )
         }
 
@@ -1294,7 +1297,9 @@ class IocRecordFactory:
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 0)
-        return self._make_scalar(record_name, field_info, builder.aOut)
+        return self._make_scalar(
+            record_name, field_info, builder.aOut, always_update=True
+        )
 
     def _make_bit(
         self,
@@ -1342,7 +1347,9 @@ class IocRecordFactory:
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 0)
-        return self._make_bit(record_name, field_info, builder.boolOut)
+        return self._make_bit(
+            record_name, field_info, builder.boolOut, always_update=True
+        )
 
     def _make_action_read(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
@@ -1364,6 +1371,7 @@ class IocRecordFactory:
                 int,  # not bool, as that'll treat string "0" as true
                 ZNAM=self.ZNAM_STR,
                 ONAM=self.ONAM_STR,
+                always_update=True,
             )
         }
 
@@ -1416,7 +1424,9 @@ class IocRecordFactory:
         values: Dict[str, str],
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 0)
-        return self._make_lut(record_name, field_info, builder.stringOut)
+        return self._make_lut(
+            record_name, field_info, builder.stringOut, always_update=True
+        )
 
     def _make_enum(
         self,
@@ -1424,6 +1434,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
         record_creation_func: Callable,
+        **kwargs,
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, EnumFieldInfo)
@@ -1440,6 +1451,7 @@ class IocRecordFactory:
                 int,
                 labels=labels,
                 initial_value=index_value,
+                **kwargs,
             )
         }
 
@@ -1461,7 +1473,9 @@ class IocRecordFactory:
         assert record_name not in values
         # Fake data for the default label value
         fake_vals = {record_name: field_info.labels[0]}
-        return self._make_enum(record_name, field_info, fake_vals, builder.mbbOut)
+        return self._make_enum(
+            record_name, field_info, fake_vals, builder.mbbOut, always_update=True
+        )
 
     def create_record(
         self,
