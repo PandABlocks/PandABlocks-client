@@ -254,7 +254,7 @@ class _RecordUpdater:
             if self.labels:
                 assert int(new_val) < len(
                     self.labels
-                ), f"Invalid label index {new_val}, only {len(self.values)} labels"
+                ), f"Invalid label index {new_val}, only {len(self.labels)} labels"
                 val = self.labels[int(new_val)]
             else:
                 # Necessary to wrap the data_type_func call in str() as we must
@@ -273,7 +273,7 @@ class _RecordUpdater:
 class TablePacking:
     @staticmethod
     def unpack(
-        field_info: TableFieldInfo,
+        row_words: int,
         table_fields: Dict[str, TableFieldDetails],
         table_data: List[str],
     ) -> List[np.ndarray]:
@@ -281,7 +281,7 @@ class TablePacking:
         Returns the unpacked data in column-indexed format
 
         Args:
-            field_info: The FieldInfo structure of the TABLE field.
+            row_words: The number of 32-bit words per row
             table_fields: The list of fields present in the packed data. Must be ordered
                 in bit-ascending order (i.e. lowest bit_low field first)
             table_data: The list of data for this table, from PandA. Each item is
@@ -291,11 +291,10 @@ class TablePacking:
             numpy array: A list of 1-D numpy arrays, one item per field. Each item
             will have length equal to the PandA table's number of rows.
         """
-        assert field_info.row_words
 
         data = np.array(table_data, dtype=np.uint32)
         # Convert 1-D array into 2-D, one row element per row in the PandA table
-        data = data.reshape(len(data) // field_info.row_words, field_info.row_words)
+        data = data.reshape(len(data) // row_words, row_words)
         packed = data.T
 
         unpacked = []
@@ -333,32 +332,37 @@ class TablePacking:
 
     @staticmethod
     def pack(
-        field_info: TableFieldInfo,
+        row_words: int,
         table_records: Dict[str, _RecordInfo],
         table_fields: Dict[str, TableFieldDetails],
     ) -> List[str]:
         """Pack the records based on the field definitions into the format PandA expects
         for table writes.
+        TODO: parameter documentation
 
         Returns:
             List[str]: The list of data ready to be sent to PandA
         """
-        assert field_info.row_words
 
-        # Every column should have same length, so just use first
-        table_length = len(next(iter(table_records.values())).record.get())
-
-        # Create 1-D array sufficiently long to exactly hold the entire table
-        packed = np.zeros((table_length, field_info.row_words), dtype=np.uint32)
+        packed = None
 
         # Iterate over the zipped fields and their associated records to construct the
         # packed array. Note that the MODE record is at the end of the table_records,
         # and so will be ignored by zip() as it has no associated value in table_fields
-        for (name, field_details), record_info in zip(
-            table_fields.items(), table_records.values()
+        for field_details, record_info in zip(
+            table_fields.values(), table_records.values()
         ):
             curr_val = record_info.record.get()
+            # PandA always handles tables in uint32 format
             curr_val = np.uint32(curr_val)
+
+            if packed is None:
+                # Create 1-D array sufficiently long to exactly hold the entire table
+                packed = np.zeros((len(curr_val), row_words), dtype=np.uint32)
+            else:
+                # TODO: Probably shouldn't be an assert, use warning/error mechanism
+                assert len(packed) == len(curr_val), "Table waveform lengths mismatched"
+
             offset = field_details.bit_low
 
             # The word offset indicates which column this field is in
@@ -370,6 +374,9 @@ class TablePacking:
             # Slice to get the column to apply the values to.
             # bit shift the value to the relevant bits of the word
             packed[:, word_offset] |= curr_val << bit_offset
+
+        # I'm surprised I need this assert here...
+        assert packed
 
         # 2-D array -> 1-D array -> list[int] -> list[str]
         return [str(x) for x in packed.flatten().tolist()]
@@ -457,7 +464,7 @@ class _TableUpdater:
         return False
 
     async def update(self, new_val: int):
-        # This method should only be called for the MODE record of a table.
+        # This is called whenever the MODE record of the table is updated
 
         assert self._mode_record_info.labels
 
@@ -465,8 +472,9 @@ class _TableUpdater:
 
         if new_label == TableModeEnum.SUBMIT.name:
             # Send all EPICS data to PandA
+            assert self.field_info.row_words
             packed_data = TablePacking.pack(
-                self.field_info, self.table_records, self.table_fields
+                self.field_info.row_words, self.table_records, self.table_fields
             )
 
             panda_field_name = _epics_to_panda_name(self.table_name)
@@ -481,14 +489,13 @@ class _TableUpdater:
             panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
             # TODO: panda_vals is already a list, but the type system doesn't know that
+            assert self.field_info.row_words
             field_data = TablePacking.unpack(
-                self.field_info, self.table_fields, list(panda_vals)
+                self.field_info.row_words, self.table_fields, list(panda_vals)
             )
 
-            for (record_name, record_info), data in zip(
-                self.table_records.items(), field_data
-            ):
-                record_info.record.set(data)
+            for record_info, data in zip(self.table_records.values(), field_data):
+                record_info.record.set(data, process=False)
 
             # Already in on_update of this record, so disable processing to
             # avoid recursion
@@ -505,13 +512,12 @@ class _TableUpdater:
         curr_mode = TableModeEnum(self._mode_record_info.record.get())
 
         if curr_mode == TableModeEnum.VIEW:
+            assert self.field_info.row_words
             field_data = TablePacking.unpack(
-                self.field_info, self.table_fields, list(new_values)
+                self.field_info.row_words, self.table_fields, list(new_values)
             )
 
-            for (record_name, record_info), data in zip(
-                self.table_records.items(), field_data
-            ):
+            for record_info, data in zip(self.table_records.values(), field_data):
                 # Must skip processing as the validate method would reject the update
                 record_info.record.set(data, process=False)
         else:
@@ -1020,7 +1026,7 @@ class IocRecordFactory:
         )
 
         field_data = TablePacking.unpack(
-            field_info, table_updater.table_fields, values[record_name]
+            field_info.row_words, table_updater.table_fields, values[record_name]
         )
 
         for (field_name, field_details), data in zip(
@@ -1032,13 +1038,19 @@ class IocRecordFactory:
                 field_details.description,
                 builder.WaveformOut,
                 _raiseIgnoreException,
-                NELM=field_info.max_length,
-                initial_value=data,
                 validate=table_updater.validate,
                 # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
+                # Lines below work around issue #37 in PythonSoftIOC.
+                # Commented out lined should be reinstated, and length + datatype lines
+                # deleted, when that issue is fixed
+                # NELM=field_info.max_length,
+                # initial_value=data,
+                length=field_info.max_length,
+                datatype=data.dtype,
             )
 
-            # table_updater.add_record(full_name, record_dict[full_name])
+            # This line is a workaround for issue #37 in PythonSoftIOC
+            record_dict[full_name].record.set(data, process=False)
 
         # Create the mode record that controls when to Put back to PandA
         labels, index_value = self._process_labels(
