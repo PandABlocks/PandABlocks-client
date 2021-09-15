@@ -997,28 +997,6 @@ def test_get_changes_multiline_no_multiline_fields():
     ]
 
 
-def test_get_changes_multiline_base64():
-    """Test retrieving multiline fields in base64 works as expected"""
-    conn = ControlConnection()
-    cmd = GetChanges(ChangeGroup.ALL, True, True)
-
-    assert conn.send(cmd) == b"*CHANGES?\n"
-
-    assert conn.receive_bytes(b"!Field1<\n.\n") == b"Field1.B?\n"
-
-    assert get_responses(conn, b"!BQAAAAEAAAAHAAAA\n.\n") == [
-        (
-            cmd,
-            Changes(
-                values={},
-                no_value=[],
-                in_error=[],
-                multiline_values={"Field1": ["BQAAAAEAAAAHAAAA"]},
-            ),
-        )
-    ]
-
-
 def test_save():
     conn = ControlConnection()
     cmd = GetState()

@@ -778,11 +778,6 @@ class GetChanges(Command[Changes]):
             requests.
             If `False` these fields will instead be returned in the `no_value`
             attribute. Default value is `False`.
-        multiline_base64: If `True` any multiline values retrieved will use Base64
-            encoding if possible, returning data as a single Base64 encoded value rather
-            than a list of values. Only has an effect if ``get_multiline`` is `True`.
-            This will typically increase data sent over the network.
-            Default `False`.
 
     For example::
 
@@ -803,7 +798,6 @@ class GetChanges(Command[Changes]):
 
     group: ChangeGroup = ChangeGroup.ALL
     get_multiline: bool = False
-    multiline_base64: bool = False
 
     def execute(self) -> ExchangeGenerator[Changes]:
         ex = Exchange(f"*CHANGES{self.group.value}?")
@@ -812,21 +806,13 @@ class GetChanges(Command[Changes]):
         multivalue_get_commands: List[Tuple[str, GetMultiline]] = []
         for line in ex.multiline:
             if line[-1] == "<":
+
                 if self.get_multiline:
                     field = line[0:-1]
-
-                    # The METADATA tables are strings, and cannot be requested in Base64
-                    if self.multiline_base64 and "*METADATA" not in field:
-                        base64 = ".B"
-                    else:
-                        base64 = ""
-
-                    multivalue_get_commands.append(
-                        (field, GetMultiline(field + base64))
-                    )
-
+                    multivalue_get_commands.append((field, GetMultiline(field)))
                 else:
                     changes.no_value.append(line[:-1])
+
             elif line.endswith("(error)"):
                 changes.in_error.append(line.split(" ", 1)[0])
             else:
