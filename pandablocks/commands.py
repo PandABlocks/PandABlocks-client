@@ -794,7 +794,7 @@ class GetChanges(Command[Changes]):
         )
 
         GetChanges(ChangeGroup.ALL, True) -> Changes(
-            value={"PCAP.TRIG": "PULSE1.OUT"},
+            values={"PCAP.TRIG": "PULSE1.OUT"},
             no_value=[],
             in_error=["BAD.ENUM"],
             multiline_values={"SEQ1.TABLE" : ["1", "2", "3",...]}
