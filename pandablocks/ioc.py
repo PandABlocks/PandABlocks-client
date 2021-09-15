@@ -122,9 +122,7 @@ def create_softioc(host: str, record_prefix: str) -> None:
     asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result(TIMEOUT)
 
 
-def _ensure_block_number_present(
-    block_and_field_name: str, block_name_number: str
-) -> str:
+def _ensure_block_number_present(block_and_field_name: str) -> str:
     """Ensure that the block instance number is always present on the end of the block
     name. If it is not present, add "1" to it.
 
@@ -135,19 +133,15 @@ def _ensure_block_number_present(
         block_and_field_name: A string containing the block and the field name,
         e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK".
 
-        block_name_number: A string containg just the block and possibly the
-        instance number, e.g. "SYSTEM" or "INENC2"
-
     Returns:
         str: The block and field name which will have an instance number.
         e.g. "SYSTEM1.TEMP_ZYNQ", or "INENC2.CLK".
     """
+    block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
     if not block_name_number[-1].isdigit():
-        return block_and_field_name.replace(
-            block_name_number, block_name_number + "1", 1
-        )
+        block_name_number += "1"
 
-    return block_and_field_name
+    return f"{block_name_number}.{field_name}"
 
 
 async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInfo]:
@@ -171,9 +165,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
 
         block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
 
-        block_and_field_name = _ensure_block_number_present(
-            block_and_field_name, block_name_number
-        )
+        block_and_field_name = _ensure_block_number_present(block_and_field_name)
 
         # Parse *METADATA.LABEL_<block><num> into "<block>" key and
         # "<block><num>:LABEL" value
@@ -1688,10 +1680,9 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
 
             for field, value in changes.values.items():
 
+                field = _ensure_block_number_present(field)
                 # Convert PandA field name to EPICS name
                 field = _panda_to_epics_name(field)
-                block_name_number, _ = field.split(":", maxsplit=1)
-                field = _ensure_block_number_present(field, block_name_number)
                 if field not in all_records:
                     raise Exception("Unknown record returned from GetChanges")
 
