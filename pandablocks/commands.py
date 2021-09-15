@@ -838,6 +838,10 @@ class GetState(Command[List[str]]):
     """Get the state of all the fields in a PandA that should be saved as a
     list of raw lines that could be sent with `SetState`.
 
+    NOTE: `GetState` may behave unexpectedly if `GetChanges` has previously been
+    called using the same client. The caller should use separate clients to avoid
+    potential issues.
+
     For example::
 
         GetState() -> [
