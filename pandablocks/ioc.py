@@ -2,6 +2,7 @@
 
 import asyncio
 import inspect
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
@@ -70,9 +71,6 @@ class _RecordInfo:
     `table_updater`: Class instance that managed updating table records. If present
         the `record` is part of a larger table."""
 
-    # TODO: This class has become used in a lot of places. Might need to lose
-    # leading "_"
-
     record: RecordWrapper
     data_type_func: Callable
     labels: Optional[List[str]] = None
@@ -117,6 +115,7 @@ def create_softioc(host: str, record_prefix: str) -> None:
     # TODO: Check return from line above periodically to see if there was an exception
 
     # Temporarily leave this running forever to aid debugging
+    # TODO: Delete this
     softioc.interactive_ioc(globals())
 
     asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result(TIMEOUT)
@@ -131,7 +130,7 @@ def _ensure_block_number_present(block_and_field_name: str) -> str:
 
     Args:
         block_and_field_name: A string containing the block and the field name,
-        e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK".
+        e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK". Must be in PandA format.
 
     Returns:
         str: The block and field name which will have an instance number.
@@ -257,9 +256,10 @@ class _RecordUpdater:
             await self.client.send(Put(panda_field, val))
         except IgnoreException:
             # Some values, e.g. tables, do not use this update mechanism
+            logging.debug(f"Ignoring update to record {self.record_name}")
             pass
         except Exception as e:
-            print(e)  # TODO: Some better warning
+            logging.error(f"Unable to update record {self.record_name}", exc_info=e)
 
 
 class TablePacking:
@@ -396,7 +396,6 @@ class _TableUpdater:
 
     `table_fields`: The list of all fields in the table. Must be ordered in
     bit-ascending order
-    TODO: Shift the logic to sort table into this class?
 
     `table_records`: The list of records that comprises this table"""
 
@@ -429,29 +428,32 @@ class _TableUpdater:
         record_val = self._mode_record_info.record.get()
 
         if record_val == TableModeEnum.VIEW.value:
-            print("VIEW value")  # TODO: Delete
+            logging.debug(
+                f"{self.table_name} MODE record is VIEW, stopping update "
+                f"to {record.name}"
+            )
             return False
         elif record_val == TableModeEnum.EDIT.value:
-            print("EDIT value")  # TODO: Delete
+            logging.debug(
+                f"{self.table_name} MODE record is EDIT, allowing update "
+                f"to {record.name}"
+            )
             return True
         elif record_val == TableModeEnum.SUBMIT.value:
             # SUBMIT only present when currently writing out data to PandA.
-            # TODO: Better warning mechanism
-            print(
-                "WARNING! Update of EPICS record attempted while MODE was SUBMIT."
-                + "New value will be discarded."
+            logging.warning(
+                f"Update of record {record.name} attempted while MODE was SUBMIT."
+                "New value will be discarded"
             )
             return False
         elif record_val == TableModeEnum.DISCARD.value:
             # DISCARD only present when currently overriding local data with PandA data
-            # TODO: Better warning mechanism
-            print(
-                "WARNING! Update of EPICS record attempted while MODE was DISCARD."
-                + "New value will be discarded."
+            logging.warning(
+                f"Update of record {record.name} attempted while MODE was DISCARD."
+                "New value will be discarded"
             )
         else:
-            # TODO: Better error/warning
-            raise Exception("Mode record was unrecognised value: " + str(record_val))
+            raise Exception("MODE record has unrecognised value: " + str(record_val))
 
         return False
 
@@ -514,10 +516,9 @@ class _TableUpdater:
                 record_info.record.set(data, process=False)
         else:
             # No other mode allows PandA updates to EPICS records
-            # TODO: Better warning/error
-            print(
-                f"WARNING: update attempted on table {self.table_name} when MODE was "
-                "not VIEW. Data discarded."
+            logging.warning(
+                f"Update of table {self.table_name} attempted when MODE "
+                "was not VIEW. New value will be discarded"
             )
 
     def set_mode_record(self, record_info: _RecordInfo) -> None:
@@ -563,7 +564,13 @@ class IocRecordFactory:
         Raises ValueError if `record_value` not found in `labels`."""
         assert labels
         assert len(labels) > 0
-        # TODO: Warn on truncation. Similar to warn on description truncation.
+
+        if not all(len(label) < 25 for label in labels):
+            logging.warning(
+                "One or more labels do not fit EPICS maximum length of "
+                f"25 characters. Long labels will be truncated. Labels: {labels}"
+            )
+
         return ([label[:25] for label in labels], labels.index(record_value))
 
     def _check_num_values(self, values: Dict[str, str], num: int) -> None:
@@ -648,7 +655,10 @@ class IocRecordFactory:
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
         if description and len(description) > 40:
-            # TODO: Add logging/some kind of warning when this happens
+            logging.warning(
+                f"Description for {record_name} longer than EPICS limit of "
+                f"40 characters. It will be truncated. Description: {description}"
+            )
             description = description[:40]
 
         record.DESC = description
@@ -668,7 +678,6 @@ class IocRecordFactory:
         **kwargs,
     ) -> Dict[str, _RecordInfo]:
         """Make one record for the timer itself, and a sub-record for its units"""
-        self._check_num_values(values, 2)
         assert isinstance(field_info, (TimeFieldInfo, SubtypeTimeFieldInfo))
         assert field_info.units_labels
 
@@ -707,6 +716,7 @@ class IocRecordFactory:
         for units, and one for the MIN value.
         """
         # RAW attribute ignored - EPICS should never care about it
+        self._check_num_values(values, 2)
         assert isinstance(field_info, TimeFieldInfo)
         record_dict = self._make_time(
             record_name,
@@ -733,6 +743,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 2)
         return self._make_time(
             record_name,
             field_info,
@@ -747,6 +758,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 2)
         return self._make_time(
             record_name,
             field_info,
@@ -761,6 +773,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, str],
     ) -> Dict[str, _RecordInfo]:
+        self._check_num_values(values, 1)
         return self._make_time(record_name, field_info, values, builder.aOut)
 
     def _make_bit_out(
@@ -1227,7 +1240,7 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
         assert isinstance(field_info, ScalarFieldInfo)
-        assert field_info.offset is not None
+        assert field_info.offset is not None  # offset may be 0
         record_dict: Dict[str, _RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
@@ -1361,6 +1374,8 @@ class IocRecordFactory:
                 field_info.description,
                 builder.boolOut,
                 int,  # not bool, as that'll treat string "0" as true
+                # TODO: See if this one even gets reported as a change
+                # we might just be able to ignore it?
                 ZNAM=self.ZNAM_STR,
                 ONAM=self.ONAM_STR,
                 always_update=True,
@@ -1514,10 +1529,12 @@ class IocRecordFactory:
         except KeyError as e:
             # Unrecognised type-subtype key, ignore this item. This allows the server
             # to define new types without breaking the client.
-            # TODO: Emit a warning
             # TODO: This catches exceptions from within mapping functions too! probably
             # need another try-except block inside this one?
-            print(e)
+            logging.warning(
+                f"Exception while creating record for {record_name}, type {key}",
+                exc_info=e,
+            )
             return {}
 
     # Map a field's (type, subtype) to a function that creates and returns record(s)
@@ -1591,8 +1608,6 @@ class IocRecordFactory:
             dispatcher (asyncio_dispatcher.AsyncioDispatcher): The dispatcher used in
                 IOC initialisation
         """
-        # TODO: Delete WriteRecords when I'm done debugging
-        builder.WriteRecords("records.db")
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
 
@@ -1674,8 +1689,10 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
         try:
             changes = await client.send(GetChanges(ChangeGroup.ALL, True))
             if changes.in_error:
-                pass
-                # TODO: Warning/error here
+                logging.error(
+                    "The following fields are reported as being in error: "
+                    f"{changes.in_error}"
+                )
                 # TODO: Combine with getChanges error handling in introspect_panda?
 
             for field, value in changes.values.items():
@@ -1706,6 +1723,5 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
 
             await asyncio.sleep(1)
         except Exception as e:
-            # TODO: report warning
-            print(e)
+            logging.error("Exception while processing updates from PandA", exc_info=e)
             pass
