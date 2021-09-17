@@ -177,7 +177,11 @@ def stop_pipeline(pipeline: List[Pipeline]):
 
 
 async def write_hdf_files(
-    client: AsyncioClient, scheme: str, num: int = 1, arm: bool = False
+    client: AsyncioClient,
+    scheme: str,
+    num: int = 1,
+    arm: bool = False,
+    flush_period: float = 1,
 ):
     """Connect to host PandA data port, and write num acquisitions
     to HDF file according to scheme
@@ -192,7 +196,7 @@ async def write_hdf_files(
     counter = 0
     pipeline = create_pipeline(FrameProcessor(), HDFWriter(scheme))
     try:
-        async for data in client.data(scaled=False, flush_period=1):
+        async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
             if type(data) in (ReadyData, EndData):
                 if counter == num:

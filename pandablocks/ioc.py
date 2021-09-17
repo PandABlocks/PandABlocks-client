@@ -1,6 +1,7 @@
 # Creating EPICS records directly from PandA Blocks and Fields
 
 import asyncio
+import importlib
 import inspect
 import logging
 from dataclasses import dataclass
@@ -14,13 +15,16 @@ from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
+    Arm,
     ChangeGroup,
+    Disarm,
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
     GetMultiline,
     Put,
 )
+from pandablocks.hdf import write_hdf_files
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
@@ -45,6 +49,10 @@ from pandablocks.responses import (
 __all__ = ["create_softioc"]
 
 TIMEOUT = 2
+
+# Constants used in bool records
+ZNAM_STR = "0"
+ONAM_STR = "1"
 
 
 @dataclass
@@ -526,6 +534,180 @@ class _TableUpdater:
         self._mode_record_info = record_info
 
 
+class _HDF5RecordController:
+    """Class to create and control the records that handle HDF5 processing"""
+
+    _HDF5_PREFIX = "HDF5"
+    _WAVEFORM_LENGTH = 4096  # TODO: This is used for path lengths - get from Python?
+
+    _client: AsyncioClient
+
+    _file_path_record: RecordWrapper
+    _file_name_record: RecordWrapper
+    _file_number_record: RecordWrapper
+    _file_format_record: RecordWrapper
+    _num_capture_record: RecordWrapper
+    _flush_period_record: RecordWrapper
+    _capture_control_record: RecordWrapper  # Turn capture on/off
+    _arm_disarm_record: RecordWrapper  # Send Arm/Disarm
+
+    def __init__(self, client: AsyncioClient):
+        if importlib.util.find_spec("h5py") is None:
+            logging.warning("No HDF5 support detected - skipping creating HDF5 records")
+            return
+
+        self._client = client
+
+        # Create the records
+        # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
+        self._file_path_record = builder.WaveformOut(
+            self._HDF5_PREFIX + ":FilePath",
+            length=self._WAVEFORM_LENGTH,
+            FTVL="UCHAR",
+            DESC="File path for HDF5 files",
+            validate=self._parameter_validate,
+        )
+
+        self._file_name_record = builder.WaveformOut(
+            self._HDF5_PREFIX + ":FileName",
+            length=self._WAVEFORM_LENGTH,
+            FTVL="UCHAR",
+            DESC="File name prefix for HDF5 files",
+            validate=self._parameter_validate,
+        )
+
+        self._file_number_record = builder.aOut(
+            self._HDF5_PREFIX + ":FileNumber",
+            validate=self._parameter_validate,
+            DESC="Incrementing file number suffix",
+        )
+
+        self._file_format_record = builder.WaveformOut(
+            self._HDF5_PREFIX + ":FileTemplate",
+            length=64,
+            FTVL="UCHAR",
+            DESC="Format string used for file naming",
+            validate=self._template_validate,
+        )
+
+        # Add a trailing \0 for C-based tools that may try to read the
+        # entire waveform as a string
+        # Awkward form of data to work around issue #39
+        # https://github.com/dls-controls/pythonSoftIOC/issues/39
+        # Done here, rather than inside record set, to work around issue #37
+        # https://github.com/dls-controls/pythonSoftIOC/issues/37
+        self._file_format_record.set(
+            np.frombuffer("%s/%s_%d.h5".encode() + b"\0", dtype=np.uint8)
+        )
+
+        self._num_capture_record = builder.aOut(
+            self._HDF5_PREFIX + ":NumCapture",
+            initial_value=-1,  # Infinite capture
+            # TODO: There's no way to stop an infinite capture?
+            DESC="Number of captures to make. -1 = forever",
+        )
+
+        self._flush_period_record = builder.aOut(
+            self._HDF5_PREFIX + ":FlushPeriod",
+            initial_value=1.0,
+            DESC="Frequency that data is flushed (seconds)",
+        )
+
+        self._capture_control_record = builder.boolOut(
+            self._HDF5_PREFIX + ":Capture",
+            ZNAM=ZNAM_STR,
+            ONAM=ONAM_STR,
+            on_update=self._capture_on_update,
+            DESC="Controls HDF5 capture",
+        )
+
+        self._arm_disarm_record = builder.boolOut(
+            self._HDF5_PREFIX + ":Arm",
+            ZNAM=ZNAM_STR,
+            ONAM=ONAM_STR,
+            on_update=self._arm_on_update,
+            DESC="Controls PandA arming",
+        )
+
+    def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
+        """Control when values can be written to parameter records
+        (file name etc.) based on capturing record's value"""
+
+        if self._capture_control_record.get() == ONAM_STR:
+            # Currently capturing, discard parameter updates
+            logging.warning(
+                "Data capture in progress. Update of HDF5 "
+                f"record {record.name} discarded."
+            )
+            return False
+        return True
+
+    def _template_validate(self, record: RecordWrapper, new_val: np.ndarray) -> bool:
+        """Validate that the FileTemplate record contains exactly the right number of
+        format specifiers"""
+        string_val = self._numpy_to_string(new_val)
+        string_format_count = string_val.count("%s")
+        number_format_count = string_val.count("%d")
+
+        if string_format_count != 2 or number_format_count != 1:
+            logging.error(
+                'FileTemplate record must contain exactly 2 "%s" '
+                'and exactly 1 "%d" format specifiers.'
+            )
+            return False
+
+        return self._parameter_validate(record, new_val)
+
+    async def _arm_on_update(self, new_val: int) -> None:
+        """Process an update to the Arm record, to arm/disarm the PandA"""
+        if new_val:
+            logging.debug("Arming PandA")
+            await self._client.send(Arm())
+        else:
+            logging.debug("Disarming PandA")
+            await self._client.send(Disarm())
+
+    async def _capture_on_update(self, new_val: int) -> None:
+        """Process an update to the Capture record, to start/stop recording HDF5 data"""
+        if new_val:
+
+            format_str: str = self._waveform_record_to_string(self._file_format_record)
+
+            # Mask out the required %d format specifier while we substitute in
+            # file directory and file name
+            MASK_CHARS = "##########"
+            masked_format_str = format_str.replace("%d", MASK_CHARS)
+
+            (substituted_format_str,) = (
+                masked_format_str
+                % (
+                    self._waveform_record_to_string(self._file_path_record),
+                    self._waveform_record_to_string(self._file_name_record),
+                ),
+            )
+
+            scheme = substituted_format_str.replace(MASK_CHARS, "%d")
+
+            await write_hdf_files(
+                self._client,
+                scheme,
+                num=self._num_capture_record.get(),
+                arm=False,  # We handle our own arming/disarming
+                flush_period=self._flush_period_record.get(),
+            )
+
+    def _waveform_record_to_string(self, record: RecordWrapper) -> str:
+        """Handle converting WaveformOut record data into python string"""
+        return self._numpy_to_string(record.get())
+
+    def _numpy_to_string(self, val: np.ndarray) -> str:
+        """Handle converting a numpy array of dtype=uint8 to a python string"""
+        assert val.dtype == np.uint8
+        # numpy gives byte stream, which we decode, and then remove the trailing \0.
+        # Many tools are C-based and so will add (and expect) a null trailing byte
+        return val.tobytes().decode()[:-1]
+
+
 class IocRecordFactory:
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
@@ -541,10 +723,6 @@ class IocRecordFactory:
         method
         for _, method in inspect.getmembers(builder, predicate=inspect.isfunction)
     ]
-
-    # Constants used in multiple records
-    ZNAM_STR: str = "0"
-    ONAM_STR: str = "1"
 
     def __init__(self, record_prefix: str, client: AsyncioClient):
         self._record_prefix = record_prefix
@@ -648,10 +826,6 @@ class IocRecordFactory:
         else:
             update_kwarg = {}
 
-        record = record_creation_func(
-            record_name, *labels, *args, **update_kwarg, **kwargs
-        )
-
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
         if description and len(description) > 40:
@@ -661,7 +835,11 @@ class IocRecordFactory:
             )
             description = description[:40]
 
-        record.DESC = description
+        kwargs.update({"DESC": description})
+
+        record = record_creation_func(
+            record_name, *labels, *args, **update_kwarg, **kwargs
+        )
 
         record_info = _RecordInfo(
             record, data_type_func=data_type_func, labels=labels if labels else None
@@ -788,8 +966,8 @@ class IocRecordFactory:
             field_info.description,
             builder.boolIn,
             int,
-            ZNAM=self.ZNAM_STR,
-            ONAM=self.ONAM_STR,
+            ZNAM=ZNAM_STR,
+            ONAM=ONAM_STR,
             initial_value=int(values[record_name]),
         )
 
@@ -1320,8 +1498,8 @@ class IocRecordFactory:
                 field_info.description,
                 record_creation_func,
                 int,
-                ZNAM=self.ZNAM_STR,
-                ONAM=self.ONAM_STR,
+                ZNAM=ZNAM_STR,
+                ONAM=ONAM_STR,
                 **kwargs,
             )
         }
@@ -1376,8 +1554,8 @@ class IocRecordFactory:
                 int,  # not bool, as that'll treat string "0" as true
                 # TODO: See if this one even gets reported as a change
                 # we might just be able to ignore it?
-                ZNAM=self.ZNAM_STR,
-                ONAM=self.ONAM_STR,
+                ZNAM=ZNAM_STR,
+                ONAM=ONAM_STR,
                 always_update=True,
             )
         }
@@ -1582,7 +1760,7 @@ class IocRecordFactory:
     }
 
     def create_block_records(
-        self, block_info: BlockInfo, block_values: Dict[str, str]
+        self, block: str, block_info: BlockInfo, block_values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
         """Create the block-level records. Currently this is just the LABEL record
         for each block"""
@@ -1597,6 +1775,9 @@ class IocRecordFactory:
             record_dict[key] = self._create_record_info(
                 key, None, builder.stringIn, str, initial_value=value
             )
+
+        if block == "PCAP":
+            _HDF5RecordController(self._client)
 
         return record_dict
 
@@ -1638,7 +1819,9 @@ async def create_records(
             for key, value in values.items()
             if key.endswith(":LABEL") and isinstance(value, str)
         }
-        block_records = record_factory.create_block_records(block_info, block_vals)
+        block_records = record_factory.create_block_records(
+            block, block_info, block_vals
+        )
 
         for new_record in block_records:
             if new_record in all_records:
