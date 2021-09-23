@@ -551,6 +551,8 @@ class _HDF5RecordController:
     _capture_control_record: RecordWrapper  # Turn capture on/off
     _arm_disarm_record: RecordWrapper  # Send Arm/Disarm
 
+    _capture_task: Optional[asyncio.Task] = None
+
     def __init__(self, client: AsyncioClient):
         if importlib.util.find_spec("h5py") is None:
             logging.warning("No HDF5 support detected - skipping creating HDF5 records")
@@ -660,6 +662,7 @@ class _HDF5RecordController:
 
     async def _arm_on_update(self, new_val: int) -> None:
         """Process an update to the Arm record, to arm/disarm the PandA"""
+        # TODO: Report errors here if arming/disarming fails - try-except probably
         if new_val:
             logging.debug("Arming PandA")
             await self._client.send(Arm())
@@ -670,7 +673,6 @@ class _HDF5RecordController:
     async def _capture_on_update(self, new_val: int) -> None:
         """Process an update to the Capture record, to start/stop recording HDF5 data"""
         if new_val:
-
             format_str: str = self._waveform_record_to_string(self._file_format_record)
 
             # Mask out the required %d format specifier while we substitute in
@@ -688,13 +690,38 @@ class _HDF5RecordController:
 
             scheme = substituted_format_str.replace(MASK_CHARS, "%d")
 
-            await write_hdf_files(
-                self._client,
-                scheme,
-                num=self._num_capture_record.get(),
-                arm=False,  # We handle our own arming/disarming
-                flush_period=self._flush_period_record.get(),
+            # As the capture may run forever, ensure we schedule it separately
+
+            if self._capture_task:
+                logging.error(
+                    "Capture task was already running when Capture record enabled. "
+                    "Killing existing task and starting new one."
+                )
+                self._capture_task.cancel()
+
+            # todo: second invocation of this task never works - no new files are written...
+
+            self._capture_task = asyncio.create_task(
+                write_hdf_files(
+                    self._client,
+                    scheme,
+                    num=self._num_capture_record.get(),
+                    arm=False,  # We handle our own arming/disarming
+                    flush_period=self._flush_period_record.get(),
+                )
             )
+        else:
+            if self._capture_task:
+                self._capture_task.cancel()
+                try:
+                    await self._capture_task
+                except asyncio.CancelledError:
+                    logging.info(
+                        "Capture task successfully cancelled when Capture "
+                        "record disabled."
+                    )
+
+                self._capture_task = None
 
     def _waveform_record_to_string(self, record: RecordWrapper) -> str:
         """Handle converting WaveformOut record data into python string"""
