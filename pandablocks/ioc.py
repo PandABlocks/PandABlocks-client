@@ -166,7 +166,7 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
         block_and_field_name: str,
         value: Union[str, List[str]],
         values: Dict[str, Dict[str, Union[str, List[str]]]],
-    ):
+    ) -> None:
         """Parse the data given in `block_and_field_name` and `value` into a new entry
         in the `values` dictionary"""
 
@@ -188,6 +188,11 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
 
         if block_name not in values:
             values[block_name] = {}
+        if block_and_field_name in values[block_name]:
+            logging.error(
+                f"Duplicate values for {block_and_field_name} detected."
+                " Overriding existing value."
+            )
         values[block_name][block_and_field_name] = value
 
     # Get the list of all blocks in the PandA

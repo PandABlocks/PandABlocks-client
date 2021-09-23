@@ -3,13 +3,16 @@ import pytest
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.ioc import (
     IocRecordFactory,
+    _BlockAndFieldInfo,
     _ensure_block_number_present,
     _epics_to_panda_name,
     _panda_to_epics_name,
+    introspect_panda,
 )
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
+    BlockInfo,
     EnumFieldInfo,
     ExtOutFieldInfo,
     FieldInfo,
@@ -36,6 +39,29 @@ def ioc_record_factory():
     return IocRecordFactory(TEST_PREFIX + str(counter), AsyncioClient("123"))
 
 
+@pytest.fixture
+def dummy_server_introspect_panda(dummy_server_in_thread):
+    dummy_server_in_thread.send += [
+        # "!PCAP 1\n!LUT 8\n!SRGATE 2\n.",
+        # "OK =PCAP Desc\nOK =LUT Desc\nOK =SRGATE Desc\n",
+        # "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
+        # "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
+        # "!OUT 1 bit_out\n.",  # SRGATE fields
+        # "!FOO=1\nBAR=12.34\n.",  # GetChanges
+        "!PCAP 1\n.",
+        "OK =PCAP Desc",
+        # "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
+        "!TRIG_EDGE 3 param enum\n.",  # PCAP fields temp
+        "!PCAP.FOO=1\n!PCAP.BAR=12.34\n.",  # GetChanges
+        "!Label1\n!Label2\n.",  # TRIG_EDGE enum labels
+        "OK =Trig Edge Desc",
+        # "Ok =Gate Desc",
+        # "OK =100",  # GATE MAX_DELAY
+        # "!LabelA\n!LabelB\n.",  # GATE labels
+    ]
+    yield dummy_server_in_thread
+
+
 TEST_RECORD = "TEST:RECORD"
 
 
@@ -55,6 +81,27 @@ def test_panda_to_epics_and_back_name_conversion():
 def test_ensure_block_number_present():
     assert _ensure_block_number_present("ABC.DEF.GHI") == "ABC1.DEF.GHI"
     assert _ensure_block_number_present("JKL1.MNOP") == "JKL1.MNOP"
+
+
+@pytest.mark.asyncio
+async def test_introspect_panda(dummy_server_introspect_panda):
+    """High-level test that introspect_panda returns expected data structures"""
+    async with AsyncioClient("localhost") as client:
+        foo = await introspect_panda(client)
+        assert foo == {
+            "PCAP": _BlockAndFieldInfo(
+                block_info=BlockInfo(number=1, description="PCAP Desc"),
+                fields={
+                    "TRIG_EDGE": EnumFieldInfo(
+                        type="param",
+                        subtype="enum",
+                        description="Trig Edge Desc",
+                        labels=["Label1", "Label2"],
+                    )
+                },
+                values={"PCAP1:FOO": "1", "PCAP1:BAR": "12.34"},
+            )
+        }
 
 
 # TODO: Test the special types
