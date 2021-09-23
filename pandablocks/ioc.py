@@ -209,7 +209,8 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
 
     changes: Changes = returned_infos[-1]
     if changes.in_error:
-        raise Exception("TODO: Some better error handling")
+        logging.error(f"Fields detected in error during startup: {changes.in_error}")
+        # TODO: Continue or exit? Ask Tom for general error handling policy
 
     # Create a dict which maps block name to all values for all instances
     # of that block (e.g. {"TTLIN" : {"TTLIN1:VAL": "1", "TTLIN2:VAL" : "5", ...} })
@@ -704,7 +705,8 @@ class _HDF5RecordController:
                 )
                 self._capture_task.cancel()
 
-            # todo: second invocation of this task never works - no new files are written...
+            # todo: second invocation of this task never works
+            # - no new files are written...
 
             self._capture_task = asyncio.create_task(
                 write_hdf_files(

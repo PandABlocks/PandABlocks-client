@@ -52,7 +52,8 @@ def dummy_server_introspect_panda(dummy_server_in_thread):
         "OK =PCAP Desc",
         # "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
         "!TRIG_EDGE 3 param enum\n.",  # PCAP fields temp
-        "!PCAP.FOO=1\n!PCAP.BAR=12.34\n.",  # GetChanges
+        "!PCAP.FOO=1\n!PCAP.BAR=12.34\n!"  # deliberate concatenation
+        "*METADATA.LABEL_PCAP1=PcapMetadataLabel\n.",  # GetChanges
         "!Label1\n!Label2\n.",  # TRIG_EDGE enum labels
         "OK =Trig Edge Desc",
         # "Ok =Gate Desc",
@@ -87,21 +88,25 @@ def test_ensure_block_number_present():
 async def test_introspect_panda(dummy_server_introspect_panda):
     """High-level test that introspect_panda returns expected data structures"""
     async with AsyncioClient("localhost") as client:
-        foo = await introspect_panda(client)
-        assert foo == {
-            "PCAP": _BlockAndFieldInfo(
-                block_info=BlockInfo(number=1, description="PCAP Desc"),
-                fields={
-                    "TRIG_EDGE": EnumFieldInfo(
-                        type="param",
-                        subtype="enum",
-                        description="Trig Edge Desc",
-                        labels=["Label1", "Label2"],
-                    )
-                },
-                values={"PCAP1:FOO": "1", "PCAP1:BAR": "12.34"},
-            )
-        }
+        data = await introspect_panda(client)
+
+        assert "PCAP" in data
+        assert data["PCAP"] == _BlockAndFieldInfo(
+            block_info=BlockInfo(number=1, description="PCAP Desc"),
+            fields={
+                "TRIG_EDGE": EnumFieldInfo(
+                    type="param",
+                    subtype="enum",
+                    description="Trig Edge Desc",
+                    labels=["Label1", "Label2"],
+                )
+            },
+            values={
+                "PCAP1:FOO": "1",
+                "PCAP1:BAR": "12.34",
+                "PCAP1:LABEL": "PcapMetadataLabel",
+            },
+        )
 
 
 # TODO: Test the special types
