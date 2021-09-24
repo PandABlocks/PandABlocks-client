@@ -274,6 +274,7 @@ class _RecordUpdater:
             pass
         except Exception as e:
             logging.error(f"Unable to update record {self.record_name}", exc_info=e)
+            # TODO: Re-raise? Ask Tom/Michael about what PythonSoftIOC will do
 
 
 class TablePacking:
@@ -344,7 +345,12 @@ class TablePacking:
     ) -> List[str]:
         """Pack the records based on the field definitions into the format PandA expects
         for table writes.
-        TODO: parameter documentation
+        Args:
+            row_words: The number of 32-bit words per row
+            table_records: The list of fields and their associated _RecordInfo
+                structure, used to access the value of each record.
+            table_fields: The list of fields present in the packed data. Must be ordered
+                in bit-ascending order (i.e. lowest bit_low field first)
 
         Returns:
             List[str]: The list of data ready to be sent to PandA
@@ -381,8 +387,7 @@ class TablePacking:
             # bit shift the value to the relevant bits of the word
             packed[:, word_offset] |= curr_val << bit_offset
 
-        # I'm surprised I need this assert here...
-        assert packed
+        assert isinstance(packed, np.ndarray)  # Squash mypy warning
 
         # 2-D array -> 1-D array -> list[int] -> list[str]
         return [str(x) for x in packed.flatten().tolist()]
@@ -602,7 +607,7 @@ class _HDF5RecordController:
         # entire waveform as a string
         # Awkward form of data to work around issue #39
         # https://github.com/dls-controls/pythonSoftIOC/issues/39
-        # Done here, rather than inside record set, to work around issue #37
+        # Done here, rather than inside record creation above, to work around issue #37
         # https://github.com/dls-controls/pythonSoftIOC/issues/37
         self._file_format_record.set(
             np.frombuffer("%s/%s_%d.h5".encode() + b"\0", dtype=np.uint8)
@@ -1280,7 +1285,8 @@ class IocRecordFactory:
                 full_name,
                 field_details.description,
                 builder.WaveformOut,
-                _raiseIgnoreException,
+                _raiseIgnoreException,  # TODO: Replace with on_update=lambda x:pass ?
+                # Then we might be able to just delete all the IgnoreException stuff
                 validate=table_updater.validate,
                 # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
                 # Lines below work around issue #37 in PythonSoftIOC.
@@ -1941,4 +1947,4 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
             await asyncio.sleep(1)
         except Exception as e:
             logging.error("Exception while processing updates from PandA", exc_info=e)
-            pass
+            continue

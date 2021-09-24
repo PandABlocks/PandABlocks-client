@@ -1,12 +1,22 @@
+from typing import Dict, List
+
+import numpy
 import pytest
+from mock import AsyncMock
+from mock.mock import MagicMock
+from numpy import array, int32, ndarray, uint8, uint16, uint32
 
 from pandablocks.asyncio import AsyncioClient
+from pandablocks.commands import Put
 from pandablocks.ioc import (
     IocRecordFactory,
+    TablePacking,
     _BlockAndFieldInfo,
     _ensure_block_number_present,
     _epics_to_panda_name,
     _panda_to_epics_name,
+    _RecordInfo,
+    _RecordUpdater,
     introspect_panda,
 )
 from pandablocks.responses import (
@@ -44,7 +54,9 @@ def ioc_record_factory():
 
 @pytest.fixture
 def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
-
+    """A dummy server that responds to all the requests introspect_panda makes
+    during its operation.
+    Note that the order of responses was determined by trial and error."""
     get_changes_scalar_data = (
         # Note the deliberate concatenation across lines - this must be a single
         # entry in the list
@@ -79,6 +91,219 @@ def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
     # it'll probably help to enable debugging on the server
     # dummy_server_in_thread.debug = True
     yield dummy_server_in_thread
+
+
+@pytest.fixture
+def table_fields() -> Dict[str, TableFieldDetails]:
+    """Table field definitions, taken from a SEQ.TABLE instance.
+    Associated with table_data and table_field_info fixtures"""
+    return {
+        "REPEATS": TableFieldDetails(
+            subtype="uint",
+            bit_low=0,
+            bit_high=15,
+            description="Number of times the line will repeat ",
+            labels=None,
+        ),
+        "TRIGGER": TableFieldDetails(
+            subtype="enum",
+            bit_low=16,
+            bit_high=19,
+            description="The trigger condition to start the phases ",
+            labels=[
+                "Immediate",
+                "BITA=0",
+                "BITA=1",
+                "BITB=0",
+                "BITB=1",
+                "BITC=0",
+                "BITC=1",
+                "POSA>=POSITION",
+                "POSA<=POSITION",
+                "POSB>=POSITION",
+                "POSB<=POSITION",
+                "POSC>=POSITION",
+                "POSC<=POSITION",
+            ],
+        ),
+        "POSITION": TableFieldDetails(
+            subtype="int",
+            bit_low=32,
+            bit_high=63,
+            description="The position that can be used in trigger condition ",
+            labels=None,
+        ),
+        "TIME1": TableFieldDetails(
+            subtype="uint",
+            bit_low=64,
+            bit_high=95,
+            description="The time the optional phase 1 should take ",
+            labels=None,
+        ),
+        "OUTA1": TableFieldDetails(
+            subtype="uint",
+            bit_low=20,
+            bit_high=20,
+            description="Output A value during phase 1 ",
+            labels=None,
+        ),
+        "OUTB1": TableFieldDetails(
+            subtype="uint",
+            bit_low=21,
+            bit_high=21,
+            description="Output B value during phase 1 ",
+            labels=None,
+        ),
+        "OUTC1": TableFieldDetails(
+            subtype="uint",
+            bit_low=22,
+            bit_high=22,
+            description="Output C value during phase 1 ",
+            labels=None,
+        ),
+        "OUTD1": TableFieldDetails(
+            subtype="uint",
+            bit_low=23,
+            bit_high=23,
+            description="Output D value during phase 1 ",
+            labels=None,
+        ),
+        "OUTE1": TableFieldDetails(
+            subtype="uint",
+            bit_low=24,
+            bit_high=24,
+            description="Output E value during phase 1 ",
+            labels=None,
+        ),
+        "OUTF1": TableFieldDetails(
+            subtype="uint",
+            bit_low=25,
+            bit_high=25,
+            description="Output F value during phase 1 ",
+            labels=None,
+        ),
+        "TIME2": TableFieldDetails(
+            subtype="uint",
+            bit_low=96,
+            bit_high=127,
+            description="The time the mandatory phase 2 should take ",
+            labels=None,
+        ),
+        "OUTA2": TableFieldDetails(
+            subtype="uint",
+            bit_low=26,
+            bit_high=26,
+            description="Output A value during phase 2 ",
+            labels=None,
+        ),
+        "OUTB2": TableFieldDetails(
+            subtype="uint",
+            bit_low=27,
+            bit_high=27,
+            description="Output B value during phase 2 ",
+            labels=None,
+        ),
+        "OUTC2": TableFieldDetails(
+            subtype="uint",
+            bit_low=28,
+            bit_high=28,
+            description="Output C value during phase 2 ",
+            labels=None,
+        ),
+        "OUTD2": TableFieldDetails(
+            subtype="uint",
+            bit_low=29,
+            bit_high=29,
+            description="Output D value during phase 2 ",
+            labels=None,
+        ),
+        "OUTE2": TableFieldDetails(
+            subtype="uint",
+            bit_low=30,
+            bit_high=30,
+            description="Output E value during phase 2 ",
+            labels=None,
+        ),
+        "OUTF2": TableFieldDetails(
+            subtype="uint",
+            bit_low=31,
+            bit_high=31,
+            description="Output F value during phase 2 ",
+            labels=None,
+        ),
+    }
+
+
+@pytest.fixture
+def table_field_info(table_fields):
+    """Table data associated with table_fields and table_data fixtures"""
+    return TableFieldInfo(
+        "table", None, "Test table description", 16384, table_fields, 4
+    )
+
+
+@pytest.fixture
+def table_data():
+    """Table data associated with table_fields and table_field_info fixtures.
+    See table_unpacked_data for the unpacked equivalent"""
+    return [
+        "2457862149",
+        "4294967291",
+        "100",
+        "0",
+        "269877248",
+        "678",
+        "0",
+        "55",
+        "4293968720",
+        "0",
+        "9",
+        "9999",
+    ]
+
+
+@pytest.fixture
+def table_unpacked_data(table_fields) -> Dict[str, ndarray]:
+    """The unpacked equivalent of table_data"""
+    array_values = [
+        array([5, 0, 50000], dtype=uint16),
+        array([0, 6, 0], dtype=uint8),
+        array([-5, 678, 0], dtype=int32),
+        array([100, 0, 9], dtype=uint32),
+        array([0, 1, 1], dtype=uint8),
+        array([0, 0, 1], dtype=uint8),
+        array([0, 0, 1], dtype=uint8),
+        array([1, 0, 1], dtype=uint8),
+        array([0, 0, 1], dtype=uint8),
+        array([1, 0, 1], dtype=uint8),
+        array([0, 55, 9999], dtype=uint32),
+        array([0, 0, 1], dtype=uint8),
+        array([0, 0, 1], dtype=uint8),
+        array([1, 1, 1], dtype=uint8),
+        array([0, 0, 1], dtype=uint8),
+        array([0, 0, 1], dtype=uint8),
+        array([1, 0, 1], dtype=uint8),
+    ]
+    data = {}
+    for field_name, data_array in zip(table_fields.keys(), array_values):
+        data[field_name] = data_array
+
+    return data
+
+
+@pytest.fixture
+def table_unpacked_data_records(
+    table_fields, table_unpacked_data
+) -> Dict[str, _RecordInfo]:
+    """A faked list of records containing the table_unpacked_data"""
+
+    data = {}
+    for field_name, data_array in zip(table_fields, table_unpacked_data.values()):
+        mocked_record = MagicMock()
+        mocked_record.get = MagicMock(return_value=data_array)
+        info = _RecordInfo(mocked_record, lambda x: None)
+        data[field_name] = info
+    return data
 
 
 TEST_RECORD = "TEST:RECORD"
@@ -169,6 +394,103 @@ async def test_introspect_panda(dummy_server_introspect_panda):
             },
             values={"SEQ1:TABLE": ["1", "2", "3"]},
         )
+
+
+@pytest.mark.asyncio
+async def test_record_updater():
+    """Test that the record updater succesfully Put's data to the client"""
+    client = AsyncioClient
+    client.send = AsyncMock()
+    updater = _RecordUpdater("ABC:DEF", client, float)
+
+    await updater.update("1.0")
+
+    client.send.assert_called_once_with(Put("ABC.DEF", "1.0"))
+
+
+@pytest.mark.asyncio
+async def test_record_updater_labels():
+    """Test that the record updater succesfully Put's data to the client
+    when the data is a label index"""
+    client = AsyncioClient
+    client.send = AsyncMock()
+    updater = _RecordUpdater("ABC:DEF", client, float, ["Label1", "Label2", "Label3"])
+
+    await updater.update("2")
+
+    client.send.assert_called_once_with(Put("ABC.DEF", "Label3"))
+
+
+def test_table_packing_unpack(
+    table_field_info: TableFieldInfo,
+    table_fields: Dict[str, TableFieldDetails],
+    table_data: List[str],
+    table_unpacked_data,
+):
+    """Test table unpacking works as expected"""
+    assert table_field_info.row_words
+    unpacked = TablePacking.unpack(table_field_info.row_words, table_fields, table_data)
+
+    for actual, expected in zip(unpacked, table_unpacked_data.values()):
+        assert numpy.array_equal(actual, expected)
+
+
+def test_table_packing_pack(
+    table_field_info: TableFieldInfo,
+    table_unpacked_data_records: Dict[str, _RecordInfo],
+    table_fields: Dict[str, TableFieldDetails],
+    table_data: List[str],
+):
+    """Test table unpacking works as expected"""
+    assert table_field_info.row_words
+    unpacked = TablePacking.pack(
+        table_field_info.row_words, table_unpacked_data_records, table_fields
+    )
+
+    for actual, expected in zip(unpacked, table_data):
+        assert actual == expected
+
+
+def test_table_packing_pack_length_mismatched(
+    table_field_info: TableFieldInfo,
+    table_unpacked_data_records: Dict[str, _RecordInfo],
+    table_fields: Dict[str, TableFieldDetails],
+    table_data: List[str],
+):
+    """Test that mismatching lengths on waveform inputs causes an exception"""
+    assert table_field_info.row_words
+
+    # Adjust one of the record lengths so it mismatches
+    table_unpacked_data_records["OUTC1"].record.get = MagicMock(
+        return_value=array([1, 2, 3, 4, 5, 6, 7, 8])
+    )
+
+    with pytest.raises(AssertionError):
+        TablePacking.pack(
+            table_field_info.row_words, table_unpacked_data_records, table_fields
+        )
+
+
+def test_table_packing_roundtrip(
+    table_field_info: TableFieldInfo,
+    table_fields: Dict[str, TableFieldDetails],
+    table_data: List[str],
+):
+    """Test that calling unpack -> pack yields the same data"""
+    assert table_field_info.row_words
+    unpacked = TablePacking.unpack(table_field_info.row_words, table_fields, table_data)
+
+    # Put these values into Mocks for the Records
+    data: Dict[str, _RecordInfo] = {}
+    for field_name, data_array in zip(table_fields, unpacked):
+        mocked_record = MagicMock()
+        mocked_record.get = MagicMock(return_value=data_array)
+        info = _RecordInfo(mocked_record, lambda x: None)
+        data[field_name] = info
+
+    packed = TablePacking.pack(table_field_info.row_words, data, table_fields)
+
+    assert packed == table_data
 
 
 # TODO: Test the special types
