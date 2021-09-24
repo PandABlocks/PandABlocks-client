@@ -4,14 +4,30 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+        {
+            "name":"Introspect Panda",
+            "type":"python",
+            "request":"launch",
+            "program":"examples/introspect_panda.py",
+            "console":"integratedTerminal", 
+            "args": ["172.23.252.201"],
+            "justMyCode": false
+        },
         {
             "name": "Debug Unit Test",
             "type": "python",
-            "request": "test",
-            "justMyCode": false,
+            "request": "launch",
+            "program": "${file}",
+            "purpose": ["debug-test"],
+            "console": "integratedTerminal",
             "env": {
+                // Cannot have coverage and debugging at the same time,
+                // and the default config in setup.cfg adds coverage
+                //https://github.com/microsoft/vscode-python/issues/693
                 "PYTEST_ADDOPTS": "--no-cov"
-            }
+            },
+            "justMyCode": false
         }
     ]
 }
