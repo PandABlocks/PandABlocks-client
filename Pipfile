@@ -18,6 +18,7 @@ pytest-mypy = "*"
 pytest-flake8 = "*"
 pytest-black = "*"
 mock = "*"
+types-mock = "*"
 pytest-asyncio = "*"
 flake8-isort = "*"
 isort = ">5.0"
@@ -36,4 +37,3 @@ tests = "python -m pytest"
 docs = "sphinx-build -EWT --keep-going docs build/html"
 # Delete any files that git ignore hides from us
 gitclean = "git clean -fdX"
-
