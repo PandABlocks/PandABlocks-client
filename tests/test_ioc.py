@@ -20,9 +20,12 @@ from pandablocks.responses import (
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
+    TableFieldDetails,
+    TableFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
 )
+from tests.conftest import DummyServer
 
 TEST_PREFIX = "TEST-PREFIX"
 counter = 0
@@ -40,26 +43,41 @@ def ioc_record_factory():
 
 
 @pytest.fixture
-def dummy_server_introspect_panda(dummy_server_in_thread):
+def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
+
+    get_changes_scalar_data = (
+        # Note the deliberate concatenation across lines - this must be a single
+        # entry in the list
+        "!PCAP.FOO=1\n!PCAP.BAR=12.34\n!*METADATA.LABEL_PCAP1=PcapMetadataLabel\n"
+        "!SEQ1.TABLE<\n"
+        "."
+    )
+    get_changes_multiline_data = "!1\n!2\n!3\n."
+
     dummy_server_in_thread.send += [
-        # "!PCAP 1\n!LUT 8\n!SRGATE 2\n.",
-        # "OK =PCAP Desc\nOK =LUT Desc\nOK =SRGATE Desc\n",
-        # "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
-        # "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
-        # "!OUT 1 bit_out\n.",  # SRGATE fields
-        # "!FOO=1\nBAR=12.34\n.",  # GetChanges
-        "!PCAP 1\n.",
+        "!PCAP 1\n!SEQ 3\n.",
         "OK =PCAP Desc",
-        # "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
-        "!TRIG_EDGE 3 param enum\n.",  # PCAP fields temp
-        "!PCAP.FOO=1\n!PCAP.BAR=12.34\n!"  # deliberate concatenation
-        "*METADATA.LABEL_PCAP1=PcapMetadataLabel\n.",  # GetChanges
+        "OK =SEQ Desc",
+        "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
+        "!TABLE 7 table\n.",  # SEQ field
+        get_changes_scalar_data,
         "!Label1\n!Label2\n.",  # TRIG_EDGE enum labels
+        "OK =100",  # GATE MAX_DELAY
+        "!LabelA\n!LabelB\n.",  # GATE labels
         "OK =Trig Edge Desc",
-        # "Ok =Gate Desc",
-        # "OK =100",  # GATE MAX_DELAY
-        # "!LabelA\n!LabelB\n.",  # GATE labels
+        "OK =Gate Desc",
+        "OK =16384",  # TABLE MAX_LENGTH
+        "!15:0 REPEATS uint\n!19:16 TRIGGER enum\n!63:32 POSITION int\n.",  # TABLE flds
+        "OK =Sequencer table of lines",  # TABLE Desc
+        get_changes_multiline_data,
+        "!Immediate\n!BITA=0\n.",  # TRIGGER field labels
+        "OK =Number of times the line will repeat",  # Repeats field desc
+        "OK =The trigger condition to start the phases",  # TRIGGER field desc
+        "OK =The position that can be used in trigger condition",  # POSITION field desc
     ]
+    # If you need to change the above responses,
+    # it'll probably help to enable debugging on the server
+    # dummy_server_in_thread.debug = True
     yield dummy_server_in_thread
 
 
@@ -89,8 +107,6 @@ async def test_introspect_panda(dummy_server_introspect_panda):
     """High-level test that introspect_panda returns expected data structures"""
     async with AsyncioClient("localhost") as client:
         data = await introspect_panda(client)
-
-        assert "PCAP" in data
         assert data["PCAP"] == _BlockAndFieldInfo(
             block_info=BlockInfo(number=1, description="PCAP Desc"),
             fields={
@@ -99,13 +115,59 @@ async def test_introspect_panda(dummy_server_introspect_panda):
                     subtype="enum",
                     description="Trig Edge Desc",
                     labels=["Label1", "Label2"],
-                )
+                ),
+                "GATE": BitMuxFieldInfo(
+                    type="bit_mux",
+                    subtype=None,
+                    description="Gate Desc",
+                    max_delay=100,
+                    labels=["LabelA", "LabelB"],
+                ),
             },
             values={
                 "PCAP1:FOO": "1",
                 "PCAP1:BAR": "12.34",
                 "PCAP1:LABEL": "PcapMetadataLabel",
             },
+        )
+
+        assert data["SEQ"] == _BlockAndFieldInfo(
+            block_info=BlockInfo(number=3, description="SEQ Desc"),
+            fields={
+                "TABLE": TableFieldInfo(
+                    type="table",
+                    subtype=None,
+                    description="Sequencer table of lines",
+                    max_length=16384,
+                    fields={
+                        "REPEATS": TableFieldDetails(
+                            subtype="uint",
+                            bit_low=0,
+                            bit_high=15,
+                            description="Number of times the line will repeat",
+                            labels=None,
+                        ),
+                        "TRIGGER": TableFieldDetails(
+                            subtype="enum",
+                            bit_low=16,
+                            bit_high=19,
+                            description="The trigger condition to start the phases",
+                            labels=["Immediate", "BITA=0"],
+                        ),
+                        "POSITION": TableFieldDetails(
+                            subtype="int",
+                            bit_low=32,
+                            bit_high=63,
+                            description=(
+                                "The position that can be used in trigger condition"
+                            ),
+                            labels=None,
+                        ),
+                    },
+                    row_words=2,
+                )
+            },
+            values={"SEQ1:TABLE": ["1", "2", "3"]},
         )
 
 

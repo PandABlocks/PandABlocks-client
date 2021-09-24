@@ -1,4 +1,5 @@
 import asyncio
+import os
 import threading
 from collections import deque
 from io import BufferedReader
@@ -229,6 +230,12 @@ def fast_dump_expected():
 
 
 class DummyServer:
+
+    # Flag for useful debug output when writing tests
+    # for diagnosing mismatching sent data.
+    debug = False
+    _debug_file = "out.txt"
+
     def __init__(self):
         # This will be added to whenever control port gets a message
         self.received: List[str] = []
@@ -242,6 +249,10 @@ class DummyServer:
     ):
         buf = Buffer()
         is_multiline = False
+
+        if self.debug:
+            os.remove(self._debug_file)
+
         while True:
             received = await reader.read(4096)
             if not received:
@@ -254,6 +265,9 @@ class DummyServer:
                 if not is_multiline or not line:
                     is_multiline = False
                     to_send = self.send.popleft() + "\n"
+                    if self.debug:
+                        with open(self._debug_file, "a") as f:
+                            print(line, to_send, flush=True, file=f)
                     writer.write(to_send.encode())
                     await writer.drain()
 
