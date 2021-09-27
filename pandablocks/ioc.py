@@ -471,10 +471,10 @@ class _TableUpdater:
                 f"Update of record {record.name} attempted while MODE was DISCARD."
                 "New value will be discarded"
             )
+            return False
         else:
+            # TODO: Confirm with Tom/Michael the behaviour of pythonsoftioc
             raise Exception("MODE record has unrecognised value: " + str(record_val))
-
-        return False
 
     async def update(self, new_val: int):
         # This is called whenever the MODE record of the table is updated
@@ -540,7 +540,7 @@ class _TableUpdater:
                 "was not VIEW. New value will be discarded"
             )
 
-    def set_mode_record(self, record_info: _RecordInfo) -> None:
+    def set_mode_record_info(self, record_info: _RecordInfo) -> None:
         """Set the special MODE record that controls the behaviour of this table"""
         self._mode_record_info = record_info
 
@@ -783,6 +783,8 @@ class IocRecordFactory:
         assert len(labels) > 0
 
         if not all(len(label) < 25 for label in labels):
+            # TODO: Check with Tom whether this should be shifted to debug level -
+            # description truncation was moved to that level
             logging.warning(
                 "One or more labels do not fit EPICS maximum length of "
                 f"25 characters. Long labels will be truncated. Labels: {labels}"
@@ -797,7 +799,7 @@ class IocRecordFactory:
         Raises AssertionError if too few values."""
         assert len(values) >= num, (
             f"Incorrect number of values, {len(values)}, expected at least {num}.\n"
-            + "{values}"
+            + f"{values}"
         )
 
     def _create_record_info(
@@ -868,7 +870,9 @@ class IocRecordFactory:
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
         if description and len(description) > 40:
-            logging.warning(
+            # As per Tom Cobb, it's unlikely the descriptions will ever be truncated so
+            # we'll hide this message in debug level logging only
+            logging.debug(
                 f"Description for {record_name} longer than EPICS limit of "
                 f"40 characters. It will be truncated. Description: {description}"
             )
@@ -1324,7 +1328,7 @@ class IocRecordFactory:
 
         record_dict[mode_record_name].table_updater = table_updater
 
-        table_updater.set_mode_record(record_dict[mode_record_name])
+        table_updater.set_mode_record_info(record_dict[mode_record_name])
 
         return record_dict
 
