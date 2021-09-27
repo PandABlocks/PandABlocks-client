@@ -10,6 +10,7 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
 from pandablocks.ioc import (
     IocRecordFactory,
+    TableModeEnum,
     TablePacking,
     _BlockAndFieldInfo,
     _ensure_block_number_present,
@@ -17,6 +18,7 @@ from pandablocks.ioc import (
     _panda_to_epics_name,
     _RecordInfo,
     _RecordUpdater,
+    _TableUpdater,
     introspect_panda,
 )
 from pandablocks.responses import (
@@ -235,7 +237,7 @@ def table_fields() -> Dict[str, TableFieldDetails]:
 
 
 @pytest.fixture
-def table_field_info(table_fields):
+def table_field_info(table_fields) -> TableFieldInfo:
     """Table data associated with table_fields and table_data fixtures"""
     return TableFieldInfo(
         "table", None, "Test table description", 16384, table_fields, 4
@@ -304,6 +306,35 @@ def table_unpacked_data_records(
         info = _RecordInfo(mocked_record, lambda x: None)
         data[field_name] = info
     return data
+
+
+@pytest.fixture
+def table_updater(
+    table_field_info: TableFieldInfo,
+    table_fields: Dict[str, TableFieldDetails],
+    table_unpacked_data_records: Dict[str, _RecordInfo],
+):
+    """Provides a _TableUpdater with configured records and mocked functionality"""
+    client = AsyncioClient("123")
+    client.send = AsyncMock()  # type: ignore
+    # mypy doesn't play well with mocking so suppress error
+
+    mocked_mode_record = MagicMock()
+    # Default mode record to view, as per default construction
+    mocked_mode_record.get = MagicMock(return_value=TableModeEnum.VIEW.value)
+    record_info = _RecordInfo(mocked_mode_record, lambda x: None)
+
+    updater = _TableUpdater(
+        client,
+        "SEQ1.TABLE",
+        table_field_info,
+        table_fields,
+        table_unpacked_data_records,
+    )
+
+    updater.set_mode_record_info(record_info)
+
+    return updater
 
 
 TEST_RECORD = "TEST:RECORD"
@@ -399,7 +430,7 @@ async def test_introspect_panda(dummy_server_introspect_panda):
 @pytest.mark.asyncio
 async def test_record_updater():
     """Test that the record updater succesfully Put's data to the client"""
-    client = AsyncioClient
+    client = AsyncioClient("123")
     client.send = AsyncMock()
     updater = _RecordUpdater("ABC:DEF", client, float)
 
@@ -412,7 +443,7 @@ async def test_record_updater():
 async def test_record_updater_labels():
     """Test that the record updater succesfully Put's data to the client
     when the data is a label index"""
-    client = AsyncioClient
+    client = AsyncioClient("123")
     client.send = AsyncMock()
     updater = _RecordUpdater("ABC:DEF", client, float, ["Label1", "Label2", "Label3"])
 
@@ -455,7 +486,6 @@ def test_table_packing_pack_length_mismatched(
     table_field_info: TableFieldInfo,
     table_unpacked_data_records: Dict[str, _RecordInfo],
     table_fields: Dict[str, TableFieldDetails],
-    table_data: List[str],
 ):
     """Test that mismatching lengths on waveform inputs causes an exception"""
     assert table_field_info.row_words
@@ -491,6 +521,76 @@ def test_table_packing_roundtrip(
     packed = TablePacking.pack(table_field_info.row_words, data, table_fields)
 
     assert packed == table_data
+
+
+def test_table_updater_fields_sorted(table_updater: _TableUpdater):
+    """Test that the field sorting done in post_init has occurred"""
+
+    # Bits start at 0
+    curr_bit = -1
+    for field in table_updater.table_fields.values():
+        assert curr_bit < field.bit_low, "Fields are not in bit order"
+        assert (
+            field.bit_low <= field.bit_high  # fields may be 1 bit wide
+        ), "Field had incorrect bit_low and bit_high order"
+        assert curr_bit < field.bit_high, "Field had bit_high lower than bit_low"
+        curr_bit = field.bit_high
+
+
+def test_table_updater_validate_mode_view(table_updater: _TableUpdater):
+    """Test the validate method when mode is View"""
+
+    # View is default in table_updater
+    record = MagicMock()
+    record.name = MagicMock(return_value="NewRecord")
+    assert table_updater.validate(record, "value is irrelevant") is False
+
+
+def test_table_updater_validate_mode_edit(table_updater: _TableUpdater):
+    """Test the validate method when mode is Edit"""
+
+    table_updater._mode_record_info.record.get = MagicMock(
+        return_value=TableModeEnum.EDIT.value
+    )
+
+    record = MagicMock()
+    record.name = MagicMock(return_value="NewRecord")
+    assert table_updater.validate(record, "value is irrelevant") is True
+
+
+def test_table_updater_validate_mode_submit(table_updater: _TableUpdater):
+    """Test the validate method when mode is Submit"""
+
+    table_updater._mode_record_info.record.get = MagicMock(
+        return_value=TableModeEnum.SUBMIT.value
+    )
+
+    record = MagicMock()
+    record.name = MagicMock(return_value="NewRecord")
+    assert table_updater.validate(record, "value is irrelevant") is False
+
+
+def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
+    """Test the validate method when mode is Discard"""
+
+    table_updater._mode_record_info.record.get = MagicMock(
+        return_value=TableModeEnum.DISCARD.value
+    )
+
+    record = MagicMock()
+    record.name = MagicMock(return_value="NewRecord")
+    assert table_updater.validate(record, "value is irrelevant") is False
+
+
+def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
+    """Test the validate method raises exception when mode is unknown"""
+
+    table_updater._mode_record_info.record.get = MagicMock(return_value="UnknownValue")
+
+    record = MagicMock()
+    record.name = MagicMock(return_value="NewRecord")
+    with pytest.raises(Exception):
+        table_updater.validate(record, "value is irrelevant")
 
 
 # TODO: Test the special types
