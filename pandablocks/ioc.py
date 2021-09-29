@@ -4,6 +4,7 @@ import asyncio
 import importlib
 import inspect
 import logging
+import os
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
@@ -17,6 +18,7 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
     Arm,
     ChangeGroup,
+    CommandException,
     Disarm,
     GetBlockInfo,
     GetChanges,
@@ -45,7 +47,6 @@ from pandablocks.responses import (
 )
 
 # Define the public API of this module
-# TODO!
 __all__ = ["create_softioc"]
 
 TIMEOUT = 2
@@ -120,7 +121,7 @@ def create_softioc(host: str, record_prefix: str) -> None:
     ).result()  # TODO add TIMEOUT and exception handling
 
     asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
-    # TODO: Check return from line above periodically to see if there was an exception
+    # TODO: Check return from line above periodically to see if there was an exception?
 
     # Temporarily leave this running forever to aid debugging
     # TODO: Delete this
@@ -209,8 +210,8 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
 
     changes: Changes = returned_infos[-1]
     if changes.in_error:
-        logging.error(f"Fields detected in error during startup: {changes.in_error}")
-        # TODO: Continue or exit? Ask Tom for general error handling policy
+        # TODO: Should we continue processing?
+        raise Exception(f"Fields detected in error during startup: {changes.in_error}")
 
     # Create a dict which maps block name to all values for all instances
     # of that block (e.g. {"TTLIN" : {"TTLIN1:VAL": "1", "TTLIN2:VAL" : "5", ...} })
@@ -237,23 +238,22 @@ class IgnoreException(Exception):
 
 @dataclass
 class _RecordUpdater:
-    """Handles Put'ing data back to the PandA when an EPICS record is updated"""
+    """Handles Put'ing data back to the PandA when an EPICS record is updated
 
-    # TODO: Argument docs
-
-    # TODO: Is this better as an inner class inside IocRecordFactory?
-    # May depend how GraphQL will handle its records and subsequent PandA updates.
-
-    # TODO: Work out how to do this for records that aren't created
-    # through _create_record_info
+    Args:
+        record_name: The name of the record, without the namespace
+        client: The client used to send data to PandA
+        data_type_func: Function to convert the new value to the format PandA expects
+        labels: If the record is an enum type, provide the list of labels
+    """
 
     record_name: str
     client: AsyncioClient
     data_type_func: Callable
     labels: Optional[List[str]] = None
 
-    # TODO: Add type to new_val
-    async def update(self, new_val):
+    # The incoming value's type depends on the record. Ensure you always cast it.
+    async def update(self, new_val: Any):
         try:
             # If this is an enum record, retrieve the string value
             if self.labels:
@@ -372,8 +372,9 @@ class TablePacking:
                 # Create 1-D array sufficiently long to exactly hold the entire table
                 packed = np.zeros((len(curr_val), row_words), dtype=np.uint32)
             else:
-                # TODO: Probably shouldn't be an assert, use warning/error mechanism
-                assert len(packed) == len(curr_val), "Table waveform lengths mismatched"
+                assert len(packed) == len(
+                    curr_val
+                ), "Table waveform lengths mismatched, cannot pack data"
 
             offset = field_details.bit_low
 
@@ -500,20 +501,20 @@ class _TableUpdater:
             )
 
             panda_field_name = _epics_to_panda_name(self.table_name)
-            # TODO: Gotta do something in case this fails
             await self.client.send(Put(panda_field_name, packed_data))
+
             # Already in on_update of this record, so disable processing to
             # avoid recursion
             self._mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
+
         elif new_label == TableModeEnum.DISCARD.name:
             # Recreate EPICS data from PandA data
             panda_field_name = _epics_to_panda_name(self.table_name)
             panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
-            # TODO: panda_vals is already a list, but the type system doesn't know that
             assert self.field_info.row_words
             field_data = TablePacking.unpack(
-                self.field_info.row_words, self.table_fields, list(panda_vals)
+                self.field_info.row_words, self.table_fields, panda_vals
             )
 
             for record_info, data in zip(self.table_records.values(), field_data):
@@ -525,13 +526,12 @@ class _TableUpdater:
 
     def update_table(self, new_values: List[str]) -> None:
         """Update the waveform records with the given values from the PandA, depending
-        on the value of the table's MODE record. This is NOT a method called through a
-        record's `on_update`.
+        on the value of the table's MODE record.
+        Note: This is NOT a method called through a record's `on_update`.
 
         Args:
             new_values: The list of new values from the PandA
         """
-        # TODO: Rename method?
 
         curr_mode = TableModeEnum(self._mode_record_info.record.get())
 
@@ -613,7 +613,6 @@ class _HDF5RecordController:
     """Class to create and control the records that handle HDF5 processing"""
 
     _HDF5_PREFIX = "HDF5"
-    _WAVEFORM_LENGTH = 4096  # TODO: This is used for path lengths - get from Python?
 
     _client: AsyncioClient
 
@@ -635,11 +634,15 @@ class _HDF5RecordController:
 
         self._client = client
 
+        path_length = os.pathconf("/", "PC_PATH_MAX")
+        filename_length = os.pathconf("/", "PC_NAME_MAX")
+
         # Create the records
         # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
+        # TODO: Confirm if we want to change naming convention to ALL_CAPS
         self._file_path_record = builder.WaveformOut(
             self._HDF5_PREFIX + ":FilePath",
-            length=self._WAVEFORM_LENGTH,
+            length=path_length,
             FTVL="UCHAR",
             DESC="File path for HDF5 files",
             validate=self._parameter_validate,
@@ -647,7 +650,7 @@ class _HDF5RecordController:
 
         self._file_name_record = builder.WaveformOut(
             self._HDF5_PREFIX + ":FileName",
-            length=self._WAVEFORM_LENGTH,
+            length=filename_length,
             FTVL="UCHAR",
             DESC="File name prefix for HDF5 files",
             validate=self._parameter_validate,
@@ -680,7 +683,7 @@ class _HDF5RecordController:
         self._num_capture_record = builder.aOut(
             self._HDF5_PREFIX + ":NumCapture",
             initial_value=-1,  # Infinite capture
-            # TODO: There's no way to stop an infinite capture?
+            # TODO: Check what the desired/proper way to stop an infinite capture is
             DESC="Number of captures to make. -1 = forever",
         )
 
@@ -695,15 +698,16 @@ class _HDF5RecordController:
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             on_update=self._capture_on_update,
-            DESC="Controls HDF5 capture",
+            DESC="Start/stop HDF5 capture",
         )
 
+        # TODO: Should this be an alias for PCAP.ACTIVE?
         self._arm_disarm_record = builder.boolOut(
             self._HDF5_PREFIX + ":Arm",
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             on_update=self._arm_on_update,
-            DESC="Controls PandA arming",
+            DESC="Arm/Disarm the PandA",
         )
 
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
@@ -737,13 +741,15 @@ class _HDF5RecordController:
 
     async def _arm_on_update(self, new_val: int) -> None:
         """Process an update to the Arm record, to arm/disarm the PandA"""
-        # TODO: Report errors here if arming/disarming fails - try-except probably
-        if new_val:
-            logging.debug("Arming PandA")
-            await self._client.send(Arm())
-        else:
-            logging.debug("Disarming PandA")
-            await self._client.send(Disarm())
+        try:
+            if new_val:
+                logging.debug("Arming PandA")
+                await self._client.send(Arm())
+            else:
+                logging.debug("Disarming PandA")
+                await self._client.send(Disarm())
+        except CommandException as e:
+            logging.error("Exception occurred when arming/disarming PandA", exc_info=e)
 
     async def _capture_on_update(self, new_val: int) -> None:
         """Process an update to the Capture record, to start/stop recording HDF5 data"""
@@ -773,9 +779,6 @@ class _HDF5RecordController:
                     "Killing existing task and starting new one."
                 )
                 self._capture_task.cancel()
-
-            # todo: second invocation of this task never works
-            # - no new files are written...
 
             self._capture_task = asyncio.create_task(
                 write_hdf_files(
@@ -818,9 +821,7 @@ class IocRecordFactory:
     a PandA"""
 
     _record_prefix: str
-    # TODO: Not sure whether I like passing the client in, purely for child classes...
     _client: AsyncioClient
-
     _pos_out_row_counter: int = 0
 
     # List of methods in builder, used for parameter validation
@@ -924,7 +925,6 @@ class IocRecordFactory:
                 builder.WaveformOut,
             ]
         ):
-            # TODO: See how this interacts with the update on PandA changes thread
             # If the caller hasn't provided an update method, create it now
             record_updater = _RecordUpdater(
                 record_name,
@@ -1174,8 +1174,6 @@ class IocRecordFactory:
         # TODO: Work out how to test SCALED, as well as all tabular,
         # records as they aren't returned at all
 
-        # TODO: Descriptions of records created inline below
-
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
         scaled_rec = record_name + ":SCALED"
@@ -1185,12 +1183,19 @@ class IocRecordFactory:
             INPA=builder.CP(record_dict[record_name].record),
             INPB=builder.CP(record_dict[scale_rec].record),
             INPC=builder.CP(record_dict[offset_rec].record),
+            DESC="Value with scaling applied",
+            DISP=1,
         )
 
         # Create the POSITIONS "table" of records. Most are aliases of the records
         # created above.
         positions_str = f"POSITIONS:{self._pos_out_row_counter}"
-        builder.records.stringin(positions_str + ":NAME", VAL=record_name)
+        builder.records.stringin(
+            positions_str + ":NAME",
+            VAL=record_name,
+            DESC="Table of configured positional outputs",
+            DISP=1,
+        ),
 
         scaled_calc_rec.add_alias(self._record_prefix + ":" + positions_str + ":VAL")
 
@@ -1273,11 +1278,20 @@ class IocRecordFactory:
         for i, label in enumerate(field_info.bits):
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
-            builder.records.bi(f"{enumerated_bits_prefix}:VAL", INP=link)
-            # TODO: Description?
+            # TODO: This field doesn't seem to have any value...
+            builder.records.bi(
+                f"{enumerated_bits_prefix}:VAL",
+                INP=link,
+                DESC="Value of field connected to this BIT",
+                DISP=1,
+            )
 
-            builder.records.stringin(f"{enumerated_bits_prefix}:NAME", VAL=label)
-            # TODO: Description?
+            builder.records.stringin(
+                f"{enumerated_bits_prefix}:NAME",
+                VAL=label,
+                DESC="Name of field connected to this BIT",
+                DISP=1,
+            )
 
         return record_dict
 
@@ -1719,8 +1733,9 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         raise Exception(
             "Documentation says this field isn't useful for non-write types"
-        )  # TODO: Maybe just a warning? Should I still create a record here?
-        # TODO: Ask whether param - action is a valid type and whether it needs a record
+        )
+        # TODO: Ask whether param - action and read-action is a valid type and
+        # whether it needs a record
 
     def _make_action_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
@@ -1887,8 +1902,6 @@ class IocRecordFactory:
         except KeyError as e:
             # Unrecognised type-subtype key, ignore this item. This allows the server
             # to define new types without breaking the client.
-            # TODO: This catches exceptions from within mapping functions too! probably
-            # need another try-except block inside this one?
             logging.warning(
                 f"Exception while creating record for {record_name}, type {key}",
                 exc_info=e,

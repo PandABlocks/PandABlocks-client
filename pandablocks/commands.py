@@ -244,7 +244,7 @@ class GetLine(Command[str]):
 
 
 @dataclass
-class GetMultiline(Get):
+class GetMultiline(Command[List[str]]):
     """Get the value of a field or star command, when the result is expected to be a
     multiline response.
 
@@ -369,7 +369,6 @@ _FieldGeneratorType = Generator[
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     """Get the fields of a block, returning a `FieldInfo` (or appropriate subclass) for
     each one, ordered to match the definition order in the PandA
-    TODO: Update this!
 
     Args:
         block: The name of the block type
