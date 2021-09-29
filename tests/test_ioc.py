@@ -543,7 +543,7 @@ def test_table_updater_validate_mode_view(table_updater: _TableUpdater):
     # View is default in table_updater
     record = MagicMock()
     record.name = MagicMock(return_value="NewRecord")
-    assert table_updater.validate(record, "value is irrelevant") is False
+    assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
 def test_table_updater_validate_mode_edit(table_updater: _TableUpdater):
@@ -555,7 +555,7 @@ def test_table_updater_validate_mode_edit(table_updater: _TableUpdater):
 
     record = MagicMock()
     record.name = MagicMock(return_value="NewRecord")
-    assert table_updater.validate(record, "value is irrelevant") is True
+    assert table_updater.validate_waveform(record, "value is irrelevant") is True
 
 
 def test_table_updater_validate_mode_submit(table_updater: _TableUpdater):
@@ -567,7 +567,7 @@ def test_table_updater_validate_mode_submit(table_updater: _TableUpdater):
 
     record = MagicMock()
     record.name = MagicMock(return_value="NewRecord")
-    assert table_updater.validate(record, "value is irrelevant") is False
+    assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
 def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
@@ -579,7 +579,7 @@ def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
 
     record = MagicMock()
     record.name = MagicMock(return_value="NewRecord")
-    assert table_updater.validate(record, "value is irrelevant") is False
+    assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
 def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
@@ -590,7 +590,7 @@ def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
     record = MagicMock()
     record.name = MagicMock(return_value="NewRecord")
     with pytest.raises(Exception):
-        table_updater.validate(record, "value is irrelevant")
+        table_updater.validate_waveform(record, "value is irrelevant")
 
 
 # TODO: Test the special types

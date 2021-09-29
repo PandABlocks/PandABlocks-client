@@ -10,7 +10,7 @@ from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from softioc import asyncio_dispatcher, builder, softioc
+from softioc import alarm, asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
@@ -76,8 +76,8 @@ class _RecordInfo:
     `data_type_func`: Function to convert string data to form appropriate for the record
     `labels`: List of valid values for the record. If not None, the `record` is
         an enum type.
-    `table_updater`: Class instance that managed updating table records. If present
-        the `record` is part of a larger table."""
+    `table_updater`: Class instance that managed updating table records. Only present
+    on the MODE record of a table."""
 
     record: RecordWrapper
     data_type_func: Callable
@@ -424,6 +424,8 @@ class _TableUpdater:
     table_fields: Dict[str, TableFieldDetails]
     table_records: Dict[str, _RecordInfo]
 
+    # TODO: Does this table need a mutex?
+
     def __post_init__(self):
         # Called at the end of dataclass's __init__
         # The field order will be whatever was configured in the PandA.
@@ -432,13 +434,13 @@ class _TableUpdater:
             sorted(self.table_fields.items(), key=lambda item: item[1].bit_low)
         )
 
-    def validate(self, record: RecordWrapper, new_val) -> bool:
-        """Controls whether updates to the EPICS records are processed, based on the
+    def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
+        """Controls whether updates to the waveform records are processed, based on the
         value of the MODE record.
 
         Args:
-            record (RecordWrapper): The record currently being validated
-            new_val (Any): The new value attempting to be written
+            record: The record currently being validated
+            new_val: The new value attempting to be written
 
         Returns:
             bool: `True` to allow record update, `False` otherwise.
@@ -476,8 +478,15 @@ class _TableUpdater:
             # TODO: Confirm with Tom/Michael the behaviour of pythonsoftioc
             raise Exception("MODE record has unrecognised value: " + str(record_val))
 
-    async def update(self, new_val: int):
-        # This is called whenever the MODE record of the table is updated
+    async def update_waveform(self, new_val: int, record_name: str) -> None:
+        """Handles updates to a specific waveform record to update its associated
+        scalar value record"""
+        self._update_scalar(record_name)
+
+    async def update_mode(self, new_val: int):
+        """Controls the behaviour when the MODE record is updated.
+        Controls Put'ting data back to PandA, or re-Get'ting data from Panda
+        and replacing record data."""
 
         assert self._mode_record_info.labels
 
@@ -515,12 +524,14 @@ class _TableUpdater:
             self._mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
 
     def update_table(self, new_values: List[str]) -> None:
-        """Update the EPICS records with the given values from the PandA, depending
-        on the value of the table's MODE record
+        """Update the waveform records with the given values from the PandA, depending
+        on the value of the table's MODE record. This is NOT a method called through a
+        record's `on_update`.
 
         Args:
             new_values: The list of new values from the PandA
         """
+        # TODO: Rename method?
 
         curr_mode = TableModeEnum(self._mode_record_info.record.get())
 
@@ -530,15 +541,68 @@ class _TableUpdater:
                 self.field_info.row_words, self.table_fields, list(new_values)
             )
 
-            for record_info, data in zip(self.table_records.values(), field_data):
+            table_field_records = self._get_table_field_records()
+            for record_info, data in zip(table_field_records.values(), field_data):
                 # Must skip processing as the validate method would reject the update
                 record_info.record.set(data, process=False)
+                self._update_scalar(record_info.record.name)
         else:
             # No other mode allows PandA updates to EPICS records
             logging.warning(
                 f"Update of table {self.table_name} attempted when MODE "
                 "was not VIEW. New value will be discarded"
             )
+
+    async def update_index(self, new_val) -> None:
+        """Update the SCALAR record for every column in the table based on the new
+        index and/or new waveform data."""
+        for record_info in self._get_table_field_records().values():
+            self._update_scalar(record_info.record.name)
+
+    def _update_scalar(self, waveform_record_name: str) -> None:
+        """Update the column's SCALAR record based on the new index and/or new waveform
+        data.
+
+        Args:
+            waveform_record_name: The name of the column record including leading
+            namespace, e.g. "<namespace>:SEQ1:TABLE:POSITION"
+        """
+
+        # Remove namespace from record name
+        _, waveform_record_name = waveform_record_name.split(":", maxsplit=1)
+
+        waveform_record = self.table_records[waveform_record_name].record
+        waveform_data = waveform_record.get()
+
+        scalar_record = self.table_records[waveform_record_name + ":SCALAR"].record
+
+        index_record_name = waveform_record_name.rsplit(":", maxsplit=1)[0] + ":INDEX"
+        index_record = self.table_records[index_record_name].record
+        index = index_record.get()
+
+        try:
+            scalar_val = waveform_data[index]
+            sev = alarm.NO_ALARM
+        except IndexError as e:
+            logging.warning(
+                f"Index {index} of record {waveform_record_name} is out of bounds.",
+                exc_info=e,
+            )
+            scalar_val = 0
+            sev = alarm.INVALID_ALARM
+
+        # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
+        # alarm value to UDF_ALARM, but I'm specifying it for clarity.
+        scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
+
+    def _get_table_field_records(self) -> Dict[str, _RecordInfo]:
+        """Filter the list of all table records to only return those of the table
+        fields, removing all SCALAR, INDEX, and MODE records."""
+        return {
+            k: v
+            for k, v in self.table_records.items()
+            if not k.endswith(("SCALAR", "INDEX", "MODE"))
+        }
 
     def set_mode_record_info(self, record_info: _RecordInfo) -> None:
         """Set the special MODE record that controls the behaviour of this table"""
@@ -747,6 +811,8 @@ class _HDF5RecordController:
         return val.tobytes().decode()[:-1]
 
 
+# TODO: Go back through every field and attribute and check whether it's an analog
+# (i.e. floating point) or long (i.e. integer) record type!
 class IocRecordFactory:
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
@@ -783,8 +849,6 @@ class IocRecordFactory:
         assert len(labels) > 0
 
         if not all(len(label) < 25 for label in labels):
-            # TODO: Check with Tom whether this should be shifted to debug level -
-            # description truncation was moved to that level
             logging.warning(
                 "One or more labels do not fit EPICS maximum length of "
                 f"25 characters. Long labels will be truncated. Labels: {labels}"
@@ -847,14 +911,19 @@ class IocRecordFactory:
             ), f"Too many labels ({len(labels)}) to create record {record_name}"
 
         # If there is no on_update, and the record type allows one, create it
-        if "on_update" not in kwargs and record_creation_func in [
-            builder.aOut,
-            builder.boolOut,
-            builder.mbbOut,
-            builder.longOut,
-            builder.stringOut,
-            builder.WaveformOut,
-        ]:
+        if (
+            "on_update" not in kwargs
+            and "on_update_name" not in kwargs
+            and record_creation_func
+            in [
+                builder.aOut,
+                builder.boolOut,
+                builder.mbbOut,
+                builder.longOut,
+                builder.stringOut,
+                builder.WaveformOut,
+            ]
+        ):
             # TODO: See how this interacts with the update on PandA changes thread
             # If the caller hasn't provided an update method, create it now
             record_updater = _RecordUpdater(
@@ -866,6 +935,18 @@ class IocRecordFactory:
             update_kwarg = {"on_update": record_updater.update}
         else:
             update_kwarg = {}
+
+        # Disable Puts to all In records (unless explicilty enabled)
+        disp_kwarg = {}
+        if "DISP" not in kwargs and record_creation_func in [
+            builder.aIn,
+            builder.boolIn,
+            builder.mbbIn,
+            builder.longIn,
+            builder.stringIn,
+            builder.WaveformIn,
+        ]:
+            disp_kwarg = {"DISP": 1}
 
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
@@ -881,7 +962,7 @@ class IocRecordFactory:
         kwargs.update({"DESC": description})
 
         record = record_creation_func(
-            record_name, *labels, *args, **update_kwarg, **kwargs
+            record_name, *labels, *args, **update_kwarg, **disp_kwarg, **kwargs
         )
 
         record_info = _RecordInfo(
@@ -1260,8 +1341,12 @@ class IocRecordFactory:
         assert isinstance(field_info, TableFieldInfo)
         assert field_info.fields
         assert field_info.row_words
+        assert field_info.max_length
 
         record_dict: Dict[str, _RecordInfo] = {}
+
+        # The INDEX record's starting value
+        DEFAULT_INDEX = 0
 
         # A mechanism to stop the EPICS on_update processing from occurring
         # for table records - their updates are handled through the _TableUpdater
@@ -1274,7 +1359,7 @@ class IocRecordFactory:
             record_name,
             field_info,
             field_info.fields,
-            record_dict,
+            record_dict,  # Dict is filled throughout this method
         )
 
         field_data = TablePacking.unpack(
@@ -1289,9 +1374,9 @@ class IocRecordFactory:
                 full_name,
                 field_details.description,
                 builder.WaveformOut,
-                _raiseIgnoreException,  # TODO: Replace with on_update=lambda x:pass ?
-                # Then we might be able to just delete all the IgnoreException stuff
-                validate=table_updater.validate,
+                _raiseIgnoreException,
+                validate=table_updater.validate_waveform,
+                on_update_name=table_updater.update_waveform,
                 # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
                 # Lines below work around issue #37 in PythonSoftIOC.
                 # Commented out lined should be reinstated, and length + datatype lines
@@ -1304,6 +1389,45 @@ class IocRecordFactory:
 
             # This line is a workaround for issue #37 in PythonSoftIOC
             record_dict[full_name].record.set(data, process=False)
+
+            # Scalar record gives access to individual cell in a column,
+            # in combination with the INDEX record defined below
+            scalar_record_name = full_name + ":SCALAR"
+
+            # Three possible field types, do per-type config
+            record_creation_func: Callable
+            lopr = {}
+            scalar_labels: List[str] = []
+            # No better default than zero, despite the fact it could be a valid value
+            initial_value = data[DEFAULT_INDEX] if data.size > 0 else 0
+            if field_details.subtype == "int":
+                record_creation_func = builder.longIn
+
+            elif field_details.subtype == "uint":
+                record_creation_func = builder.longIn
+                assert initial_value >= 0, (
+                    f"initial value {initial_value} for uint record "
+                    f"{scalar_record_name} was negative"
+                )
+                lopr.update({"LOPR": 0})  # Clamp record to positive values only
+
+            elif field_details.subtype == "enum":
+                assert field_details.labels
+                record_creation_func = builder.mbbIn
+                # Only calling process_labels for label length checking
+                scalar_labels, initial_value = self._process_labels(
+                    field_details.labels, field_details.labels[initial_value]
+                )
+
+            record_dict[scalar_record_name] = self._create_record_info(
+                scalar_record_name,
+                "Scalar val (set by INDEX rec) of column",
+                record_creation_func,
+                _raiseIgnoreException,
+                initial_value=initial_value,
+                labels=scalar_labels,
+                **lopr,
+            )
 
         # Create the mode record that controls when to Put back to PandA
         labels, index_value = self._process_labels(
@@ -1323,12 +1447,24 @@ class IocRecordFactory:
             _raiseIgnoreException,
             labels=labels,
             initial_value=index_value,
-            on_update=table_updater.update,
+            on_update=table_updater.update_mode,
         )
 
         record_dict[mode_record_name].table_updater = table_updater
-
         table_updater.set_mode_record_info(record_dict[mode_record_name])
+
+        # Index record specifies which element the scalar records should access
+        index_record_name = record_name + ":INDEX"
+        record_dict[index_record_name] = self._create_record_info(
+            index_record_name,
+            "Index for all SCALAR records on table",
+            builder.longOut,
+            _raiseIgnoreException,
+            initial_value=DEFAULT_INDEX,
+            on_update=table_updater.update_index,
+            LOPR=0,
+            HOPR=field_info.max_length - 1,  # zero indexing
+        )
 
         return record_dict
 
@@ -1928,7 +2064,7 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
                 # Convert PandA field name to EPICS name
                 field = _panda_to_epics_name(field)
                 if field not in all_records:
-                    raise Exception("Unknown record returned from GetChanges")
+                    raise Exception(f"Unknown field {field} returned from GetChanges")
 
                 record_info = all_records[field]
                 record = record_info.record
