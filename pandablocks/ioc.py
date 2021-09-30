@@ -99,6 +99,11 @@ def _epics_to_panda_name(field_name: str) -> str:
     return field_name.replace(":", ".")
 
 
+# TODO: Discuss with Tom the desired function signature, including:
+# Should it be async? Should it be run as a long-running background task?
+# Return a bool for success/failure?
+# This ties in to how we close the AsyncioClient that is currently created inside
+# this method. Could ask for one to be passed in?
 def create_softioc(host: str, record_prefix: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
@@ -110,24 +115,30 @@ def create_softioc(host: str, record_prefix: str) -> None:
         host: The address of the PandA, in IP or hostname form. No port number required.
         record_prefix: The string prefix used for creation of all records.
     """
-    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
+    try:
+        dispatcher = asyncio_dispatcher.AsyncioDispatcher()
 
-    client = AsyncioClient(host)
+        client = AsyncioClient(host)
 
-    asyncio.run_coroutine_threadsafe(client.connect(), dispatcher.loop).result(TIMEOUT)
+        asyncio.run_coroutine_threadsafe(client.connect(), dispatcher.loop).result(
+            TIMEOUT
+        )
 
-    all_records = asyncio.run_coroutine_threadsafe(
-        create_records(client, dispatcher, record_prefix), dispatcher.loop
-    ).result()  # TODO add TIMEOUT and exception handling
+        all_records = asyncio.run_coroutine_threadsafe(
+            create_records(client, dispatcher, record_prefix), dispatcher.loop
+        ).result(TIMEOUT)
 
-    asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
-    # TODO: Check return from line above periodically to see if there was an exception?
+        asyncio.run_coroutine_threadsafe(update(client, all_records), dispatcher.loop)
+        # TODO: Check return above periodically to see if there was an exception?
 
-    # Temporarily leave this running forever to aid debugging
-    # TODO: Delete this
-    softioc.interactive_ioc(globals())
+    except Exception as e:
+        logging.error("Exception while initializing softioc", exc_info=e)
 
-    asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result(TIMEOUT)
+    # TODO: Commented out until function signature question answered
+    # finally:
+    #     asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result(
+    #         TIMEOUT
+    #     )
 
 
 def _ensure_block_number_present(block_and_field_name: str) -> str:
@@ -254,6 +265,7 @@ class _RecordUpdater:
 
     # The incoming value's type depends on the record. Ensure you always cast it.
     async def update(self, new_val: Any):
+        logging.debug(f"Updating record {self.record_name} with value {new_val}")
         try:
             # If this is an enum record, retrieve the string value
             if self.labels:
@@ -273,7 +285,10 @@ class _RecordUpdater:
             logging.debug(f"Ignoring update to record {self.record_name}")
             pass
         except Exception as e:
-            logging.error(f"Unable to update record {self.record_name}", exc_info=e)
+            logging.error(
+                f"Unable to update record {self.record_name} with value {new_val}",
+                exc_info=e,
+            )
             # TODO: Re-raise? Ask Tom/Michael about what PythonSoftIOC will do
 
 
@@ -1333,18 +1348,35 @@ class IocRecordFactory:
     def _make_pos_mux(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+        @dataclass
+        class PosMuxValidator:
+            """Validate that a given string is a valid label for a PosMux field"""
+
+            labels: List[str]
+
+            def validate(self, record: RecordWrapper, new_val: str):
+                if new_val in self.labels:
+                    return True
+                return False
+
         self._check_num_values(values, 1)
         assert isinstance(field_info, PosMuxFieldInfo)
         assert field_info.labels
+
         record_dict: Dict[str, _RecordInfo] = {}
 
         # This should be an mbbOut record, but there are too many posssible labels
+        # TODO: Will there ever be less than 16 labels due to PandA configuration?
+        # TODO: Add a :LABELS record so users can get valid values?
+        validator = PosMuxValidator(field_info.labels)
+
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             builder.stringOut,
             str,
             initial_value=values[record_name],
+            validate=validator.validate,
         )
 
         return record_dict
@@ -1740,6 +1772,7 @@ class IocRecordFactory:
     def _make_action_write(
         self, record_name: str, field_info: FieldInfo, values: Dict[str, str]
     ) -> Dict[str, _RecordInfo]:
+
         self._check_num_values(values, 0)
         return {
             record_name: self._create_record_info(
@@ -1747,8 +1780,7 @@ class IocRecordFactory:
                 field_info.description,
                 builder.boolOut,
                 int,  # not bool, as that'll treat string "0" as true
-                # TODO: See if this one even gets reported as a change
-                # we might just be able to ignore it?
+                # TODO: Special on_update to not send the 1!
                 ZNAM=ZNAM_STR,
                 ONAM=ONAM_STR,
                 always_update=True,
