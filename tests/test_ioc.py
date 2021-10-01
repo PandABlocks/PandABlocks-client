@@ -5,6 +5,7 @@ import pytest
 from mock import AsyncMock
 from mock.mock import MagicMock
 from numpy import array, int32, ndarray, uint8, uint16, uint32
+from softioc import alarm
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
@@ -584,15 +585,19 @@ def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
     assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
-def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
-    """Test the validate method raises exception when mode is unknown"""
+def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater, capsys):
+    """Test the validate method when mode is unknown"""
 
     table_updater._mode_record_info.record.get = MagicMock(return_value="UnknownValue")
+    table_updater._mode_record_info.record.set_alarm = MagicMock()
 
     record = MagicMock()
     record.name = MagicMock(return_value="NewRecord")
-    with pytest.raises(Exception):
-        table_updater.validate_waveform(record, "value is irrelevant")
+
+    assert table_updater.validate_waveform(record, "value is irrelevant") is False
+    table_updater._mode_record_info.record.set_alarm.assert_called_once_with(
+        alarm.INVALID_ALARM, alarm.UDF_ALARM
+    )
 
 
 # TODO: Test the special types

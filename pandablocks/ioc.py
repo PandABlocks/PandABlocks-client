@@ -516,7 +516,7 @@ class _TableUpdater:
             )
             return False
         else:
-            logging.error("MODE record has unrecognised value: " + str(record_val))
+            logging.error("MODE record has unknown value: " + str(record_val))
             # In case it isn't already, set an alarm state on the record
             self._mode_record_info.record.set_alarm(
                 alarm.INVALID_ALARM, alarm.UDF_ALARM
@@ -833,17 +833,21 @@ class _HDF5RecordController:
     async def _arm_on_update(self, new_val: int) -> None:
         """Process an update to the Arm record, to arm/disarm the PandA"""
         # TODO: Update this record when HDF5 EndData frame received (and startdata)
-        # TODO: Re-write hdf5 capturing - do the contents of hdf5_write_file ourselves, manage pipelines,
-        # look for EndData/StartData to update this reocrd but do NOT send them to hdf writer.
-        # The capture_update method should be the one sending StartData/EndData to the pipeline
+        # TODO: Re-write hdf5 capturing - do the contents of hdf5_write_file ourselves,
+        # manage pipelines, look for EndData/StartData to update this reocrd but do NOT
+        # send them to hdf writer. The capture_update method should be the one sending
+        # StartData/EndData to the pipeline
         # Sequence to handle:
         # - Capture on
         # - Arm on - Panda sends StartData
         # - Keep StartData around, send copy to HDFWriter
         # - Forward any frame data to HDFWriter
-        # - If PandA disarmed and re-armed, examine new StartData and compare to saved one. Must be same. If not abort capture, possibly to new record for error message
+        # - If PandA disarmed and re-armed, examine new StartData and compare to saved
+        #       one. Must be same. If not abort capture, possibly to new record for
+        #       error message
         # - Keep forwarding FrameData to HDFWriter
-        # - When Capture = 0 or expected num frames received reached send EndData to HDFWriter, to finish the file
+        # - When Capture = 0 or expected num frames received reached send EndData to
+        #       HDFWriter, to finish the file
         try:
             if new_val:
                 logging.debug("Arming PandA")
@@ -2313,9 +2317,10 @@ async def update(
                 record = record_info.record
                 if record_info.labels:
                     # Record is enum, convert string the PandA returns into an int index
-                    # TODO: Needs Process=False to not call on_updates which end up putting data back to PandA!
-                    # TODO: Create GetChanges dict that is passed everywhere, and can be used as the "previous value"
-                    # in the updaters for when Puts fail.
+                    # TODO: Needs Process=False to not call on_updates which end up
+                    #   putting data back to PandA!
+                    # TODO: Create GetChanges dict that is passed everywhere, and can be
+                    #   used as the "previous value" in the updaters for when Puts fail.
                     record.set(record_info.labels.index(value))
                 else:
                     record.set(record_info.data_type_func(value))
@@ -2326,7 +2331,7 @@ async def update(
                 mode_rec_name = table_field + ":MODE"
                 if mode_rec_name not in all_records:
                     logging.error(
-                        f"Table MODE record {mode_rec_name} not found in all_records list"
+                        f"Table MODE record {mode_rec_name} not found in known records"
                     )
                     break
 
