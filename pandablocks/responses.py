@@ -75,7 +75,7 @@ class ScalarFieldInfo(FieldInfo):
 
     units: Optional[str] = None
     scale: Optional[float] = None
-    offset: Optional[int] = None  # TODO: PandA returns 0 - is this an int or a float 0?
+    offset: Optional[float] = None
 
 
 @dataclass

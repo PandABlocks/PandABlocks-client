@@ -199,6 +199,7 @@ async def write_hdf_files(
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
             if type(data) in (ReadyData, EndData):
+                # TODO: Infinite capture should be 0 or less - this logic currently aborts on 0
                 if counter == num:
                     # We produced the right number of frames
                     break

@@ -96,7 +96,7 @@ class _RecordInfo:
     table_updater: Optional["_TableUpdater"] = None
 
 
-# TODO: Be fancy and turn this into a custom type for Dict keys etc?
+# TODO: Be fancy and turn this into a custom type for Dict keys etc
 def _panda_to_epics_name(field_name: str) -> str:
     """Convert PandA naming convention to EPICS convention. This module defaults to
     EPICS names internally, only converting back to PandA names when necessary."""
@@ -119,8 +119,7 @@ async def _create_softioc(
 
         all_records = await create_records(client, dispatcher, record_prefix)
 
-        asyncio.create_task(update(client, all_records))
-        # TODO: Check return above periodically to see if there was an exception?
+        asyncio.create_task(update(client, all_records, 1))
 
         softioc.interactive_ioc(globals())
 
@@ -136,6 +135,8 @@ def create_softioc(host: str, record_prefix: str) -> None:
         host: The address of the PandA, in IP or hostname form. No port number required.
         record_prefix: The string prefix used for creation of all records.
     """
+    # TODO: This needs to read/take in a YAML configuration file, for various aspects
+    # e.g. the update() wait time between calling GetChanges
     try:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         asyncio.run_coroutine_threadsafe(
@@ -275,9 +276,6 @@ class _RecordUpdater:
     labels: Optional[List[str]] = None
     previous_value: Any = None
 
-    # TODO: Review: This needs to have both the record and the previous value, so that
-    # we can set the record's value back to the previous value if the Put fails
-
     # The incoming value's type depends on the record. Ensure you always cast it.
     async def update(self, new_val: Any):
         logging.debug(f"Updating record {self.record_name} with value {new_val}")
@@ -315,7 +313,6 @@ class _RecordUpdater:
                     f"No record found when updating {self.record_name}, "
                     "unable to roll back value"
                 )
-            # TODO: Re-raise? Ask Tom/Michael about what PythonSoftIOC will do
 
     def add_record(self, record: RecordWrapper) -> None:
         """Provide the record, used for rolling back data if a Put fails."""
@@ -470,8 +467,6 @@ class _TableUpdater:
     table_records: Dict[str, _RecordInfo]
     previous_value: List[str]
 
-    # TODO: Does this table need a mutex?
-
     def __post_init__(self):
         # Called at the end of dataclass's __init__
         # The field order will be whatever was configured in the PandA.
@@ -521,8 +516,12 @@ class _TableUpdater:
             )
             return False
         else:
-            # TODO: Confirm with Tom/Michael the behaviour of pythonsoftioc
-            raise Exception("MODE record has unrecognised value: " + str(record_val))
+            logging.error("MODE record has unrecognised value: " + str(record_val))
+            # In case it isn't already, set an alarm state on the record
+            self._mode_record_info.record.set_alarm(
+                alarm.INVALID_ALARM, alarm.UDF_ALARM
+            )
+            return False
 
     async def update_waveform(self, new_val: int, record_name: str) -> None:
         """Handles updates to a specific waveform record to update its associated
@@ -689,7 +688,7 @@ class _HDF5RecordController:
 
     _capture_task: Optional[asyncio.Task] = None
 
-    def __init__(self, client: AsyncioClient):
+    def __init__(self, client: AsyncioClient, record_prefix: str):
         if importlib.util.find_spec("h5py") is None:
             logging.warning("No HDF5 support detected - skipping creating HDF5 records")
             return
@@ -701,35 +700,50 @@ class _HDF5RecordController:
 
         # Create the records
         # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
-        # TODO: Confirm if we want to change naming convention to ALL_CAPS
+        file_path_record_name = self._HDF5_PREFIX + ":FilePath"
         self._file_path_record = builder.WaveformOut(
-            self._HDF5_PREFIX + ":FilePath",
+            file_path_record_name,
             length=path_length,
             FTVL="UCHAR",
             DESC="File path for HDF5 files",
             validate=self._parameter_validate,
         )
+        self._file_path_record.add_alias(
+            record_prefix + ":" + file_path_record_name.upper()
+        )
 
+        file_name_record_name = self._HDF5_PREFIX + ":FileName"
         self._file_name_record = builder.WaveformOut(
-            self._HDF5_PREFIX + ":FileName",
+            file_name_record_name,
             length=filename_length,
             FTVL="UCHAR",
             DESC="File name prefix for HDF5 files",
             validate=self._parameter_validate,
         )
+        self._file_name_record.add_alias(
+            record_prefix + ":" + file_name_record_name.upper()
+        )
 
+        file_number_record_name = self._HDF5_PREFIX + ":FileNumber"
         self._file_number_record = builder.aOut(
-            self._HDF5_PREFIX + ":FileNumber",
+            file_number_record_name,
             validate=self._parameter_validate,
             DESC="Incrementing file number suffix",
         )
+        self._file_number_record.add_alias(
+            record_prefix + ":" + file_number_record_name.upper()
+        )
 
+        file_format_record_name = self._HDF5_PREFIX + ":FileTemplate"
         self._file_format_record = builder.WaveformOut(
-            self._HDF5_PREFIX + ":FileTemplate",
+            file_format_record_name,
             length=64,
             FTVL="UCHAR",
             DESC="Format string used for file naming",
             validate=self._template_validate,
+        )
+        self._file_format_record.add_alias(
+            record_prefix + ":" + file_format_record_name.upper()
         )
 
         # Add a trailing \0 for C-based tools that may try to read the
@@ -742,34 +756,49 @@ class _HDF5RecordController:
             np.frombuffer("%s/%s_%d.h5".encode() + b"\0", dtype=np.uint8)
         )
 
-        self._num_capture_record = builder.aOut(
-            self._HDF5_PREFIX + ":NumCapture",
+        num_capture_record_name = self._HDF5_PREFIX + ":NumCapture"
+        self._num_capture_record = builder.longOut(
+            num_capture_record_name,
             initial_value=-1,  # Infinite capture
             # TODO: Check what the desired/proper way to stop an infinite capture is
             DESC="Number of captures to make. -1 = forever",
         )
+        self._num_capture_record.add_alias(
+            record_prefix + ":" + num_capture_record_name.upper()
+        )
 
+        flush_period_record_name = self._HDF5_PREFIX + ":FlushPeriod"
         self._flush_period_record = builder.aOut(
-            self._HDF5_PREFIX + ":FlushPeriod",
+            flush_period_record_name,
             initial_value=1.0,
             DESC="Frequency that data is flushed (seconds)",
         )
+        self._flush_period_record.add_alias(
+            record_prefix + ":" + flush_period_record_name.upper()
+        )
 
+        capture_control_record_name = self._HDF5_PREFIX + ":Capture"
         self._capture_control_record = builder.boolOut(
-            self._HDF5_PREFIX + ":Capture",
+            capture_control_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             on_update=self._capture_on_update,
             DESC="Start/stop HDF5 capture",
         )
+        self._capture_control_record.add_alias(
+            record_prefix + ":" + capture_control_record_name.upper()
+        )
 
-        # TODO: Should this be an alias for PCAP.ACTIVE?
+        arm_disarm_record_name = self._HDF5_PREFIX + ":Arm"
         self._arm_disarm_record = builder.boolOut(
-            self._HDF5_PREFIX + ":Arm",
+            arm_disarm_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             on_update=self._arm_on_update,
             DESC="Arm/Disarm the PandA",
+        )
+        self._arm_disarm_record.add_alias(
+            record_prefix + ":" + arm_disarm_record_name.upper()
         )
 
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
@@ -803,6 +832,18 @@ class _HDF5RecordController:
 
     async def _arm_on_update(self, new_val: int) -> None:
         """Process an update to the Arm record, to arm/disarm the PandA"""
+        # TODO: Update this record when HDF5 EndData frame received (and startdata)
+        # TODO: Re-write hdf5 capturing - do the contents of hdf5_write_file ourselves, manage pipelines,
+        # look for EndData/StartData to update this reocrd but do NOT send them to hdf writer.
+        # The capture_update method should be the one sending StartData/EndData to the pipeline
+        # Sequence to handle:
+        # - Capture on
+        # - Arm on - Panda sends StartData
+        # - Keep StartData around, send copy to HDFWriter
+        # - Forward any frame data to HDFWriter
+        # - If PandA disarmed and re-armed, examine new StartData and compare to saved one. Must be same. If not abort capture, possibly to new record for error message
+        # - Keep forwarding FrameData to HDFWriter
+        # - When Capture = 0 or expected num frames received reached send EndData to HDFWriter, to finish the file
         try:
             if new_val:
                 logging.debug("Arming PandA")
@@ -1202,7 +1243,7 @@ class IocRecordFactory:
         record_dict[offset_rec_name] = self._create_record_info(
             offset_rec_name,
             "Position of this bit in captured word",
-            builder.aIn,
+            builder.longIn,
             type(field_info.offset),
             initial_value=field_info.offset,
         )
@@ -1223,8 +1264,8 @@ class IocRecordFactory:
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
-            builder.aIn,
-            float,
+            builder.longIn,
+            int,
             initial_value=values[record_name],
         )
 
@@ -1246,7 +1287,7 @@ class IocRecordFactory:
             offset_rec,
             "Offset",
             builder.aOut,
-            int,
+            float,
             initial_value=values[offset_rec],
         )
 
@@ -1420,7 +1461,7 @@ class IocRecordFactory:
         record_dict[delay_rec] = self._create_record_info(
             delay_rec,
             "Clock delay on input",
-            builder.aOut,
+            builder.longOut,
             int,
             initial_value=values[delay_rec],
         )
@@ -1429,7 +1470,7 @@ class IocRecordFactory:
         record_dict[max_delay_rec] = self._create_record_info(
             max_delay_rec,
             "Maximum valid input delay",
-            builder.aIn,
+            builder.longIn,
             type(field_info.max_delay),
             initial_value=field_info.max_delay,
         )
@@ -1451,6 +1492,7 @@ class IocRecordFactory:
             def validate(self, record: RecordWrapper, new_val: str):
                 if new_val in self.labels:
                     return True
+                logging.warning(f"Value {new_val} not valid for record {record.name}")
                 return False
 
         self._check_num_values(values, 1)
@@ -1626,6 +1668,7 @@ class IocRecordFactory:
             field_info.description,
             record_creation_func,
             int,
+            LOPR=0,  # Uint cannot be below 0
             **kwargs,
         )
 
@@ -1633,9 +1676,10 @@ class IocRecordFactory:
         record_dict[max_record] = self._create_record_info(
             max_record,
             "Maximum valid value for this field",
-            builder.aIn,
+            builder.longIn,
             type(field_info.max),
             initial_value=field_info.max,
+            LOPR=0,  # Uint cannot be below 0
         )
 
         return record_dict
@@ -1650,7 +1694,7 @@ class IocRecordFactory:
         return self._make_uint(
             record_name,
             field_info,
-            builder.aOut,
+            builder.longOut,
             initial_value=values[record_name],
         )
 
@@ -1664,7 +1708,7 @@ class IocRecordFactory:
         return self._make_uint(
             record_name,
             field_info,
-            builder.aIn,
+            builder.longIn,
             initial_value=values[record_name],
         )
 
@@ -1676,7 +1720,7 @@ class IocRecordFactory:
     ) -> Dict[str, _RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_uint(
-            record_name, field_info, builder.aOut, always_update=True
+            record_name, field_info, builder.longOut, always_update=True
         )
 
     def _make_int_param(
@@ -1691,7 +1735,7 @@ class IocRecordFactory:
             record_name: self._create_record_info(
                 record_name,
                 field_info.description,
-                builder.aOut,
+                builder.longOut,
                 int,
                 initial_value=values[record_name],
             )
@@ -1709,7 +1753,7 @@ class IocRecordFactory:
             record_name: self._create_record_info(
                 record_name,
                 field_info.description,
-                builder.aIn,
+                builder.longIn,
                 int,
                 initial_value=values[record_name],
             )
@@ -1726,7 +1770,7 @@ class IocRecordFactory:
             record_name: self._create_record_info(
                 record_name,
                 field_info.description,
-                builder.aOut,
+                builder.longOut,
                 int,
                 always_update=True,
             )
@@ -1881,11 +1925,10 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[str, ScalarRecordValue],
     ) -> Dict[str, _RecordInfo]:
-        raise Exception(
-            "Documentation says this field isn't useful for non-write types"
+        logging.warning(
+            f"Field of type {field_info.type} - {field_info.subtype} defined. Ignoring."
         )
-        # TODO: Ask whether param - action and read-action is a valid type and
-        # whether it needs a record
+        return {}
 
     def _make_action_write(
         self,
@@ -1901,7 +1944,7 @@ class IocRecordFactory:
                 field_info.description,
                 builder.boolOut,
                 int,  # not bool, as that'll treat string "0" as true
-                # TODO: Special on_update to not send the 1!
+                # TODO: Special on_update to not send the 1 to PandA!
                 ZNAM=ZNAM_STR,
                 ONAM=ONAM_STR,
                 always_update=True,
@@ -2103,7 +2146,7 @@ class IocRecordFactory:
         ("param", "bit"): _make_bit_param,
         ("read", "bit"): _make_bit_read,
         ("write", "bit"): _make_bit_write,
-        ("param", "action"): _make_action_write,
+        ("param", "action"): _make_action_read,
         ("read", "action"): _make_action_read,
         ("write", "action"): _make_action_write,
         ("param", "lut"): _make_lut_param,
@@ -2135,7 +2178,7 @@ class IocRecordFactory:
             )
 
         if block == "PCAP":
-            _HDF5RecordController(self._client)
+            _HDF5RecordController(self._client, self._record_prefix)
 
         return record_dict
 
@@ -2223,9 +2266,19 @@ async def create_records(
     return all_records
 
 
-async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
+async def update(
+    client: AsyncioClient, all_records: Dict[str, _RecordInfo], poll_period: int
+):
     """Query the PandA at regular intervals for any changed fields, and update
-    the records accordingly"""
+    the records accordingly
+
+    Args:
+        client: The AsyncioClient that will be used to get the Changes from the PandA
+        all_records: The dictionary of all records that are expected to be updated when
+            PandA reports changes. This is NOT all records in the IOC.
+        poll_period: The wait time, in seconds, before the next GetChanges is called.
+            TODO: This will eventually need to become a millisecond wait, so we can poll
+            at 10HZ"""
     while True:
         try:
             changes = await client.send(GetChanges(ChangeGroup.ALL, True))
@@ -2234,35 +2287,54 @@ async def update(client: AsyncioClient, all_records: Dict[str, _RecordInfo]):
                     "The following fields are reported as being in error: "
                     f"{changes.in_error}"
                 )
-                # TODO: Combine with getChanges error handling in introspect_panda?
+
+            for field in changes.in_error:
+                field = _ensure_block_number_present(field)
+                field = _panda_to_epics_name(field)
+
+                if field not in all_records:
+                    logging.error(
+                        f"Unknown field {field} returned from GetChanges in_error"
+                    )
+
+                record = all_records[field].record
+                record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
 
             for field, value in changes.values.items():
-
                 field = _ensure_block_number_present(field)
-                # Convert PandA field name to EPICS name
                 field = _panda_to_epics_name(field)
+
                 if field not in all_records:
-                    raise Exception(f"Unknown field {field} returned from GetChanges")
+                    logging.error(
+                        f"Unknown field {field} returned from GetChanges values"
+                    )
 
                 record_info = all_records[field]
                 record = record_info.record
                 if record_info.labels:
                     # Record is enum, convert string the PandA returns into an int index
+                    # TODO: Needs Process=False to not call on_updates which end up putting data back to PandA!
+                    # TODO: Create GetChanges dict that is passed everywhere, and can be used as the "previous value"
+                    # in the updaters for when Puts fail.
                     record.set(record_info.labels.index(value))
                 else:
                     record.set(record_info.data_type_func(value))
 
             for table_field, value_list in changes.multiline_values.items():
-                # Convert PandA field name to EPICS name
                 table_field = _panda_to_epics_name(table_field)
                 # Tables must have a MODE record defined - use it to update the table
-                table_updater = all_records[table_field + ":MODE"].table_updater
-                assert (
-                    table_updater
-                ), f"No table updater found for {table_field} MODE record"
+                mode_rec_name = table_field + ":MODE"
+                if mode_rec_name not in all_records:
+                    logging.error(
+                        f"Table MODE record {mode_rec_name} not found in all_records list"
+                    )
+                    break
+
+                table_updater = all_records[mode_rec_name].table_updater
+                assert table_updater
                 table_updater.update_table(value_list)
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(poll_period)
         except Exception as e:
             logging.error("Exception while processing updates from PandA", exc_info=e)
             continue

@@ -685,9 +685,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             unsorted[int(index)] = (field_name, field_info)
 
         # Dict keeps insertion order, so insert in the order the server said
-        # TODO: Confirm with Tom regarding the order of fields - the docs and the
-        # comments imply the order of the server should be respected, but the
-        # line below calls sorted().
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
         if self.extended_metadata is False:
