@@ -88,7 +88,7 @@ class _RecordInfo:
     `labels`: List of valid values for the record. If not None, the `record` is
         an enum type.
     `table_updater`: Class instance that managed updating table records. Only present
-    on the MODE record of a table."""
+        on the MODE record of a table."""
 
     record: RecordWrapper
     data_type_func: Callable
@@ -265,12 +265,15 @@ class _RecordUpdater:
         client: The client used to send data to PandA
         data_type_func: Function to convert the new value to the format PandA expects
         labels: If the record is an enum type, provide the list of labels
+        previous_value: The initial value of the record. During record updates this
+            will be used to restore the previous value of the record if a Put fails.
     """
 
     record_name: str
     client: AsyncioClient
     data_type_func: Callable
     labels: Optional[List[str]] = None
+    previous_value: Any = None
 
     # TODO: Review: This needs to have both the record and the previous value, so that
     # we can set the record's value back to the previous value if the Put fails
@@ -292,16 +295,31 @@ class _RecordUpdater:
                 val = str(self.data_type_func(new_val))
             panda_field = _epics_to_panda_name(self.record_name)
             await self.client.send(Put(panda_field, val))
+            self.previous_value = val
+
         except IgnoreException:
+            # Thrown by some data_type_func calls.
             # Some values, e.g. tables, do not use this update mechanism
             logging.debug(f"Ignoring update to record {self.record_name}")
             pass
         except Exception as e:
             logging.error(
-                f"Unable to update record {self.record_name} with value {new_val}",
+                f"Unable to Put record {self.record_name}, value {new_val}, to PandA",
                 exc_info=e,
             )
+            if self._record:
+                logging.debug(f"Restoring previous value to record {self.record_name}")
+                self._record.set(self.previous_value, process=False)
+            else:
+                logging.warning(
+                    f"No record found when updating {self.record_name}, "
+                    "unable to roll back value"
+                )
             # TODO: Re-raise? Ask Tom/Michael about what PythonSoftIOC will do
+
+    def add_record(self, record: RecordWrapper) -> None:
+        """Provide the record, used for rolling back data if a Put fails."""
+        self._record = record
 
 
 class TablePacking:
@@ -435,22 +453,22 @@ class _TableUpdater:
     """Class to handle updating table records, batching PUTs into the smallest number
     possible to avoid unnecessary/unwanted processing on the PandA
 
-    `client`: The client to be used to read/write to the PandA
-
-    `table_name`: The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
-
-    `field_info`: The TableFieldInfo structure for this table
-
-    `table_fields`: The list of all fields in the table. Must be ordered in
-    bit-ascending order
-
-    `table_records`: The list of records that comprises this table"""
+    Args:
+        client: The client to be used to read/write to the PandA
+        table_name: The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
+        field_info: The TableFieldInfo structure for this table
+        table_fields: The list of all fields in the table. During initialization they
+            will be sorted into bit-ascending order
+        table_records: The list of records that comprises this table
+        previous_value: The initial value of the table. During record updates this
+            will be used to restore the previous value of the record if a Put fails."""
 
     client: AsyncioClient
     table_name: str
     field_info: TableFieldInfo
     table_fields: Dict[str, TableFieldDetails]
     table_records: Dict[str, _RecordInfo]
+    previous_value: List[str]
 
     # TODO: Does this table need a mutex?
 
@@ -521,14 +539,31 @@ class _TableUpdater:
         new_label = self._mode_record_info.labels[new_val]
 
         if new_label == TableModeEnum.SUBMIT.name:
-            # Send all EPICS data to PandA
-            assert self.field_info.row_words
-            packed_data = TablePacking.pack(
-                self.field_info.row_words, self.table_records, self.table_fields
-            )
+            try:
+                # Send all EPICS data to PandA
+                assert self.field_info.row_words
+                packed_data = TablePacking.pack(
+                    self.field_info.row_words, self.table_records, self.table_fields
+                )
 
-            panda_field_name = _epics_to_panda_name(self.table_name)
-            await self.client.send(Put(panda_field_name, packed_data))
+                panda_field_name = _epics_to_panda_name(self.table_name)
+                await self.client.send(Put(panda_field_name, packed_data))
+                self.previous_value = packed_data
+
+            except Exception as e:
+                logging.error(
+                    f"Unable to Put record {self.table_name}, value {packed_data},"
+                    "to PandA",
+                    exc_info=e,
+                )
+
+                # Reset value of all table records to last known good values
+                assert self.field_info.row_words
+                field_data = TablePacking.unpack(
+                    self.field_info.row_words, self.table_fields, self.previous_value
+                )
+                for record_info, data in zip(self.table_records.values(), field_data):
+                    record_info.record.set(data, process=False)
 
             # Already in on_update of this record, so disable processing to
             # avoid recursion
@@ -952,6 +987,23 @@ class IocRecordFactory:
                 len(labels) <= 16
             ), f"Too many labels ({len(labels)}) to create record {record_name}"
 
+        # Check the initial value is valid. If it is, apply data type conversion
+        # otherwise mark the record as in error
+        # Note that many already have correct type, this mostly applies to values
+        # that are being sent as strings to analog or long records as the values are
+        # returned as strings from Changes command.
+        if "initial_value" in kwargs:
+            initial_value = kwargs["initial_value"]
+            if isinstance(initial_value, _InErrorException):
+                logging.warning(
+                    f"Marking record {record_name} as invalid due to error from PandA"
+                )
+                extra_kwargs.update(
+                    {"severity": alarm.INVALID_ALARM, "alarm": alarm.UDF_ALARM}
+                )
+            elif isinstance(initial_value, str):
+                kwargs["initial_value"] = data_type_func(initial_value)
+
         # If there is no on_update, and the record type allows one, create it
         if (
             "on_update" not in kwargs
@@ -971,7 +1023,8 @@ class IocRecordFactory:
                 record_name,
                 self._client,
                 data_type_func,
-                labels=labels if labels else None,
+                labels if labels else None,
+                kwargs["initial_value"] if "initial_value" in kwargs else None,
             )
             extra_kwargs.update({"on_update": record_updater.update})
 
@@ -998,22 +1051,6 @@ class IocRecordFactory:
             description = description[:40]
 
         extra_kwargs.update({"DESC": description})
-
-        # Check the initial value is valid. If it is apply data type conversion,
-        # otherwise mark the record as in error
-        # Note that many already have correct type, this mostly applies to values
-        # that are being sent as strings to analog or long records.
-        if "initial_value" in kwargs:
-            initial_value = kwargs["initial_value"]
-            if isinstance(initial_value, _InErrorException):
-                logging.warning(
-                    f"Marking record {record_name} as invalid due to error from PandA"
-                )
-                extra_kwargs.update(
-                    {"severity": alarm.INVALID_ALARM, "alarm": alarm.UDF_ALARM}
-                )
-            elif isinstance(initial_value, str):
-                kwargs["initial_value"] = data_type_func(initial_value)
 
         record = record_creation_func(
             record_name, *labels, *args, **extra_kwargs, **kwargs
@@ -1463,8 +1500,11 @@ class IocRecordFactory:
             field_info,
             field_info.fields,
             record_dict,  # Dict is filled throughout this method
+            values[record_name],
         )
 
+        # Note that the table_updater's table_fields are guaranteed sorted in bit order,
+        # unlike field_info's fields.
         field_data = TablePacking.unpack(
             field_info.row_words, table_updater.table_fields, values[record_name]
         )
