@@ -313,6 +313,7 @@ def table_updater(
     table_field_info: TableFieldInfo,
     table_fields: Dict[str, TableFieldDetails],
     table_unpacked_data_records: Dict[str, _RecordInfo],
+    table_data: List[str],
 ):
     """Provides a _TableUpdater with configured records and mocked functionality"""
     client = AsyncioClient("123")
@@ -330,6 +331,7 @@ def table_updater(
         table_field_info,
         table_fields,
         table_unpacked_data_records,
+        table_data,
     )
 
     updater.set_mode_record_info(record_info)
