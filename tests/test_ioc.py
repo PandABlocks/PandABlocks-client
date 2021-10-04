@@ -10,7 +10,9 @@ from softioc import alarm
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
 from pandablocks.ioc import (
+    EpicsName,
     IocRecordFactory,
+    PandAName,
     TableModeEnum,
     TablePacking,
     _BlockAndFieldInfo,
@@ -266,7 +268,7 @@ def table_data():
 
 
 @pytest.fixture
-def table_unpacked_data(table_fields) -> Dict[str, ndarray]:
+def table_unpacked_data(table_fields) -> Dict[EpicsName, ndarray]:
     """The unpacked equivalent of table_data"""
     array_values = [
         array([5, 0, 50000], dtype=uint16),
@@ -297,7 +299,7 @@ def table_unpacked_data(table_fields) -> Dict[str, ndarray]:
 @pytest.fixture
 def table_unpacked_data_records(
     table_fields, table_unpacked_data
-) -> Dict[str, _RecordInfo]:
+) -> Dict[EpicsName, _RecordInfo]:
     """A faked list of records containing the table_unpacked_data"""
 
     data = {}
@@ -313,7 +315,7 @@ def table_unpacked_data_records(
 def table_updater(
     table_field_info: TableFieldInfo,
     table_fields: Dict[str, TableFieldDetails],
-    table_unpacked_data_records: Dict[str, _RecordInfo],
+    table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
     table_data: List[str],
 ):
     """Provides a _TableUpdater with configured records and mocked functionality"""
@@ -328,7 +330,7 @@ def table_updater(
 
     updater = _TableUpdater(
         client,
-        "SEQ1.TABLE",
+        EpicsName("SEQ1.TABLE"),
         table_field_info,
         table_fields,
         table_unpacked_data_records,
@@ -340,20 +342,22 @@ def table_updater(
     return updater
 
 
-TEST_RECORD = "TEST:RECORD"
+TEST_RECORD = EpicsName("TEST:RECORD")
 
 
-def test_panda_to_epics_name_conversion():
-    assert _panda_to_epics_name("ABC.123.456") == "ABC:123:456"
+def test_panda_to_epics_name_conversion() -> None:
+    assert _panda_to_epics_name(PandAName("ABC.123.456")) == EpicsName("ABC:123:456")
 
 
-def test_epics_to_panda_name_conversion():
-    assert _epics_to_panda_name("ABC:123:456") == "ABC.123.456"
+def test_epics_to_panda_name_conversion() -> None:
+    assert _epics_to_panda_name(EpicsName("ABC:123:456")) == PandAName("ABC.123.456")
 
 
-def test_panda_to_epics_and_back_name_conversion():
+def test_panda_to_epics_and_back_name_conversion() -> None:
     """Test panda->EPICS->panda round trip name conversion works"""
-    assert _epics_to_panda_name(_panda_to_epics_name("ABC.123.456")) == "ABC.123.456"
+    assert _epics_to_panda_name(
+        _panda_to_epics_name(PandAName("ABC.123.456"))
+    ) == PandAName("ABC.123.456")
 
 
 def test_ensure_block_number_present():
@@ -471,7 +475,7 @@ def test_table_packing_unpack(
 
 def test_table_packing_pack(
     table_field_info: TableFieldInfo,
-    table_unpacked_data_records: Dict[str, _RecordInfo],
+    table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
     table_fields: Dict[str, TableFieldDetails],
     table_data: List[str],
 ):
@@ -487,14 +491,14 @@ def test_table_packing_pack(
 
 def test_table_packing_pack_length_mismatched(
     table_field_info: TableFieldInfo,
-    table_unpacked_data_records: Dict[str, _RecordInfo],
+    table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
     table_fields: Dict[str, TableFieldDetails],
 ):
     """Test that mismatching lengths on waveform inputs causes an exception"""
     assert table_field_info.row_words
 
     # Adjust one of the record lengths so it mismatches
-    table_unpacked_data_records["OUTC1"].record.get = MagicMock(
+    table_unpacked_data_records[EpicsName("OUTC1")].record.get = MagicMock(
         return_value=array([1, 2, 3, 4, 5, 6, 7, 8])
     )
 
@@ -514,12 +518,12 @@ def test_table_packing_roundtrip(
     unpacked = TablePacking.unpack(table_field_info.row_words, table_fields, table_data)
 
     # Put these values into Mocks for the Records
-    data: Dict[str, _RecordInfo] = {}
+    data: Dict[EpicsName, _RecordInfo] = {}
     for field_name, data_array in zip(table_fields, unpacked):
         mocked_record = MagicMock()
         mocked_record.get = MagicMock(return_value=data_array)
         info = _RecordInfo(mocked_record, lambda x: None)
-        data[field_name] = info
+        data[EpicsName(field_name)] = info
 
     packed = TablePacking.pack(table_field_info.row_words, data, table_fields)
 
