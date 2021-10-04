@@ -112,18 +112,14 @@ def _epics_to_panda_name(field_name: EpicsName) -> PandAName:
 
 
 async def _create_softioc(
-    host: str, record_prefix: str, dispatcher: asyncio_dispatcher.AsyncioDispatcher
+    client: AsyncioClient,
+    record_prefix: str,
+    dispatcher: asyncio_dispatcher.AsyncioDispatcher,
 ):
     """Asynchronous wrapper for IOC creation"""
-    client = AsyncioClient(host)
-
-    async with AsyncioClient(host) as client:
-
-        all_records = await create_records(client, dispatcher, record_prefix)
-
-        asyncio.create_task(update(client, all_records, 1))
-
-        softioc.interactive_ioc(globals())
+    await client.connect()
+    all_records = await create_records(client, dispatcher, record_prefix)
+    asyncio.create_task(update(client, all_records, 1))
 
 
 def create_softioc(host: str, record_prefix: str) -> None:
@@ -141,12 +137,19 @@ def create_softioc(host: str, record_prefix: str) -> None:
     # e.g. the update() wait time between calling GetChanges
     try:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
+        client = AsyncioClient(host)
         asyncio.run_coroutine_threadsafe(
-            _create_softioc(host, record_prefix, dispatcher), dispatcher.loop
+            _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
         ).result()
 
-    except Exception as e:
-        logging.error("Exception while initializing softioc", exc_info=e)
+        # Must leave this blocking line here, in the main thread, not in the
+        # dispatcher's loop or it'll block every async process in this module
+        softioc.interactive_ioc(globals())
+    except Exception:
+        logging.exception("Exception while initializing softioc")
+    finally:
+        # Client was connected in the _create_softioc method
+        asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
 
 
 def _ensure_block_number_present(block_and_field_name: str) -> str:
@@ -2362,6 +2365,6 @@ async def update(
                 table_updater.update_table(value_list)
 
             await asyncio.sleep(poll_period)
-        except Exception as e:
-            logging.error("Exception while processing updates from PandA", exc_info=e)
+        except Exception:
+            logging.exception("Exception while processing updates from PandA")
             continue
