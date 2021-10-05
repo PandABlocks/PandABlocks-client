@@ -26,19 +26,23 @@ from pandablocks.commands import (
     GetMultiline,
     Put,
 )
-from pandablocks.hdf import write_hdf_files
+from pandablocks.hdf import Pipeline, create_default_pipeline, stop_pipeline
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
     BlockInfo,
     Changes,
+    EndData,
+    EndReason,
     EnumFieldInfo,
     ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
     FieldInfo,
+    FrameData,
     PosMuxFieldInfo,
     PosOutFieldInfo,
     ScalarFieldInfo,
+    StartData,
     SubtypeTimeFieldInfo,
     TableFieldDetails,
     TableFieldInfo,
@@ -122,6 +126,8 @@ async def _create_softioc(
     asyncio.create_task(update(client, all_records, 1))
 
 
+# TODO: Consider https://github.com/dls-controls/pythonSoftIOC/issues/43
+# which means we might need to ensure ALL Out records have an initial_value...
 def create_softioc(host: str, record_prefix: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
@@ -693,6 +699,7 @@ class _HDF5RecordController:
     _capture_control_record: RecordWrapper  # Turn capture on/off
     _arm_disarm_record: RecordWrapper  # Send Arm/Disarm
 
+    # TODO: rename?
     _capture_task: Optional[asyncio.Task] = None
 
     def __init__(self, client: AsyncioClient, record_prefix: str):
@@ -705,7 +712,7 @@ class _HDF5RecordController:
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
 
-        # Create the records
+        # Create the records, including an uppercase alias for each
         # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
         file_path_record_name = self._HDF5_PREFIX + ":FilePath"
         self._file_path_record = builder.WaveformOut(
@@ -769,6 +776,7 @@ class _HDF5RecordController:
             initial_value=-1,  # Infinite capture
             # TODO: Check what the desired/proper way to stop an infinite capture is
             DESC="Number of captures to make. -1 = forever",
+            # TODO: Should this have the paramter validation too?
         )
         self._num_capture_record.add_alias(
             record_prefix + ":" + num_capture_record_name.upper()
@@ -789,7 +797,9 @@ class _HDF5RecordController:
             capture_control_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
+            initial_value=0,  # PythonSoftIOC issue #43
             on_update=self._capture_on_update,
+            validate=self._capture_validate,
             DESC="Start/stop HDF5 capture",
         )
         self._capture_control_record.add_alias(
@@ -801,6 +811,7 @@ class _HDF5RecordController:
             arm_disarm_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
+            initial_value=0,  # PythonSoftIOC issue #43
             on_update=self._arm_on_update,
             DESC="Arm/Disarm the PandA",
         )
@@ -811,12 +822,12 @@ class _HDF5RecordController:
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
         """Control when values can be written to parameter records
         (file name etc.) based on capturing record's value"""
-
-        if self._capture_control_record.get() == ONAM_STR:
+        logging.debug(f"Validating record {record.name} value {new_val}")
+        if self._capture_control_record.get():
             # Currently capturing, discard parameter updates
             logging.warning(
                 "Data capture in progress. Update of HDF5 "
-                f"record {record.name} discarded."
+                f"record {record.name} with new value {new_val} discarded."
             )
             return False
         return True
@@ -855,54 +866,124 @@ class _HDF5RecordController:
         # - Keep forwarding FrameData to HDFWriter
         # - When Capture = 0 or expected num frames received reached send EndData to
         #       HDFWriter, to finish the file
+        logging.debug(f"Entering HDF5:Arm record on_update method, value {new_val}")
         try:
             if new_val:
                 logging.debug("Arming PandA")
                 await self._client.send(Arm())
+
+                if self._capture_task:
+                    logging.info(
+                        "Capture task was already running when Arm record enabled."
+                    )
+                else:
+                    # Start a task on a different thread to process the data
+                    logging.info("Starting capture task in response to Arm request")
+                    self._capture_task = asyncio.create_task(self._handle_hdf5_data())
+
             else:
                 logging.debug("Disarming PandA")
                 await self._client.send(Disarm())
-        except CommandException as e:
-            logging.error("Exception occurred when arming/disarming PandA", exc_info=e)
+        except CommandException:
+            logging.exception("Failure arming/disarming PandA")
+        except Exception:
+            logging.exception("Unexpected exception when arming/disarming PandA")
+
+    async def _handle_hdf5_data(self):
+        """Handles the data packets coming from the PandA, while the PandA is Armed."""
+
+        # Keep the start data around to compare against, if capture is enabled/disabled
+        # to know if we can keep using the same file
+        start_data: Optional[StartData] = None
+        captured_frames: int = 0
+
+        try:
+            # Store the max number
+            # TODO: Could just re-get this number on each loop? Means users could edit
+            # it whenever they want
+            num_to_capture: int = self._num_capture_record.get()
+            pipeline: List[Pipeline] = create_default_pipeline(self._get_scheme())
+            flush_period = self._flush_period_record.get()
+
+            async for data in self._client.data(
+                scaled=False, flush_period=flush_period
+            ):
+                if isinstance(data, StartData):
+                    if start_data and data != start_data:
+                        # PandA was disarmed, had config changed, and rearmed.
+                        # Cannot process to the same file with different start data.
+                        logging.error(
+                            "New start data detected, different from old start data."
+                            "Aborting HDF5 data capture."
+                        )
+                        # TODO: Abort capture, print error (to new record?)
+                    if start_data is None:
+                        start_data = data
+                        # Only pass StartData to pipeline if it wasn't already open -
+                        # if it was there will already be an in-progress HDF file
+                        pipeline[0].queue.put_nowait(data)
+
+                    continue
+
+                elif isinstance(data, FrameData):
+                    pipeline[0].queue.put_nowait(data)
+                    captured_frames += 1
+
+                    if captured_frames == num_to_capture:
+                        # Reached configured capture limit, stop the file
+                        pipeline[0].queue.put_nowait(
+                            # TODO: Check if reason is good enough
+                            EndData(captured_frames, EndReason.OK)
+                        )
+                        break
+
+                    continue
+                # Ignore EndData - handle terminating capture with the Capture record
+                # or when we capture the requested number of frames
+
+        except asyncio.CancelledError:
+            logging.info("HDF 5 data capture told to finish")
+            pipeline[0].queue.put_nowait(
+                # TODO: Check if reason is good enough
+                EndData(captured_frames, EndReason.OK)
+            )
+        except Exception:
+            logging.exception("HDF5 data capture terminated due to unexpected error")
+            pipeline[0].queue.put_nowait(
+                # TODO: Check if reason is good enough
+                EndData(captured_frames, EndReason.OK)
+            )
+        finally:
+            stop_pipeline(pipeline)
+            pass
+
+    def _get_scheme(self) -> str:
+        """Create the scheme for the HDF5 file from the relevant record in the format
+        expected by the HDF module"""
+        format_str = self._waveform_record_to_string(self._file_format_record)
+
+        # Mask out the required %d format specifier while we substitute in
+        # file directory and file name
+        MASK_CHARS = "##########"
+        masked_format_str = format_str.replace("%d", MASK_CHARS)
+
+        (substituted_format_str,) = (
+            masked_format_str
+            % (
+                self._waveform_record_to_string(self._file_path_record),
+                self._waveform_record_to_string(self._file_name_record),
+            ),
+        )
+
+        return substituted_format_str.replace(MASK_CHARS, "%d")
 
     async def _capture_on_update(self, new_val: int) -> None:
         """Process an update to the Capture record, to start/stop recording HDF5 data"""
+        logging.debug(f"Entering HDF5:Capture record on_update method, value {new_val}")
         if new_val:
-            format_str: str = self._waveform_record_to_string(self._file_format_record)
+            pass
+        # TODO: Do we need this?
 
-            # Mask out the required %d format specifier while we substitute in
-            # file directory and file name
-            MASK_CHARS = "##########"
-            masked_format_str = format_str.replace("%d", MASK_CHARS)
-
-            (substituted_format_str,) = (
-                masked_format_str
-                % (
-                    self._waveform_record_to_string(self._file_path_record),
-                    self._waveform_record_to_string(self._file_name_record),
-                ),
-            )
-
-            scheme = substituted_format_str.replace(MASK_CHARS, "%d")
-
-            # As the capture may run forever, ensure we schedule it separately
-
-            if self._capture_task:
-                logging.error(
-                    "Capture task was already running when Capture record enabled. "
-                    "Killing existing task and starting new one."
-                )
-                self._capture_task.cancel()
-
-            self._capture_task = asyncio.create_task(
-                write_hdf_files(
-                    self._client,
-                    scheme,
-                    num=self._num_capture_record.get(),
-                    arm=False,  # We handle our own arming/disarming
-                    flush_period=self._flush_period_record.get(),
-                )
-            )
         else:
             if self._capture_task:
                 self._capture_task.cancel()
@@ -913,11 +994,29 @@ class _HDF5RecordController:
                         "Capture task successfully cancelled when Capture "
                         "record disabled."
                     )
+                except Exception:
+                    logging.exception(
+                        "Capture task terminated with unexpected exception"
+                    )
 
                 self._capture_task = None
 
+    def _capture_validate(self, record: RecordWrapper, new_val: int) -> bool:
+        """Check the required records have been set before allowing Capture=1"""
+        if new_val:
+            try:
+                self._get_scheme()
+            except ValueError:
+                logging.exception("At least 1 required record had no value")
+                return False
+
+        return True
+
     def _waveform_record_to_string(self, record: RecordWrapper) -> str:
         """Handle converting WaveformOut record data into python string"""
+        val = record.get()
+        if val is None:
+            raise ValueError(f"Record {record.name} had no value when one is required.")
         return self._numpy_to_string(record.get())
 
     def _numpy_to_string(self, val: np.ndarray) -> str:
@@ -928,8 +1027,6 @@ class _HDF5RecordController:
         return val.tobytes().decode()[:-1]
 
 
-# TODO: Go back through every field and attribute and check whether it's an analog
-# (i.e. floating point) or long (i.e. integer) record type!
 class IocRecordFactory:
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
@@ -1515,7 +1612,6 @@ class IocRecordFactory:
         record_dict: Dict[EpicsName, _RecordInfo] = {}
 
         # This should be an mbbOut record, but there are too many posssible labels
-        # TODO: Will there ever be less than 16 labels due to PandA configuration?
         # TODO: Add a :LABELS record so users can get valid values?
         validator = PosMuxValidator(field_info.labels)
 
@@ -2073,13 +2169,10 @@ class IocRecordFactory:
         assert isinstance(field_info, EnumFieldInfo)
         assert field_info.labels
         assert record_name not in values
-        # Fake data for the default label value
-        # TODO: what does above comment mean?
-        fake_vals: Dict[EpicsName, ScalarRecordValue] = {
-            record_name: field_info.labels[0]
-        }
+        # Values are not returned for write fields. Create data for label parsing.
+        values = {record_name: field_info.labels[0]}
         return self._make_enum(
-            record_name, field_info, fake_vals, builder.mbbOut, always_update=True
+            record_name, field_info, values, builder.mbbOut, always_update=True
         )
 
     def create_record(
@@ -2107,7 +2200,6 @@ class IocRecordFactory:
             key = (field_info.type, field_info.subtype)
             if key == ("table", None):
                 # Table expects vals in Dict[str, List[str]]
-                # TODO: Can I do this without creating a new dictionary?
                 list_vals = {
                     EpicsName(k): v
                     for (k, v) in field_values.items()
@@ -2117,7 +2209,6 @@ class IocRecordFactory:
                 return self._make_table(record_name, field_info, list_vals)
 
             # PandA can never report a table field as in error, only scalar fields
-            # TODO: Can I do this without creating a new dictionary?
             str_vals = {
                 EpicsName(k): v
                 for (k, v) in field_values.items()

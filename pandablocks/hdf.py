@@ -18,6 +18,7 @@ __all__ = [
     "HDFWriter",
     "FrameProcessor",
     "create_pipeline",
+    "create_default_pipeline",
     "stop_pipeline",
     "write_hdf_files",
 ]
@@ -154,6 +155,15 @@ class FrameProcessor(Pipeline):
         return [process(data.data) for process in self.processors]
 
 
+def create_default_pipeline(scheme: str) -> List[Pipeline]:
+    """Create the default processing pipeline consisting of one `FrameProcessor` and
+    one `HDFWriter`. See `create_pipeline` for more details.
+
+    Args:
+        scheme: The file format scheme for output file, as required by `HDFWriter`"""
+    return create_pipeline(FrameProcessor(), HDFWriter(scheme))
+
+
 def create_pipeline(*elements: Pipeline) -> List[Pipeline]:
     """Create a pipeline of elements, wiring them and starting them before
     returning them"""
@@ -194,7 +204,7 @@ async def write_hdf_files(
 
     """
     counter = 0
-    pipeline = create_pipeline(FrameProcessor(), HDFWriter(scheme))
+    pipeline = create_default_pipeline(scheme)
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
