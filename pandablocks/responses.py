@@ -91,8 +91,6 @@ class SubtypeTimeFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
     `time`"""
 
-    # TODO: This class name is terrible
-
     units_labels: Optional[List[str]] = None
 
 
@@ -203,6 +201,12 @@ class EndReason(Enum):
     DRIVER_DATA_OVERRUN = "Driver data overrun"
     #: Data capture too fast for memory bandwidth
     DMA_DATA_ERROR = "DMA data error"
+
+    # Reasons below this point are not from the server, they are generated in code
+    #: An unknown exception caused the file to close
+    UNKNOWN_EXCEPTION = "Unknown exception"
+    #: StartData packets did not match when trying to continue printing to a file
+    START_DATA_MISMATCH = "Start Data mismatched"
 
 
 @dataclass

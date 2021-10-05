@@ -699,8 +699,7 @@ class _HDF5RecordController:
     _capture_control_record: RecordWrapper  # Turn capture on/off
     _arm_disarm_record: RecordWrapper  # Send Arm/Disarm
 
-    # TODO: rename?
-    _capture_task: Optional[asyncio.Task] = None
+    _write_hdf5_file_task: Optional[asyncio.Task] = None
 
     def __init__(self, client: AsyncioClient, record_prefix: str):
         if importlib.util.find_spec("h5py") is None:
@@ -741,8 +740,8 @@ class _HDF5RecordController:
         file_number_record_name = self._HDF5_PREFIX + ":FileNumber"
         self._file_number_record = builder.aOut(
             file_number_record_name,
-            validate=self._parameter_validate,
             DESC="Incrementing file number suffix",
+            validate=self._parameter_validate,
         )
         self._file_number_record.add_alias(
             record_prefix + ":" + file_number_record_name.upper()
@@ -773,10 +772,10 @@ class _HDF5RecordController:
         num_capture_record_name = self._HDF5_PREFIX + ":NumCapture"
         self._num_capture_record = builder.longOut(
             num_capture_record_name,
-            initial_value=-1,  # Infinite capture
-            # TODO: Check what the desired/proper way to stop an infinite capture is
-            DESC="Number of captures to make. -1 = forever",
-            # TODO: Should this have the paramter validation too?
+            initial_value=0,  # Infinite capture
+            DESC="Num frames to capture. 0 = infinite",
+            DRVL=0,
+            validate=self._parameter_validate,
         )
         self._num_capture_record.add_alias(
             record_prefix + ":" + num_capture_record_name.upper()
@@ -850,7 +849,6 @@ class _HDF5RecordController:
 
     async def _arm_on_update(self, new_val: int) -> None:
         """Process an update to the Arm record, to arm/disarm the PandA"""
-        # TODO: Update this record when HDF5 EndData frame received (and startdata)
         # TODO: Re-write hdf5 capturing - do the contents of hdf5_write_file ourselves,
         # manage pipelines, look for EndData/StartData to update this reocrd but do NOT
         # send them to hdf writer. The capture_update method should be the one sending
@@ -872,14 +870,16 @@ class _HDF5RecordController:
                 logging.debug("Arming PandA")
                 await self._client.send(Arm())
 
-                if self._capture_task:
+                if self._write_hdf5_file_task:
                     logging.info(
                         "Capture task was already running when Arm record enabled."
                     )
                 else:
                     # Start a task on a different thread to process the data
                     logging.info("Starting capture task in response to Arm request")
-                    self._capture_task = asyncio.create_task(self._handle_hdf5_data())
+                    self._write_hdf5_file_task = asyncio.create_task(
+                        self._handle_hdf5_data()
+                    )
 
             else:
                 logging.debug("Disarming PandA")
@@ -903,7 +903,7 @@ class _HDF5RecordController:
             # it whenever they want
             num_to_capture: int = self._num_capture_record.get()
             pipeline: List[Pipeline] = create_default_pipeline(self._get_scheme())
-            flush_period = self._flush_period_record.get()
+            flush_period: float = self._flush_period_record.get()
 
             async for data in self._client.data(
                 scaled=False, flush_period=flush_period
@@ -913,10 +913,13 @@ class _HDF5RecordController:
                         # PandA was disarmed, had config changed, and rearmed.
                         # Cannot process to the same file with different start data.
                         logging.error(
-                            "New start data detected, different from old start data."
-                            "Aborting HDF5 data capture."
+                            "New start data detected, differs from previous start data "
+                            "for this file. Aborting HDF5 data capture."
                         )
-                        # TODO: Abort capture, print error (to new record?)
+                        pipeline[0].queue.put_nowait(
+                            EndData(captured_frames, EndReason.START_DATA_MISMATCH)
+                        )
+                        break
                     if start_data is None:
                         start_data = data
                         # Only pass StartData to pipeline if it wasn't already open -
@@ -943,15 +946,14 @@ class _HDF5RecordController:
 
         except asyncio.CancelledError:
             logging.info("HDF 5 data capture told to finish")
-            pipeline[0].queue.put_nowait(
-                # TODO: Check if reason is good enough
-                EndData(captured_frames, EndReason.OK)
-            )
+            pipeline[0].queue.put_nowait(EndData(captured_frames, EndReason.OK))
+            raise
+
         except Exception:
             logging.exception("HDF5 data capture terminated due to unexpected error")
             pipeline[0].queue.put_nowait(
                 # TODO: Check if reason is good enough
-                EndData(captured_frames, EndReason.OK)
+                EndData(captured_frames, EndReason.UNKNOWN_EXCEPTION)
             )
         finally:
             stop_pipeline(pipeline)
@@ -980,26 +982,19 @@ class _HDF5RecordController:
     async def _capture_on_update(self, new_val: int) -> None:
         """Process an update to the Capture record, to start/stop recording HDF5 data"""
         logging.debug(f"Entering HDF5:Capture record on_update method, value {new_val}")
-        if new_val:
-            pass
-        # TODO: Do we need this?
+        if not new_val and self._write_hdf5_file_task:
+            # If there is a capture task in progress, stop it.
+            self._write_hdf5_file_task.cancel()
+            try:
+                await self._write_hdf5_file_task
+            except asyncio.CancelledError:
+                logging.info(
+                    "Capture task successfully cancelled when Capture record disabled."
+                )
+            except Exception:
+                logging.exception("Capture task terminated with unexpected exception")
 
-        else:
-            if self._capture_task:
-                self._capture_task.cancel()
-                try:
-                    await self._capture_task
-                except asyncio.CancelledError:
-                    logging.info(
-                        "Capture task successfully cancelled when Capture "
-                        "record disabled."
-                    )
-                except Exception:
-                    logging.exception(
-                        "Capture task terminated with unexpected exception"
-                    )
-
-                self._capture_task = None
+            self._write_hdf5_file_task = None
 
     def _capture_validate(self, record: RecordWrapper, new_val: int) -> bool:
         """Check the required records have been set before allowing Capture=1"""
