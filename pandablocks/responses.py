@@ -203,7 +203,7 @@ class EndReason(Enum):
     DMA_DATA_ERROR = "DMA data error"
 
     # Reasons below this point are not from the server, they are generated in code
-    #: An unknown exception caused the file to close
+    #: An unknown exception occurred during HDF5 file processing
     UNKNOWN_EXCEPTION = "Unknown exception"
     #: StartData packets did not match when trying to continue printing to a file
     START_DATA_MISMATCH = "Start Data mismatched"
