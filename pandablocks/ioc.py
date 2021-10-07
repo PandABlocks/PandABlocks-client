@@ -54,8 +54,6 @@ from pandablocks.responses import (
 # Define the public API of this module
 __all__ = ["create_softioc"]
 
-TIMEOUT = 2
-
 # Constants used in bool records
 ZNAM_STR = "0"
 ONAM_STR = "1"
@@ -70,7 +68,9 @@ ScalarRecordValue = Union[str, _InErrorException]
 TableRecordValue = List[str]
 RecordValue = Union[ScalarRecordValue, TableRecordValue]
 
+# EPICS format, i.e. ":" dividers
 EpicsName = NewType("EpicsName", str)
+# PAndA format, i.e. "." dividers
 PandAName = NewType("PandAName", str)
 
 
@@ -82,8 +82,6 @@ class _BlockAndFieldInfo:
     block_info: BlockInfo
     fields: Dict[str, FieldInfo]
     values: Dict[EpicsName, RecordValue]
-    # See `_panda_to_epics_name` to create key for Dict from keys returned
-    # from GetChanges
 
 
 @dataclass
@@ -123,8 +121,10 @@ async def _create_softioc(
 ):
     """Asynchronous wrapper for IOC creation"""
     await client.connect()
-    all_records = await create_records(client, dispatcher, record_prefix)
-    asyncio.create_task(update(client, all_records, 1))
+    (all_records, all_values_dict) = await create_records(
+        client, dispatcher, record_prefix
+    )
+    asyncio.create_task(update(client, all_records, 1, all_values_dict))
 
 
 # TODO: Consider https://github.com/dls-controls/pythonSoftIOC/issues/43
@@ -181,15 +181,20 @@ def _ensure_block_number_present(block_and_field_name: str) -> str:
     return f"{block_name_number}.{field_name}"
 
 
-async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInfo]:
+async def introspect_panda(
+    client: AsyncioClient,
+) -> Tuple[Dict[str, _BlockAndFieldInfo], Dict[EpicsName, RecordValue]]:
     """Query the PandA for all its Blocks, Fields of each Block, and Values of each Field
 
     Args:
         client (AsyncioClient): Client used for commuication with the PandA
 
     Returns:
-        Dict[str, BlockAndFieldInfo]: Dictionary containing all information on
-            the block
+        Tuple of:
+            Dict[str, BlockAndFieldInfo]: Dictionary containing all information on
+                the block
+            Dict[EpicsName, RecordValue]]: Dictionary containing all values from
+                GetChanges for both scalar and multivalue fields
     """
 
     def _store_values(
@@ -256,13 +261,17 @@ async def introspect_panda(client: AsyncioClient) -> Dict[str, _BlockAndFieldInf
             block_and_field_name, _InErrorException(block_and_field_name), values
         )
 
+    # Single dictionary that has all values for all types of field, as reported
+    # from GetChanges
+    all_values_dict = {k: v for item in values.values() for k, v in item.items()}
+
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
         panda_dict[block_name] = _BlockAndFieldInfo(
             block_info=block_info, fields=field_info, values=values[block_name]
         )
 
-    return panda_dict
+    return (panda_dict, all_values_dict)
 
 
 class IgnoreException(Exception):
@@ -277,16 +286,17 @@ class _RecordUpdater:
         record_name: The name of the record, without the namespace
         client: The client used to send data to PandA
         data_type_func: Function to convert the new value to the format PandA expects
+        all_values_dict: The dictionary containing the most recent value of all records
+            as returned from GetChanges. This dict will be dynamically updated by other
+            methods.
         labels: If the record is an enum type, provide the list of labels
-        previous_value: The initial value of the record. During record updates this
-            will be used to restore the previous value of the record if a Put fails.
     """
 
     record_name: EpicsName
     client: AsyncioClient
     data_type_func: Callable
+    all_values_dict: Dict[EpicsName, RecordValue]  # TODO: Use this!
     labels: Optional[List[str]] = None
-    previous_value: Any = None
 
     # The incoming value's type depends on the record. Ensure you always cast it.
     async def update(self, new_val: Any):
@@ -468,15 +478,16 @@ class _TableUpdater:
         table_fields: The list of all fields in the table. During initialization they
             will be sorted into bit-ascending order
         table_records: The list of records that comprises this table
-        previous_value: The initial value of the table. During record updates this
-            will be used to restore the previous value of the record if a Put fails."""
+        all_values_dict: The dictionary containing the most recent value of all records
+            as returned from GetChanges. This dict will be dynamically updated by other
+            methods."""
 
     client: AsyncioClient
     table_name: EpicsName
     field_info: TableFieldInfo
     table_fields: Dict[str, TableFieldDetails]
     table_records: Dict[EpicsName, _RecordInfo]
-    previous_value: List[str]
+    all_values_dict: Dict[EpicsName, RecordValue]  # TODO: Use this!
 
     def __post_init__(self):
         # Called at the end of dataclass's __init__
@@ -1066,6 +1077,7 @@ class IocRecordFactory:
 
     _record_prefix: str
     _client: AsyncioClient
+    _all_values_dict: Dict[EpicsName, RecordValue]
     _pos_out_row_counter: int = 0
 
     # List of methods in builder, used for parameter validation
@@ -1074,9 +1086,23 @@ class IocRecordFactory:
         for _, method in inspect.getmembers(builder, predicate=inspect.isfunction)
     ]
 
-    def __init__(self, record_prefix: str, client: AsyncioClient):
+    def __init__(
+        self,
+        record_prefix: str,
+        client: AsyncioClient,
+        all_values_dict: Dict[EpicsName, RecordValue],
+    ):
+        """Initialise IocRecordFactory
+
+        Args:
+            record_prefix: The record prefix a.k.a. the device name
+            client: AsyncioClient used when records update to Put values back to PandA
+            all_values_dict: Dictionary of most recent values from PandA as reported by
+                GetChanges.
+        """
         self._record_prefix = record_prefix
         self._client = client
+        self._all_values_dict = all_values_dict
 
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
@@ -1207,8 +1233,8 @@ class IocRecordFactory:
                 record_name,
                 self._client,
                 data_type_func,
+                self._all_values_dict,
                 labels if labels else None,
-                kwargs["initial_value"] if "initial_value" in kwargs else None,
             )
             extra_kwargs.update({"on_update": record_updater.update})
 
@@ -1687,7 +1713,7 @@ class IocRecordFactory:
             field_info,
             field_info.fields,
             record_dict,  # Dict is filled throughout this method
-            values[record_name],
+            self._all_values_dict,
         )
 
         # Note that the table_updater's table_fields are guaranteed sorted in bit order,
@@ -2252,12 +2278,11 @@ class IocRecordFactory:
                 self, record_name, field_info, str_vals
             )
 
-        except KeyError as e:
+        except KeyError:
             # Unrecognised type-subtype key, ignore this item. This allows the server
             # to define new types without breaking the client.
-            logging.warning(
-                f"Exception while creating record for {record_name}, type {key}",
-                exc_info=e,
+            logging.exception(
+                f"Unrecognised type {key} while processing record {record_name}, "
             )
             return {}
 
@@ -2348,16 +2373,16 @@ async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
     record_prefix: str,
-) -> Dict[EpicsName, _RecordInfo]:
+) -> Tuple[Dict[EpicsName, _RecordInfo], Dict[EpicsName, RecordValue]]:
     """Query the PandA and create the relevant records based on the information
     returned"""
 
-    panda_dict = await introspect_panda(client)
+    (panda_dict, all_values_dict) = await introspect_panda(client)
 
     # Dictionary containing every record of every type
     all_records: Dict[EpicsName, _RecordInfo] = {}
 
-    record_factory = IocRecordFactory(record_prefix, client)
+    record_factory = IocRecordFactory(record_prefix, client, all_values_dict)
 
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
@@ -2413,11 +2438,14 @@ async def create_records(
 
     record_factory.initialise(dispatcher)
 
-    return all_records
+    return (all_records, all_values_dict)
 
 
 async def update(
-    client: AsyncioClient, all_records: Dict[EpicsName, _RecordInfo], poll_period: int
+    client: AsyncioClient,
+    all_records: Dict[EpicsName, _RecordInfo],
+    poll_period: int,
+    all_values_dict: Dict[EpicsName, RecordValue],
 ):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly
@@ -2428,9 +2456,14 @@ async def update(
             PandA reports changes. This is NOT all records in the IOC.
         poll_period: The wait time, in seconds, before the next GetChanges is called.
             TODO: This will eventually need to become a millisecond wait, so we can poll
-            at 10HZ"""
+            at 10HZ
+        all_values_dict: The dictionary containing the most recent value of all records
+            as returned from GetChanges. This method will update values in the dict,
+            which will be read and used in other places"""
     while True:
         try:
+            # TODO: work out commonising the parsing into the all_values_dict with
+            # introspct_panda's implementation
             changes = await client.send(GetChanges(ChangeGroup.ALL, True))
             if changes.in_error:
                 logging.error(
@@ -2460,6 +2493,7 @@ async def update(
                     logging.error(
                         f"Unknown field {field} returned from GetChanges values"
                     )
+                    continue
 
                 record_info = all_records[field]
                 record = record_info.record
@@ -2482,7 +2516,7 @@ async def update(
                     logging.error(
                         f"Table MODE record {mode_rec_name} not found in known records"
                     )
-                    break
+                    continue
 
                 table_updater = all_records[mode_rec_name].table_updater
                 assert table_updater
