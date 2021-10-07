@@ -312,16 +312,15 @@ class _RecordUpdater:
             # Some values, e.g. tables, do not use this update mechanism
             logging.debug(f"Ignoring update to record {self.record_name}")
             pass
-        except Exception as e:
-            logging.error(
+        except Exception:
+            logging.exception(
                 f"Unable to Put record {self.record_name}, value {new_val}, to PandA",
-                exc_info=e,
             )
             if self._record:
                 logging.debug(f"Restoring previous value to record {self.record_name}")
                 self._record.set(self.previous_value, process=False)
             else:
-                logging.warning(
+                logging.error(
                     f"No record found when updating {self.record_name}, "
                     "unable to roll back value"
                 )
@@ -561,11 +560,10 @@ class _TableUpdater:
                 await self.client.send(Put(panda_field_name, packed_data))
                 self.previous_value = packed_data
 
-            except Exception as e:
-                logging.error(
+            except Exception:
+                logging.exception(
                     f"Unable to Put record {self.table_name}, value {packed_data},"
                     "to PandA",
-                    exc_info=e,
                 )
 
                 # Reset value of all table records to last known good values
@@ -941,15 +939,15 @@ class _HDF5RecordController:
                             self._status_message_record.set(
                                 "Mismatched StartData packet for file"
                             )
-                            # Disable this task's processing
+                            pipeline[0].queue.put_nowait(
+                                EndData(captured_frames, EndReason.START_DATA_MISMATCH)
+                            )
+
                             # TODO: This feels weird but we cannot rely on on_update()
                             # as it's not guaranteed to run before this thread gets
                             # to the Event check at the top
                             self._capture_control_record.set(0, process=False)
                             self._capture_enabled_event.clear()
-                            pipeline[0].queue.put_nowait(
-                                EndData(captured_frames, EndReason.START_DATA_MISMATCH)
-                            )
                             break
                         if start_data is None:
                             start_data = data
@@ -963,18 +961,22 @@ class _HDF5RecordController:
 
                         if captured_frames == num_to_capture:
                             # Reached configured capture limit, stop the file
+                            logging.info(
+                                f"Requested number of frames ({num_to_capture}) "
+                                "captured, disabling Capture."
+                            )
+                            self._status_message_record.set(
+                                "Requested number of frames captured"
+                            )
                             pipeline[0].queue.put_nowait(
                                 EndData(captured_frames, EndReason.OK)
                             )
-                            # Disable this task's processing
+
                             # TODO: This feels weird but we cannot rely on on_update()
                             # as it's not guaranteed to run before this thread gets
                             # to the Event check at the top
                             self._capture_control_record.set(0, process=False)
                             self._capture_enabled_event.clear()
-                            pipeline[0].queue.put_nowait(
-                                EndData(captured_frames, EndReason.START_DATA_MISMATCH)
-                            )
                             break
                     # Ignore EndData - handle terminating capture with the Capture
                     # record or when we capture the requested number of frames
@@ -984,9 +986,7 @@ class _HDF5RecordController:
                     if not self._capture_enabled_event.is_set():
                         # Capture has been disabled, stop processing.
                         logging.info("Capture disabled, closing HDF5 file")
-                        self._status_message_record.set(
-                            "Capturing finished, file closed"
-                        )
+                        self._status_message_record.set("Capturing disabled")
                         pipeline[0].queue.put_nowait(
                             EndData(captured_frames, EndReason.OK)
                         )
@@ -995,6 +995,9 @@ class _HDF5RecordController:
             except Exception:
                 logging.exception(
                     "HDF5 data capture terminated due to unexpected error"
+                )
+                self._status_message_record.set(
+                    "Capturing disabled, unexpected exception"
                 )
                 pipeline[0].queue.put_nowait(
                     EndData(captured_frames, EndReason.UNKNOWN_EXCEPTION)
