@@ -1,7 +1,6 @@
 # Creating EPICS records directly from PandA Blocks and Fields
 
 import asyncio
-import concurrent.futures
 import importlib
 import inspect
 import logging
@@ -703,9 +702,8 @@ class _HDF5RecordController:
     _status_message_record: RecordWrapper  # Reports status and error messages
     _currently_capturing_record: RecordWrapper  # If HDF5 file currently being written
 
-    _capture_enabled_event: asyncio.Event = asyncio.Event()
-    _capture_enabled_event_thread: threading.Event = threading.Event()
-    _write_hdf5_file_task: Optional[asyncio.Task] = None
+    _capture_enabled_event: threading.Event = threading.Event()
+    _write_hdf5_file_thread: Optional[threading.Thread] = None
 
     def __init__(self, client: AsyncioClient, record_prefix: str):
         if importlib.util.find_spec("h5py") is None:
@@ -848,22 +846,11 @@ class _HDF5RecordController:
             record_prefix + ":" + currently_capturing_record_name.upper()
         )
 
-        # Spawn the task that will handle HDF5 file writing
-        # curr_loop = asyncio.get_event_loop()
-        # new_loop = asyncio.new_event_loop()
-        # asyncio.set_event_loop(new_loop)
-        self._write_hdf5_file_task = threading.Thread(
+        # Spawn the thread that will handle HDF5 file writing
+        self._write_hdf5_file_thread = threading.Thread(
             target=self._handle_hdf5_data_wrapper
         )
-        self._write_hdf5_file_task.start()
-        # self._write_hdf5_file_task.join()
-        # self._write_hdf5_file_task = loop.call_soon_threadsafe(self._handle_hdf5_data())
-        # self._write_hdf5_file_task = asyncio.create_task(self._handle_hdf5_data())
-
-        # asyncio.set_event_loop(curr_loop)
-        # with concurrent.futures.ThreadPoolExecutor() as pool:
-        #     loop.run_in_executor(pool, self._handle_hdf5_data())
-        # print("HERE")
+        self._write_hdf5_file_thread.start()
 
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
         """Control when values can be written to parameter records
@@ -912,29 +899,19 @@ class _HDF5RecordController:
             logging.exception("Unexpected exception when arming/disarming PandA")
 
     def _handle_hdf5_data_wrapper(self):
-        """Syncronous wrapper for _handle_hdf5_data"""
-
-        # async def async_wrapper():
-        #     await self._handle_hdf5_data()
-        #     print("Shouldn't get here")
-
-        # asyncio.run_coroutine_threadsafe(async_wrapper(), asyncio.new_event_loop())
-        # future = asyncio.run_coroutine_threadsafe(
-        #     self._handle_hdf5_data(), asyncio.new_event_loop()
-        # )
-        # future.result()
+        """This method is expected to run in its own thread, which will run for the
+        lifetime of the process."""
         loop = asyncio.new_event_loop()
         loop.run_until_complete(self._handle_hdf5_data())
 
     async def _handle_hdf5_data(self):
         """Handles writing HDF5 data from the PandA to file, based on configuration
-        in the various HDF5 records.
-        This task should exist for the lifetime of the program."""
+        in the various HDF5 records. This method should run for the lifetime of the
+        program."""
 
         while True:
             # Wait for Capture to be enabled
-            # await self._capture_enabled_event.wait()
-            self._capture_enabled_event_thread.wait()
+            self._capture_enabled_event.wait()
 
             # Keep the start data around to compare against, if capture is
             # enabled/disabled to know if we can keep using the same file
@@ -1015,11 +992,6 @@ class _HDF5RecordController:
                         )
                         break
 
-            except asyncio.CancelledError:
-                logging.info("HDF 5 data capture told to finish")
-                pipeline[0].queue.put_nowait(EndData(captured_frames, EndReason.OK))
-                raise
-
             except Exception:
                 logging.exception(
                     "HDF5 data capture terminated due to unexpected error"
@@ -1056,10 +1028,8 @@ class _HDF5RecordController:
         logging.debug(f"Entering HDF5:Capture record on_update method, value {new_val}")
         if new_val:
             self._capture_enabled_event.set()  # Start the writing task
-            self._capture_enabled_event_thread.set()
         else:
             self._capture_enabled_event.clear()  # Abort any HDF5 file writing
-            self._capture_enabled_event_thread.clear()
 
     def _capture_validate(self, record: RecordWrapper, new_val: int) -> bool:
         """Check the required records have been set before allowing Capture=1"""
