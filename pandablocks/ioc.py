@@ -60,7 +60,7 @@ ONAM_STR = "1"
 
 
 class _InErrorException(Exception):
-    """Placeholder exception to mark a field as being InError"""
+    """Placeholder exception to mark a field as being in error as reported by PandA"""
 
 
 # Custom type aliases and new types
@@ -197,6 +197,49 @@ async def introspect_panda(
                 GetChanges for both scalar and multivalue fields
     """
 
+    # Get the list of all blocks in the PandA
+    block_dict = await client.send(GetBlockInfo())
+
+    # Concurrently request info for all fields of all blocks
+    # Note order of requests is important as it is unpacked by index below
+    returned_infos = await asyncio.gather(
+        *[client.send(GetFieldInfo(block)) for block in block_dict],
+        client.send(GetChanges(ChangeGroup.ALL, True)),
+    )
+
+    field_infos: List[Dict[str, FieldInfo]] = returned_infos[0:-1]
+
+    changes: Changes = returned_infos[-1]
+
+    values, all_values_dict = _create_dicts_from_changes(changes)
+
+    panda_dict = {}
+    for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
+        panda_dict[block_name] = _BlockAndFieldInfo(
+            block_info=block_info, fields=field_info, values=values[block_name]
+        )
+
+    return (panda_dict, all_values_dict)
+
+
+def _create_dicts_from_changes(
+    changes: Changes,
+) -> Tuple[Dict[str, Dict[EpicsName, RecordValue]], Dict[EpicsName, RecordValue]]:
+    """Take the `Changes` object and convert it into two dictionaries.
+
+
+    Args:
+        changes: The `Changes` object as returned by `GetChanges`
+
+    Returns:
+        Tuple of:
+          Dict[str, Dict[EpicsName, RecordValue]]: Block-level dictionary, where each
+            top-level key is a PandA Block, and the inner dictionary is all the fields
+            and values associated with that Block.
+          Dict[EpicsName, RecordValue]]: A flattened version of the above dictionary -
+            a list of all Fields (across all Blocks) and their associated value.
+    """
+
     def _store_values(
         block_and_field_name: str,
         value: RecordValue,
@@ -230,20 +273,6 @@ async def introspect_panda(
             )
         values[block_name][block_and_field_name] = value
 
-    # Get the list of all blocks in the PandA
-    block_dict = await client.send(GetBlockInfo())
-
-    # Concurrently request info for all fields of all blocks
-    # Note order of requests is important as it is unpacked by index below
-    returned_infos = await asyncio.gather(
-        *[client.send(GetFieldInfo(block)) for block in block_dict],
-        client.send(GetChanges(ChangeGroup.ALL, True)),
-    )
-
-    field_infos: List[Dict[str, FieldInfo]] = returned_infos[0:-1]
-
-    changes: Changes = returned_infos[-1]
-
     # Create a dict which maps block name to all values for all instances
     # of that block (e.g. {"TTLIN" : {"TTLIN1:VAL": "1", "TTLIN2:VAL" : "5", ...} })
     values: Dict[str, Dict[EpicsName, RecordValue]] = {}
@@ -256,7 +285,7 @@ async def introspect_panda(
 
     # Note any in_error fields so we can later set their records to a non-zero severity
     for block_and_field_name in changes.in_error:
-        logging.error(f"PandA reports fields in error: {changes.in_error}")
+        logging.error(f"PandA reports field in error: {block_and_field_name}")
         _store_values(
             block_and_field_name, _InErrorException(block_and_field_name), values
         )
@@ -264,14 +293,7 @@ async def introspect_panda(
     # Single dictionary that has all values for all types of field, as reported
     # from GetChanges
     all_values_dict = {k: v for item in values.values() for k, v in item.items()}
-
-    panda_dict = {}
-    for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
-        panda_dict[block_name] = _BlockAndFieldInfo(
-            block_info=block_info, fields=field_info, values=values[block_name]
-        )
-
-    return (panda_dict, all_values_dict)
+    return values, all_values_dict
 
 
 class IgnoreException(Exception):
@@ -315,7 +337,9 @@ class _RecordUpdater:
                 val = str(self.data_type_func(new_val))
             panda_field = _epics_to_panda_name(self.record_name)
             await self.client.send(Put(panda_field, val))
-            self.previous_value = val
+
+            # On success the new value will be polled by GetChanges and stored into
+            # the all_values_dict
 
         except IgnoreException:
             # Thrown by some data_type_func calls.
@@ -327,8 +351,13 @@ class _RecordUpdater:
                 f"Unable to Put record {self.record_name}, value {new_val}, to PandA",
             )
             if self._record:
-                logging.debug(f"Restoring previous value to record {self.record_name}")
-                self._record.set(self.previous_value, process=False)
+                assert self.record_name in self.all_values_dict
+                old_val = self.all_values_dict[self.record_name]
+                assert not isinstance(old_val, _InErrorException)
+                logging.warning(
+                    f"Restoring previous value {old_val} to record {self.record_name}"
+                )
+                self._record.set(old_val, process=False)
             else:
                 logging.error(
                     f"No record found when updating {self.record_name}, "
@@ -569,25 +598,30 @@ class _TableUpdater:
 
                 panda_field_name = _epics_to_panda_name(self.table_name)
                 await self.client.send(Put(panda_field_name, packed_data))
-                self.previous_value = packed_data
 
             except Exception:
                 logging.exception(
                     f"Unable to Put record {self.table_name}, value {packed_data},"
-                    "to PandA",
+                    "to PandA. Rolling back to last value from PandA.",
                 )
 
-                # Reset value of all table records to last known good values
+                # Reset value of all table records to last values returned from
+                # GetChanges
                 assert self.field_info.row_words
+                assert self.table_name in self.all_values_dict
+                old_val = self.all_values_dict[self.table_name]
+                assert isinstance(old_val, list)
                 field_data = TablePacking.unpack(
-                    self.field_info.row_words, self.table_fields, self.previous_value
+                    self.field_info.row_words, self.table_fields, old_val
                 )
                 for record_info, data in zip(self.table_records.values(), field_data):
                     record_info.record.set(data, process=False)
-
-            # Already in on_update of this record, so disable processing to
-            # avoid recursion
-            self._mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
+            finally:
+                # Already in on_update of this record, so disable processing to
+                # avoid recursion
+                self._mode_record_info.record.set(
+                    TableModeEnum.VIEW.value, process=False
+                )
 
         elif new_label == TableModeEnum.DISCARD.name:
             # Recreate EPICS data from PandA data
@@ -903,6 +937,7 @@ class _HDF5RecordController:
 
         except CommandException:
             logging.exception("Failure arming/disarming PandA")
+            self._status_message_record.set("Failed to arm/disarm PandA")
 
         except Exception:
             logging.exception("Unexpected exception when arming/disarming PandA")
@@ -954,11 +989,11 @@ class _HDF5RecordController:
                                 EndData(captured_frames, EndReason.START_DATA_MISMATCH)
                             )
 
-                            # TODO: This feels weird but we cannot rely on on_update()
+                            # This is weird but we cannot rely on on_update
                             # as it's not guaranteed to run before this thread gets
-                            # to the Event check at the top
+                            # to the Event check at the top, so call it ourselves.
                             self._capture_control_record.set(0, process=False)
-                            self._capture_enabled_event.clear()
+                            await self._capture_on_update(0)
                             break
                         if start_data is None:
                             start_data = data
@@ -983,11 +1018,11 @@ class _HDF5RecordController:
                                 EndData(captured_frames, EndReason.OK)
                             )
 
-                            # TODO: This feels weird but we cannot rely on on_update()
+                            # This is weird but we cannot rely on on_update
                             # as it's not guaranteed to run before this thread gets
-                            # to the Event check at the top
+                            # to the Event check at the top, so call it ourselves.
                             self._capture_control_record.set(0, process=False)
-                            self._capture_enabled_event.clear()
+                            await self._capture_on_update(0)
                             break
                     # Ignore EndData - handle terminating capture with the Capture
                     # record or when we capture the requested number of frames
@@ -2462,14 +2497,14 @@ async def update(
             which will be read and used in other places"""
     while True:
         try:
-            # TODO: work out commonising the parsing into the all_values_dict with
-            # introspct_panda's implementation
             changes = await client.send(GetChanges(ChangeGroup.ALL, True))
-            if changes.in_error:
-                logging.error(
-                    "The following fields are reported as being in error: "
-                    f"{changes.in_error}"
-                )
+
+            _, new_all_values_dict = _create_dicts_from_changes(changes)
+
+            # Apply the new values to the existing dict, so various updater classes
+            # will have access to the latest values.
+            # TODO: Mutex this, and all other accesses? Probably best with a Class...
+            all_values_dict.update(new_all_values_dict)
 
             for field in changes.in_error:
                 field = _ensure_block_number_present(field)
