@@ -271,21 +271,24 @@ class Put(Command[None]):
 
     Args:
         field: The field, attribute, or star command to put
-        value: The value, possibly multiline, to put
+        value: The value, either str multiline or None, to put
 
     For example::
 
         Put("PCAP.TRIG", "PULSE1.OUT")
         Put("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
+        Put("SFP3_SYNC_IN1.SYNC_RESET", None)
     """
 
     field: str
-    value: Union[str, List[str]] = ""
+    value: Union[str, List[str], None] = ""
 
     def execute(self) -> ExchangeGenerator[None]:
         if isinstance(self.value, list):
             # Multiline table with blank line to terminate
             ex = Exchange([f"{self.field}<"] + self.value + [""])
+        elif self.value is None:
+            ex = Exchange(f"{self.field}=")
         else:
             ex = Exchange(f"{self.field}={self.value}")
         yield ex
