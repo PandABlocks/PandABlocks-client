@@ -366,7 +366,6 @@ class _RecordUpdater:
             if self._record:
                 assert self.record_name in self.all_values_dict
                 old_val = self.all_values_dict[self.record_name]
-                # TODO: What if it is an exception?
                 if isinstance(old_val, _InErrorException):
                     # If PythonSoftIOC issue #53 is fixed we could put some error state.
                     logging.error(
@@ -391,6 +390,23 @@ class _RecordUpdater:
     def add_record(self, record: RecordWrapper) -> None:
         """Provide the record, used for rolling back data if a Put fails."""
         self._record = record
+
+
+@dataclass
+class _WriteRecordUpdater(_RecordUpdater):
+    """Special case record updater to send and empty value.
+
+    This is necessary as some PandA fields are written using e.g. \"FOO1.BAR=\"
+    with no explicit value at all."""
+
+    async def update(self, new_val: Any):
+        # Only send an update to PandA if the value is set to "on".
+        if self.data_type_func(new_val):
+            await super().update(None)
+            # TODO: Check with Tom if this behaviour is desired
+            self._record.set(0, process=False)
+
+        return
 
 
 class TablePacking:
@@ -634,7 +650,15 @@ class _TableUpdater:
                 assert self.field_info.row_words
                 assert self.table_name in self.all_values_dict
                 old_val = self.all_values_dict[self.table_name]
-                # TODO: What if it is an exception?
+
+                if isinstance(old_val, _InErrorException):
+                    # If PythonSoftIOC issue #53 is fixed we could put some error state.
+                    logging.error(
+                        f"Cannot restore previous value to table {self.table_name}, "
+                        "PandA marks this field as in error."
+                    )
+                    return
+
                 # TODO: Manual test this area
                 assert isinstance(old_val, list)
                 field_data = TablePacking.unpack(
@@ -892,7 +916,6 @@ class _HDF5RecordController:
             record_prefix + ":" + arm_disarm_record_name.upper()
         )
 
-        # TODO: Set this record somewhere
         status_message_record_name = self._HDF5_PREFIX + ":Status"
         self._status_message_record = builder.stringIn(
             status_message_record_name,
@@ -912,7 +935,7 @@ class _HDF5RecordController:
             initial_value=0,  # PythonSoftIOC issue #43
             DESC="If HDF5 file is currently being written",
         )
-        self._capture_control_record.add_alias(
+        self._currently_capturing_record.add_alias(
             record_prefix + ":" + currently_capturing_record_name.upper()
         )
 
@@ -1584,11 +1607,10 @@ class IocRecordFactory:
         assert isinstance(field_info, ExtOutFieldInfo)
         assert field_info.capture_labels
         record_dict = {}
-        # TODO: Check if initial_value should be set- this field appears
-        # to be write only though
-        record_dict[record_name] = self._create_record_info(
-            record_name, field_info.description, builder.aIn, int
-        )
+
+        # There is no record for the ext_out field itself - the only thing
+        # you do with them is to turn their Capture attribute on/off.
+        # The field itself has no value.
 
         capture_rec = EpicsName(record_name + ":CAPTURE")
         labels, capture_index = self._process_labels(
@@ -1621,7 +1643,7 @@ class IocRecordFactory:
 
         # Identify which BITS field this is and calculate its offset - we want BITS0
         # through BITS3 to look like one continuous table from the outside, indexed
-        # 0 through 127
+        # 0 through 127 (each BITS holds 32 values)
         bits_index_str = record_name[-1]
         assert bits_index_str.isdigit()
         bits_index = int(bits_index_str)
@@ -2159,18 +2181,23 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, _RecordInfo]:
 
         self._check_num_values(values, 0)
-        return {
-            record_name: self._create_record_info(
-                record_name,
-                field_info.description,
-                builder.boolOut,
-                int,  # not bool, as that'll treat string "0" as true
-                # TODO: Special on_update to not send the 1 to PandA!
-                ZNAM=ZNAM_STR,
-                ONAM=ONAM_STR,
-                always_update=True,
-            )
-        }
+        updater = _WriteRecordUpdater(
+            record_name, self._client, int, self._all_values_dict
+        )
+        record = self._create_record_info(
+            record_name,
+            field_info.description,
+            builder.boolOut,
+            int,  # not bool, as that'll treat string "0" as true
+            ZNAM=ZNAM_STR,
+            ONAM=ONAM_STR,
+            always_update=True,
+            on_update=updater.update,  # TODO: Test this
+        )
+
+        updater.add_record(record)
+
+        return {record_name: record}
 
     def _make_lut(
         self,
@@ -2533,6 +2560,7 @@ async def update(
                     )
                     continue
 
+                logging.info(f"Setting record {field} to invalid value error state.")
                 record = all_records[field].record
                 record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
 
@@ -2547,12 +2575,13 @@ async def update(
                     )
                     continue
 
-                record_info = all_records[field]
+                record_info: _RecordInfo = all_records[field]
                 record = record_info.record
 
                 # Only Out records need process=False set.
                 extra_kwargs = {}
                 if not record_info.is_in_record:
+                    # TODO: Test
                     extra_kwargs.update({"process": False})
 
                 try:
