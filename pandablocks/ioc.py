@@ -317,7 +317,7 @@ class _RecordUpdater:
     record_name: EpicsName
     client: AsyncioClient
     data_type_func: Callable
-    all_values_dict: Dict[EpicsName, RecordValue]  # TODO: Use this!
+    all_values_dict: Dict[EpicsName, RecordValue]
     labels: Optional[List[str]] = None
 
     # The incoming value's type depends on the record. Ensure you always cast it.
@@ -353,10 +353,13 @@ class _RecordUpdater:
             if self._record:
                 assert self.record_name in self.all_values_dict
                 old_val = self.all_values_dict[self.record_name]
+                # TODO: What if it is an exception?
                 assert not isinstance(old_val, _InErrorException)
+                # TODO: Manual test this area
                 logging.warning(
                     f"Restoring previous value {old_val} to record {self.record_name}"
                 )
+                # TODO: This only works for Out records!
                 self._record.set(old_val, process=False)
             else:
                 logging.error(
@@ -610,10 +613,13 @@ class _TableUpdater:
                 assert self.field_info.row_words
                 assert self.table_name in self.all_values_dict
                 old_val = self.all_values_dict[self.table_name]
+                # TODO: What if it is an exception?
+                # TODO: Manual test this area
                 assert isinstance(old_val, list)
                 field_data = TablePacking.unpack(
                     self.field_info.row_words, self.table_fields, old_val
                 )
+                # Table records are never In type, so can always disable processing
                 for record_info, data in zip(self.table_records.values(), field_data):
                     record_info.record.set(data, process=False)
             finally:
@@ -2515,6 +2521,7 @@ async def update(
                     logging.error(
                         f"Unknown field {field} returned from GetChanges in_error"
                     )
+                    continue
 
                 record = all_records[field].record
                 record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
@@ -2532,15 +2539,18 @@ async def update(
 
                 record_info = all_records[field]
                 record = record_info.record
-                if record_info.labels:
-                    # Record is enum, convert string the PandA returns into an int index
-                    # TODO: Needs Process=False to not call on_updates which end up
-                    #   putting data back to PandA!
-                    # TODO: Create GetChanges dict that is passed everywhere, and can be
-                    #   used as the "previous value" in the updaters for when Puts fail.
-                    record.set(record_info.labels.index(value))
-                else:
-                    record.set(record_info.data_type_func(value))
+                try:
+                    if record_info.labels:
+                        # Record is enum, convert string the PandA returns into
+                        # an int index
+                        # TODO: Need process=False, but only if Out record type...
+                        record.set(record_info.labels.index(value))
+                    else:
+                        record.set(record_info.data_type_func(value))
+                except Exception:
+                    logging.exception(
+                        f"Exception setting record {record.name} to new value {value}"
+                    )
 
             for table_field, value_list in changes.multiline_values.items():
                 table_field = PandAName(table_field)
