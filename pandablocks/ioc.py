@@ -110,6 +110,7 @@ class _RecordInfo:
     data_type_func: Callable
     labels: Optional[List[str]] = None
     table_updater: Optional["_TableUpdater"] = None
+    # PythonSoftIOC issues #52 or #54 may remove need for is_in_record
     is_in_record: bool = True
 
 
@@ -342,12 +343,16 @@ class _RecordUpdater:
                 assert int(new_val) < len(
                     self.labels
                 ), f"Invalid label index {new_val}, only {len(self.labels)} labels"
-                val = self.labels[int(new_val)]
-            else:
+                val: Optional[str] = self.labels[int(new_val)]
+            elif new_val is not None:
                 # Necessary to wrap the data_type_func call in str() as we must
                 # differentiate between ints and floats - some PandA fields will not
                 # accept the wrong number format.
                 val = str(self.data_type_func(new_val))
+            else:
+                # value is None - expected for action-write fields
+                val = new_val
+
             panda_field = _epics_to_panda_name(self.record_name)
             await self.client.send(Put(panda_field, val))
 
@@ -394,16 +399,16 @@ class _RecordUpdater:
 
 @dataclass
 class _WriteRecordUpdater(_RecordUpdater):
-    """Special case record updater to send and empty value.
+    """Special case record updater to send an empty value.
 
     This is necessary as some PandA fields are written using e.g. \"FOO1.BAR=\"
     with no explicit value at all."""
 
     async def update(self, new_val: Any):
-        # Only send an update to PandA if the value is set to "on".
         if self.data_type_func(new_val):
             await super().update(None)
-            # TODO: Check with Tom if this behaviour is desired
+            # TODO: Check with Tom if we should reset these field types or just
+            # leave them set
             self._record.set(0, process=False)
 
         return
@@ -926,7 +931,6 @@ class _HDF5RecordController:
             record_prefix + ":" + status_message_record_name.upper()
         )
 
-        # TODO: Set this record somewhere
         currently_capturing_record_name = self._HDF5_PREFIX + ":Capturing"
         self._currently_capturing_record = builder.boolIn(
             currently_capturing_record_name,
@@ -1004,8 +1008,14 @@ class _HDF5RecordController:
         program."""
 
         while True:
+            logging.debug("Waiting for _capture_enabled_event")
             # Wait for Capture to be enabled
             self._capture_enabled_event.wait()
+
+            logging.debug("Acquired _capture_enabled_event, beginning HDF5 processing")
+
+            # Mark HDF5 file capture starting
+            self._currently_capturing_record.set(1)
 
             # Keep the start data around to compare against, if capture is
             # enabled/disabled to know if we can keep using the same file
@@ -1023,7 +1033,7 @@ class _HDF5RecordController:
                 async for data in self._client.data(
                     scaled=False, flush_period=flush_period
                 ):
-
+                    logging.debug(f"Received data packet: {data}")
                     if isinstance(data, StartData):
                         if start_data and data != start_data:
                             # PandA was disarmed, had config changed, and rearmed.
@@ -1099,8 +1109,9 @@ class _HDF5RecordController:
                     EndData(captured_frames, EndReason.UNKNOWN_EXCEPTION)
                 )
             finally:
+                logging.debug("Finishing processing HDF5 PandA data")
                 stop_pipeline(pipeline)
-                pass
+                self._currently_capturing_record.set(0)
 
     def _get_scheme(self) -> str:
         """Create the scheme for the HDF5 file from the relevant record in the format
@@ -1664,11 +1675,12 @@ class IocRecordFactory:
         for i, label in enumerate(field_info.bits):
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
-            # TODO: This field doesn't seem to have any value...
             builder.records.bi(
                 f"{enumerated_bits_prefix}:VAL",
                 INP=link,
                 DESC="Value of field connected to this BIT",
+                ZNAM=ZNAM_STR,
+                ONAM=ONAM_STR,
             )
 
             builder.records.stringin(
@@ -2191,8 +2203,10 @@ class IocRecordFactory:
             int,  # not bool, as that'll treat string "0" as true
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
-            always_update=True,
-            on_update=updater.update,  # TODO: Test this
+            always_update=True,  # Note this is a little redundant - the
+            # _WriteRecordUpdater will always set the record back to 0 whenever
+            # it is set to 1, and there's no action to take for 0 value
+            on_update=updater.update,
         )
 
         updater.add_record(record)
@@ -2546,7 +2560,6 @@ async def update(
             # will have access to the latest values.
             # As this is the only place we write to this dict (after initial creation),
             # we don't need to worry about locking accesses - the GIL will enforce it
-            # TODO: Confirm this assertion with Tom
             all_values_dict.update(new_all_values_dict)
 
             for field in changes.in_error:
