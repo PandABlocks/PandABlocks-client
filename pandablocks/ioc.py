@@ -1279,17 +1279,6 @@ class IocRecordFactory:
             )
             extra_kwargs.update({"on_update": record_updater.update})
 
-        # Disable Puts to all In records (unless explicilty enabled)
-        if "DISP" not in kwargs and record_creation_func in [
-            builder.aIn,
-            builder.boolIn,
-            builder.mbbIn,
-            builder.longIn,
-            builder.stringIn,
-            builder.WaveformIn,
-        ]:
-            extra_kwargs.update({"DISP": 1})
-
         # Record description field is a maximum of 40 characters long. Ensure any string
         # is shorter than that before setting it.
         if description and len(description) > 40:
@@ -1532,7 +1521,6 @@ class IocRecordFactory:
             INPB=builder.CP(record_dict[scale_rec].record),
             INPC=builder.CP(record_dict[offset_rec].record),
             DESC="Value with scaling applied",
-            DISP=1,
         )
 
         # Create the POSITIONS "table" of records. Most are aliases of the records
@@ -1542,7 +1530,6 @@ class IocRecordFactory:
             positions_str + ":NAME",
             VAL=record_name,
             DESC="Table of configured positional outputs",
-            DISP=1,
         ),
 
         scaled_calc_rec.add_alias(self._record_prefix + ":" + positions_str + ":VAL")
@@ -1637,14 +1624,12 @@ class IocRecordFactory:
                 f"{enumerated_bits_prefix}:VAL",
                 INP=link,
                 DESC="Value of field connected to this BIT",
-                DISP=1,
             )
 
             builder.records.stringin(
                 f"{enumerated_bits_prefix}:NAME",
                 VAL=label,
                 DESC="Name of field connected to this BIT",
-                DISP=1,
             )
 
         return record_dict
