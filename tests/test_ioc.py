@@ -710,7 +710,6 @@ def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater, capsy
                 f"{TEST_RECORD}:CAPTURE": "Diff",
             },
             [
-                f"{TEST_RECORD}",
                 f"{TEST_RECORD}:CAPTURE",
             ],
         ),
@@ -720,7 +719,6 @@ def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater, capsy
                 f"{TEST_RECORD}:CAPTURE": "Diff",
             },
             [
-                f"{TEST_RECORD}",
                 f"{TEST_RECORD}:CAPTURE",
             ],
         ),
