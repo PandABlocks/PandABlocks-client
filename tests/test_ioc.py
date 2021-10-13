@@ -13,6 +13,7 @@ from pandablocks.ioc import (
     EpicsName,
     IocRecordFactory,
     PandAName,
+    RecordValue,
     TableModeEnum,
     TablePacking,
     _BlockAndFieldInfo,
@@ -54,7 +55,7 @@ def ioc_record_factory():
     """
     global counter
     counter += 1
-    return IocRecordFactory(TEST_PREFIX + str(counter), AsyncioClient("123"))
+    return IocRecordFactory(TEST_PREFIX + str(counter), AsyncioClient("123"), {})
 
 
 @pytest.fixture
@@ -268,6 +269,11 @@ def table_data():
 
 
 @pytest.fixture
+def table_data_dict(table_data: List[str]) -> Dict[EpicsName, RecordValue]:
+    return {EpicsName("SEQ1:TABLE"): table_data}
+
+
+@pytest.fixture
 def table_unpacked_data(table_fields) -> Dict[EpicsName, ndarray]:
     """The unpacked equivalent of table_data"""
     array_values = [
@@ -316,7 +322,7 @@ def table_updater(
     table_field_info: TableFieldInfo,
     table_fields: Dict[str, TableFieldDetails],
     table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
-    table_data: List[str],
+    table_data_dict: Dict[EpicsName, RecordValue],
 ):
     """Provides a _TableUpdater with configured records and mocked functionality"""
     client = AsyncioClient("123")
@@ -334,7 +340,7 @@ def table_updater(
         table_field_info,
         table_fields,
         table_unpacked_data_records,
-        table_data,
+        table_data_dict,
     )
 
     updater.set_mode_record_info(record_info)
@@ -369,7 +375,7 @@ def test_ensure_block_number_present():
 async def test_introspect_panda(dummy_server_introspect_panda):
     """High-level test that introspect_panda returns expected data structures"""
     async with AsyncioClient("localhost") as client:
-        data = await introspect_panda(client)
+        (data, all_values_dict) = await introspect_panda(client)
         assert data["PCAP"] == _BlockAndFieldInfo(
             block_info=BlockInfo(number=1, description="PCAP Desc"),
             fields={
@@ -433,13 +439,20 @@ async def test_introspect_panda(dummy_server_introspect_panda):
             values={"SEQ1:TABLE": ["1", "2", "3"]},
         )
 
+        assert all_values_dict == {
+            "PCAP1:BAR": "12.34",
+            "PCAP1:FOO": "1",
+            "PCAP1:LABEL": "PcapMetadataLabel",
+            "SEQ1:TABLE": ["1", "2", "3"],
+        }
+
 
 @pytest.mark.asyncio
 async def test_record_updater():
     """Test that the record updater succesfully Put's data to the client"""
     client = AsyncioClient("123")
     client.send = AsyncMock()
-    updater = _RecordUpdater("ABC:DEF", client, float)
+    updater = _RecordUpdater("ABC:DEF", client, float, {})
 
     await updater.update("1.0")
 
@@ -452,7 +465,9 @@ async def test_record_updater_labels():
     when the data is a label index"""
     client = AsyncioClient("123")
     client.send = AsyncMock()
-    updater = _RecordUpdater("ABC:DEF", client, float, ["Label1", "Label2", "Label3"])
+    updater = _RecordUpdater(
+        "ABC:DEF", client, float, None, labels=["Label1", "Label2", "Label3"]
+    )
 
     await updater.update("2")
 

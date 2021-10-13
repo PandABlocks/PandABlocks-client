@@ -540,7 +540,7 @@ class _TableUpdater:
     field_info: TableFieldInfo
     table_fields: Dict[str, TableFieldDetails]
     table_records: Dict[EpicsName, _RecordInfo]
-    all_values_dict: Dict[EpicsName, RecordValue]  # TODO: Use this!
+    all_values_dict: Dict[EpicsName, RecordValue]
 
     def __post_init__(self):
         # Called at the end of dataclass's __init__
