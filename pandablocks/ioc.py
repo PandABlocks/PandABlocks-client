@@ -73,6 +73,15 @@ EpicsName = NewType("EpicsName", str)
 # PAndA format, i.e. "." dividers
 PandAName = NewType("PandAName", str)
 
+OUT_RECORD_FUNCTIONS = [
+    builder.aOut,
+    builder.boolOut,
+    builder.mbbOut,
+    builder.longOut,
+    builder.stringOut,
+    builder.WaveformOut,
+]
+
 
 @dataclass
 class _BlockAndFieldInfo:
@@ -91,15 +100,17 @@ class _RecordInfo:
 
     `record`: The PythonSoftIOC RecordWrapper instance
     `data_type_func`: Function to convert string data to form appropriate for the record
-    `labels`: List of valid values for the record. If not None, the `record` is
-        an enum type.
+    `labels`: List of valid labels for the record. By setting this field to non-None,
+        the `record` is assumed to be mbbi/mbbo type.
     `table_updater`: Class instance that managed updating table records. Only present
-        on the MODE record of a table."""
+        on the MODE record of a table.
+    `is_in_record`: Flag for whether the `record` is an "In" record type."""
 
     record: RecordWrapper
     data_type_func: Callable
     labels: Optional[List[str]] = None
     table_updater: Optional["_TableUpdater"] = None
+    is_in_record: bool = True
 
 
 def _panda_to_epics_name(field_name: PandAName) -> EpicsName:
@@ -302,7 +313,9 @@ class IgnoreException(Exception):
 
 @dataclass
 class _RecordUpdater:
-    """Handles Put'ing data back to the PandA when an EPICS record is updated
+    """Handles Put'ing data back to the PandA when an EPICS record is updated.
+
+    This should only be used to handle Out record types.
 
     Args:
         record_name: The name of the record, without the namespace
@@ -354,12 +367,20 @@ class _RecordUpdater:
                 assert self.record_name in self.all_values_dict
                 old_val = self.all_values_dict[self.record_name]
                 # TODO: What if it is an exception?
-                assert not isinstance(old_val, _InErrorException)
+                if isinstance(old_val, _InErrorException):
+                    # If PythonSoftIOC issue #53 is fixed we could put some error state.
+                    logging.error(
+                        f"Cannot restore previous value to record {self.record_name}, "
+                        "PandA marks this field as in error."
+                    )
+                    return
+
                 # TODO: Manual test this area
                 logging.warning(
                     f"Restoring previous value {old_val} to record {self.record_name}"
                 )
-                # TODO: This only works for Out records!
+                # Note that only Out records will be present here, due to how
+                # _RecordUpdater instances are created.
                 self._record.set(old_val, process=False)
             else:
                 logging.error(
@@ -1256,20 +1277,12 @@ class IocRecordFactory:
                 kwargs["initial_value"] = data_type_func(initial_value)
 
         # If there is no on_update, and the record type allows one, create it
+        record_updater = None
         if (
             "on_update" not in kwargs
             and "on_update_name" not in kwargs
-            and record_creation_func
-            in [
-                builder.aOut,
-                builder.boolOut,
-                builder.mbbOut,
-                builder.longOut,
-                builder.stringOut,
-                builder.WaveformOut,
-            ]
+            and record_creation_func in OUT_RECORD_FUNCTIONS
         ):
-            # If the caller hasn't provided an update method, create it now
             record_updater = _RecordUpdater(
                 record_name,
                 self._client,
@@ -1283,7 +1296,7 @@ class IocRecordFactory:
         # is shorter than that before setting it.
         if description and len(description) > 40:
             # As per Tom Cobb, it's unlikely the descriptions will ever be truncated so
-            # we'll hide this message in debug level logging only
+            # we'll hide this message in low level logging only
             logging.info(
                 f"Description for {record_name} longer than EPICS limit of "
                 f"40 characters. It will be truncated. Description: {description}"
@@ -1296,8 +1309,18 @@ class IocRecordFactory:
             record_name, *labels, *args, **extra_kwargs, **kwargs
         )
 
+        if record_updater is not None:
+            record_updater.add_record(record)
+
+        is_in_record = True
+        if record_creation_func in OUT_RECORD_FUNCTIONS:
+            is_in_record = False
+
         record_info = _RecordInfo(
-            record, data_type_func=data_type_func, labels=labels if labels else None
+            record,
+            data_type_func=data_type_func,
+            labels=labels if labels else None,
+            is_in_record=is_in_record,
         )
 
         return record_info
@@ -2494,7 +2517,9 @@ async def update(
 
             # Apply the new values to the existing dict, so various updater classes
             # will have access to the latest values.
-            # TODO: Mutex this, and all other accesses? Probably best with a Class...
+            # As this is the only place we write to this dict (after initial creation),
+            # we don't need to worry about locking accesses - the GIL will enforce it
+            # TODO: Confirm this assertion with Tom
             all_values_dict.update(new_all_values_dict)
 
             for field in changes.in_error:
@@ -2524,14 +2549,19 @@ async def update(
 
                 record_info = all_records[field]
                 record = record_info.record
+
+                # Only Out records need process=False set.
+                extra_kwargs = {}
+                if not record_info.is_in_record:
+                    extra_kwargs.update({"process": False})
+
                 try:
                     if record_info.labels:
                         # Record is enum, convert string the PandA returns into
                         # an int index
-                        # TODO: Need process=False, but only if Out record type...
-                        record.set(record_info.labels.index(value))
+                        record.set(record_info.labels.index(value), **extra_kwargs)
                     else:
-                        record.set(record_info.data_type_func(value))
+                        record.set(record_info.data_type_func(value), **extra_kwargs)
                 except Exception:
                     logging.exception(
                         f"Exception setting record {record.name} to new value {value}"
