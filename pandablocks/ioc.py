@@ -995,9 +995,6 @@ class _HDF5RecordController:
             captured_frames: int = 0
 
             try:
-                # Store the max number
-                # TODO: move this into loop so its updated every time
-                num_to_capture: int = self._num_capture_record.get()
                 pipeline: List[Pipeline] = create_default_pipeline(self._get_scheme())
                 flush_period: float = self._flush_period_record.get()
 
@@ -1015,7 +1012,9 @@ class _HDF5RecordController:
                             )
                             # TODO: add message to say "starting capture"
                             self._status_message_record.set(
-                                "Mismatched StartData packet for file"
+                                "Mismatched StartData packet for file",
+                                severity=alarm.MAJOR_ALARM,
+                                alarm=alarm.STATE_ALARM,
                             )
                             pipeline[0].queue.put_nowait(
                                 EndData(captured_frames, EndReason.START_DATA_MISMATCH)
@@ -1038,7 +1037,7 @@ class _HDF5RecordController:
                     elif isinstance(data, FrameData):
                         pipeline[0].queue.put_nowait(data)
                         captured_frames += 1
-
+                        num_to_capture: int = self._num_capture_record.get()
                         if captured_frames == num_to_capture:
                             # Reached configured capture limit, stop the file
                             logging.info(
@@ -1076,7 +1075,6 @@ class _HDF5RecordController:
                 logging.exception(
                     "HDF5 data capture terminated due to unexpected error"
                 )
-                # TODO: Add severity+aalarm to other status messages when exceptions/errors have occurred
                 # TODO: confirm the status alarm is reset in good cases
                 self._status_message_record.set(
                     "Capturing disabled, unexpected exception",
