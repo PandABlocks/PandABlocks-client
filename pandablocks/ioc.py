@@ -5,7 +5,7 @@ import importlib
 import inspect
 import logging
 import os
-import threading
+from asyncio.futures import CancelledError
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
@@ -366,7 +366,6 @@ class _RecordUpdater:
             logging.exception(
                 f"Unable to Put record {self.record_name}, value {new_val}, to PandA",
             )
-            # TODO: I dislike this nested try... is there a neater way?
             try:
                 if self._record:
                     assert self.record_name in self.all_values_dict
@@ -801,8 +800,7 @@ class _HDF5RecordController:
     _status_message_record: RecordWrapper  # Reports status and error messages
     _currently_capturing_record: RecordWrapper  # If HDF5 file currently being written
 
-    _capture_enabled_event: threading.Event = threading.Event()
-    _write_hdf5_file_thread: Optional[threading.Thread] = None
+    _handle_hdf5_data_task: Optional[asyncio.Task] = None
 
     def __init__(self, client: AsyncioClient, record_prefix: str):
         if importlib.util.find_spec("h5py") is None:
@@ -930,12 +928,6 @@ class _HDF5RecordController:
             record_prefix + ":" + currently_capturing_record_name.upper()
         )
 
-        # Spawn the thread that will handle HDF5 file writing
-        self._write_hdf5_file_thread = threading.Thread(
-            target=self._handle_hdf5_data_wrapper
-        )
-        self._write_hdf5_file_thread.start()
-
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
         """Control when values can be written to parameter records
         (file name etc.) based on capturing record's value"""
@@ -965,129 +957,103 @@ class _HDF5RecordController:
 
         return self._parameter_validate(record, new_val)
 
-    def _handle_hdf5_data_wrapper(self):
-        """This method is expected to run in its own thread, which will run for the
-        lifetime of the process."""
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(self._handle_hdf5_data())
-
-    # TODO: There shouldn't be a need for another thread, so go back to using asyncio Event
-    # and investigate why the wait() seemed to block forever. And get rid of the thread entirely.
     async def _handle_hdf5_data(self):
         """Handles writing HDF5 data from the PandA to file, based on configuration
-        in the various HDF5 records. This method should run for the lifetime of the
-        program."""
-        # TODO: Convert this into a task, not a thread, and get rid of the Events
-        # and just start/stop the task as appropriate
-        while True:
-            logging.debug("Waiting for _capture_enabled_event")
-            # Wait for Capture to be enabled
-            self._capture_enabled_event.wait()
+        in the various HDF5 records.
+        This method expects to be run as an asyncio Task."""
 
-            logging.debug("Acquired _capture_enabled_event, beginning HDF5 processing")
-
-            # Mark HDF5 file capture starting
-            self._currently_capturing_record.set(1)
-
+        try:
             # Keep the start data around to compare against, if capture is
             # enabled/disabled to know if we can keep using the same file
             start_data: Optional[StartData] = None
             captured_frames: int = 0
 
-            try:
-                pipeline: List[Pipeline] = create_default_pipeline(self._get_scheme())
-                flush_period: float = self._flush_period_record.get()
+            pipeline: List[Pipeline] = create_default_pipeline(self._get_scheme())
+            flush_period: float = self._flush_period_record.get()
 
-                async for data in self._client.data(
-                    scaled=False, flush_period=flush_period
-                ):
-                    logging.debug(f"Received data packet: {data}")
-                    if isinstance(data, StartData):
-                        if start_data and data != start_data:
-                            # PandA was disarmed, had config changed, and rearmed.
-                            # Cannot process to the same file with different start data.
-                            logging.error(
-                                "New start data detected, differs from previous start "
-                                "data for this file. Aborting HDF5 data capture."
-                            )
-                            # TODO: add message to say "starting capture"
-                            self._status_message_record.set(
-                                "Mismatched StartData packet for file",
-                                severity=alarm.MAJOR_ALARM,
-                                alarm=alarm.STATE_ALARM,
-                            )
-                            pipeline[0].queue.put_nowait(
-                                EndData(captured_frames, EndReason.START_DATA_MISMATCH)
-                            )
+            self._currently_capturing_record.set(1)
+            self._status_message_record.set("Starting capture")
 
-                            # This is weird but we cannot rely on on_update
-                            # as it's not guaranteed to run before this thread gets
-                            # to the Event check at the top, so call it ourselves.
-                            # TODO: Try a asyncio queue instead of a Event, and consume whatever comes off it
-                            # so we'd only start once
-                            self._capture_control_record.set(0, process=False)
-                            await self._capture_on_update(0)
-                            break
-                        if start_data is None:
-                            start_data = data
-                            # Only pass StartData to pipeline if it wasn't already open
-                            # - if it was there will already be an in-progress HDF file
-                            pipeline[0].queue.put_nowait(data)
+            async for data in self._client.data(
+                scaled=False, flush_period=flush_period
+            ):
+                logging.debug(f"Received data packet: {data}")
+                if isinstance(data, StartData):
+                    if start_data and data != start_data:
+                        # PandA was disarmed, had config changed, and rearmed.
+                        # Cannot process to the same file with different start data.
+                        logging.error(
+                            "New start data detected, differs from previous start "
+                            "data for this file. Aborting HDF5 data capture."
+                        )
 
-                    elif isinstance(data, FrameData):
+                        self._status_message_record.set(
+                            "Mismatched StartData packet for file",
+                            severity=alarm.MAJOR_ALARM,
+                            alarm=alarm.STATE_ALARM,
+                        )
+                        pipeline[0].queue.put_nowait(
+                            EndData(captured_frames, EndReason.START_DATA_MISMATCH)
+                        )
+
+                        self._capture_control_record.set(0)
+                        break
+                    if start_data is None:
+                        # Only pass StartData to pipeline if we haven't previously
+                        # - if we have there will already be an in-progress HDF file
+                        # that we should just append data to
+                        start_data = data
                         pipeline[0].queue.put_nowait(data)
-                        captured_frames += 1
-                        num_to_capture: int = self._num_capture_record.get()
-                        if captured_frames == num_to_capture:
-                            # Reached configured capture limit, stop the file
-                            logging.info(
-                                f"Requested number of frames ({num_to_capture}) "
-                                "captured, disabling Capture."
-                            )
-                            self._status_message_record.set(
-                                "Requested number of frames captured"
-                            )
-                            pipeline[0].queue.put_nowait(
-                                EndData(captured_frames, EndReason.OK)
-                            )
 
-                            # This is weird but we cannot rely on on_update
-                            # as it's not guaranteed to run before this thread gets
-                            # to the Event check at the top, so call it ourselves.
-                            self._capture_control_record.set(0, process=False)
-                            await self._capture_on_update(0)
-                            break
-                    # Ignore EndData - handle terminating capture with the Capture
-                    # record or when we capture the requested number of frames
-
-                    # Check whether to keep running. At end of loop so we finish
-                    # processing the current data packet before exiting.
-                    if not self._capture_enabled_event.is_set():
-                        # Capture has been disabled, stop processing.
-                        logging.info("Capture disabled, closing HDF5 file")
-                        self._status_message_record.set("Capturing disabled")
+                elif isinstance(data, FrameData):
+                    pipeline[0].queue.put_nowait(data)
+                    captured_frames += 1
+                    num_to_capture: int = self._num_capture_record.get()
+                    # TODO: Test the below comparisons
+                    if num_to_capture > 0 and captured_frames >= num_to_capture:
+                        # Reached configured capture limit, stop the file
+                        logging.info(
+                            f"Requested number of frames ({num_to_capture}) "
+                            "captured, disabling Capture."
+                        )
+                        self._status_message_record.set(
+                            "Requested number of frames captured"
+                        )
                         pipeline[0].queue.put_nowait(
                             EndData(captured_frames, EndReason.OK)
                         )
-                        break
 
-            except Exception:
-                logging.exception(
-                    "HDF5 data capture terminated due to unexpected error"
-                )
-                # TODO: confirm the status alarm is reset in good cases
-                self._status_message_record.set(
-                    "Capturing disabled, unexpected exception",
-                    severity=alarm.MAJOR_ALARM,
-                    alarm=alarm.STATE_ALARM,
-                )
+                        self._capture_control_record.set(0)
+                        break
+                # Ignore EndData - handle terminating capture with the Capture
+                # record or when we capture the requested number of frames
+
+        except CancelledError:
+            logging.info("Capturing task cancelled, closing HDF5 file")
+            self._status_message_record.set("Capturing disabled")
+            # Only send EndData if we know the file was started i.e. that we've passed
+            # a start_data to the pipeline
+            if start_data:
+                pipeline[0].queue.put_nowait(EndData(captured_frames, EndReason.OK))
+
+        except Exception:
+            logging.exception("HDF5 data capture terminated due to unexpected error")
+            self._status_message_record.set(
+                "Capturing disabled, unexpected exception",
+                severity=alarm.MAJOR_ALARM,
+                alarm=alarm.STATE_ALARM,
+            )
+            # Only send EndData if we know the file was started i.e. that we've passed
+            # a start_data to the pipeline
+            if start_data:
                 pipeline[0].queue.put_nowait(
                     EndData(captured_frames, EndReason.UNKNOWN_EXCEPTION)
                 )
-            finally:
-                logging.debug("Finishing processing HDF5 PandA data")
-                stop_pipeline(pipeline)
-                self._currently_capturing_record.set(0)
+
+        finally:
+            logging.debug("Finishing processing HDF5 PandA data")
+            stop_pipeline(pipeline)
+            self._currently_capturing_record.set(0)
 
     def _get_scheme(self) -> str:
         """Create the scheme for the HDF5 file from the relevant record in the format
@@ -1113,9 +1079,15 @@ class _HDF5RecordController:
         """Process an update to the Capture record, to start/stop recording HDF5 data"""
         logging.debug(f"Entering HDF5:Capture record on_update method, value {new_val}")
         if new_val:
-            self._capture_enabled_event.set()  # Start the writing task
+            if self._handle_hdf5_data_task:
+                logging.warning("Existing HDF5 capture running, cancelling it.")
+                self._handle_hdf5_data_task.cancel()
+
+            self._handle_hdf5_data_task = asyncio.create_task(self._handle_hdf5_data())
         else:
-            self._capture_enabled_event.clear()  # Abort any HDF5 file writing
+            assert self._handle_hdf5_data_task
+            self._handle_hdf5_data_task.cancel()  # Abort any HDF5 file writing
+            self._handle_hdf5_data_task = None
 
     def _capture_validate(self, record: RecordWrapper, new_val: int) -> bool:
         """Check the required records have been set before allowing Capture=1"""
@@ -2565,7 +2537,7 @@ async def create_records(
 async def update(
     client: AsyncioClient,
     all_records: Dict[EpicsName, _RecordInfo],
-    poll_period: int,
+    poll_period: float,
     all_values_dict: Dict[EpicsName, RecordValue],
 ):
     """Query the PandA at regular intervals for any changed fields, and update
