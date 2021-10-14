@@ -19,7 +19,6 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
     Arm,
     ChangeGroup,
-    CommandException,
     Disarm,
     GetBlockInfo,
     GetChanges,
@@ -139,8 +138,7 @@ async def _create_softioc(
     asyncio.create_task(update(client, all_records, 1, all_values_dict))
 
 
-# TODO: Consider https://github.com/dls-controls/pythonSoftIOC/issues/43
-# which means we might need to ensure ALL Out records have an initial_value...
+# TODO: Update softioc once issue #43 (and hopefully others) have been fixed
 def create_softioc(host: str, record_prefix: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
@@ -368,28 +366,34 @@ class _RecordUpdater:
             logging.exception(
                 f"Unable to Put record {self.record_name}, value {new_val}, to PandA",
             )
-            if self._record:
-                assert self.record_name in self.all_values_dict
-                old_val = self.all_values_dict[self.record_name]
-                if isinstance(old_val, _InErrorException):
-                    # If PythonSoftIOC issue #53 is fixed we could put some error state.
-                    logging.error(
-                        f"Cannot restore previous value to record {self.record_name}, "
-                        "PandA marks this field as in error."
-                    )
-                    return
+            # TODO: I dislike this nested try... is there a neater way?
+            try:
+                if self._record:
+                    assert self.record_name in self.all_values_dict
+                    old_val = self.all_values_dict[self.record_name]
+                    if isinstance(old_val, _InErrorException):
+                        # If PythonSoftIOC issue #53 is fixed we could put error state.
+                        logging.error(
+                            "Cannot restore previous value to record "
+                            f"{self.record_name}, PandA marks this field as in error."
+                        )
+                        return
 
-                # TODO: Manual test this area
-                logging.warning(
-                    f"Restoring previous value {old_val} to record {self.record_name}"
-                )
-                # Note that only Out records will be present here, due to how
-                # _RecordUpdater instances are created.
-                self._record.set(old_val, process=False)
-            else:
-                logging.error(
-                    f"No record found when updating {self.record_name}, "
-                    "unable to roll back value"
+                    logging.warning(
+                        f"Restoring previous value {old_val} to record "
+                        f"{self.record_name}"
+                    )
+                    # Note that only Out records will be present here, due to how
+                    # _RecordUpdater instances are created.
+                    self._record.set(old_val, process=False)
+                else:
+                    logging.error(
+                        f"No record found when updating {self.record_name}, "
+                        "unable to roll back value"
+                    )
+            except Exception:
+                logging.exception(
+                    f"Unable to roll back record {self.record_name} to previous value.",
                 )
 
     def add_record(self, record: RecordWrapper) -> None:
@@ -407,9 +411,6 @@ class _WriteRecordUpdater(_RecordUpdater):
     async def update(self, new_val: Any):
         if self.data_type_func(new_val):
             await super().update(None)
-            # TODO: Check with Tom if we should reset these field types or just
-            # leave them set
-            self._record.set(0, process=False)
 
         return
 
@@ -797,7 +798,6 @@ class _HDF5RecordController:
     _num_capture_record: RecordWrapper
     _flush_period_record: RecordWrapper
     _capture_control_record: RecordWrapper  # Turn capture on/off
-    _arm_disarm_record: RecordWrapper  # Send Arm/Disarm
     _status_message_record: RecordWrapper  # Reports status and error messages
     _currently_capturing_record: RecordWrapper  # If HDF5 file currently being written
 
@@ -908,19 +908,6 @@ class _HDF5RecordController:
             record_prefix + ":" + capture_control_record_name.upper()
         )
 
-        arm_disarm_record_name = self._HDF5_PREFIX + ":Arm"
-        self._arm_disarm_record = builder.boolOut(
-            arm_disarm_record_name,
-            ZNAM=ZNAM_STR,
-            ONAM=ONAM_STR,
-            initial_value=0,  # PythonSoftIOC issue #43
-            on_update=self._arm_on_update,
-            DESC="Arm/Disarm the PandA",
-        )
-        self._arm_disarm_record.add_alias(
-            record_prefix + ":" + arm_disarm_record_name.upper()
-        )
-
         status_message_record_name = self._HDF5_PREFIX + ":Status"
         self._status_message_record = builder.stringIn(
             status_message_record_name,
@@ -978,35 +965,20 @@ class _HDF5RecordController:
 
         return self._parameter_validate(record, new_val)
 
-    async def _arm_on_update(self, new_val: int) -> None:
-        """Process an update to the Arm record, to arm/disarm the PandA"""
-        logging.debug(f"Entering HDF5:Arm record on_update method, value {new_val}")
-        try:
-            if new_val:
-                logging.debug("Arming PandA")
-                await self._client.send(Arm())
-            else:
-                logging.debug("Disarming PandA")
-                await self._client.send(Disarm())
-
-        except CommandException:
-            logging.exception("Failure arming/disarming PandA")
-            self._status_message_record.set("Failed to arm/disarm PandA")
-
-        except Exception:
-            logging.exception("Unexpected exception when arming/disarming PandA")
-
     def _handle_hdf5_data_wrapper(self):
         """This method is expected to run in its own thread, which will run for the
         lifetime of the process."""
         loop = asyncio.new_event_loop()
         loop.run_until_complete(self._handle_hdf5_data())
 
+    # TODO: There shouldn't be a need for another thread, so go back to using asyncio Event
+    # and investigate why the wait() seemed to block forever. And get rid of the thread entirely.
     async def _handle_hdf5_data(self):
         """Handles writing HDF5 data from the PandA to file, based on configuration
         in the various HDF5 records. This method should run for the lifetime of the
         program."""
-
+        # TODO: Convert this into a task, not a thread, and get rid of the Events
+        # and just start/stop the task as appropriate
         while True:
             logging.debug("Waiting for _capture_enabled_event")
             # Wait for Capture to be enabled
@@ -1024,8 +996,7 @@ class _HDF5RecordController:
 
             try:
                 # Store the max number
-                # TODO: Could just re-get this number on each loop? Means users could
-                # edit it whenever they want
+                # TODO: move this into loop so its updated every time
                 num_to_capture: int = self._num_capture_record.get()
                 pipeline: List[Pipeline] = create_default_pipeline(self._get_scheme())
                 flush_period: float = self._flush_period_record.get()
@@ -1042,6 +1013,7 @@ class _HDF5RecordController:
                                 "New start data detected, differs from previous start "
                                 "data for this file. Aborting HDF5 data capture."
                             )
+                            # TODO: add message to say "starting capture"
                             self._status_message_record.set(
                                 "Mismatched StartData packet for file"
                             )
@@ -1052,6 +1024,8 @@ class _HDF5RecordController:
                             # This is weird but we cannot rely on on_update
                             # as it's not guaranteed to run before this thread gets
                             # to the Event check at the top, so call it ourselves.
+                            # TODO: Try a asyncio queue instead of a Event, and consume whatever comes off it
+                            # so we'd only start once
                             self._capture_control_record.set(0, process=False)
                             await self._capture_on_update(0)
                             break
@@ -1102,8 +1076,12 @@ class _HDF5RecordController:
                 logging.exception(
                     "HDF5 data capture terminated due to unexpected error"
                 )
+                # TODO: Add severity+aalarm to other status messages when exceptions/errors have occurred
+                # TODO: confirm the status alarm is reset in good cases
                 self._status_message_record.set(
-                    "Capturing disabled, unexpected exception"
+                    "Capturing disabled, unexpected exception",
+                    severity=alarm.MAJOR_ALARM,
+                    alarm=alarm.STATE_ALARM,
                 )
                 pipeline[0].queue.put_nowait(
                     EndData(captured_frames, EndReason.UNKNOWN_EXCEPTION)
@@ -1396,12 +1374,12 @@ class IocRecordFactory:
             **kwargs,
         )
 
-        units_record = EpicsName(record_name + ":UNITS")
+        units_record_name = EpicsName(record_name + ":UNITS")
         labels, initial_index = self._process_labels(
-            field_info.units_labels, values[units_record]
+            field_info.units_labels, values[units_record_name]
         )
-        record_dict[units_record] = self._create_record_info(
-            units_record,
+        record_dict[units_record_name] = self._create_record_info(
+            units_record_name,
             "Units of time setting",
             builder.mbbIn,
             type(initial_index),
@@ -1431,9 +1409,9 @@ class IocRecordFactory:
             initial_value=values[record_name],
         )
 
-        min_record = EpicsName(record_name + ":MIN")
-        record_dict[min_record] = self._create_record_info(
-            min_record,
+        min_record_name = EpicsName(record_name + ":MIN")
+        record_dict[min_record_name] = self._create_record_info(
+            min_record_name,
             "Minimum programmable time",
             builder.aIn,
             type(field_info.min),
@@ -1501,18 +1479,18 @@ class IocRecordFactory:
             initial_value=values[record_name],
         )
 
-        cw_rec_name = EpicsName(record_name + ":CAPTURE_WORD")
-        record_dict[cw_rec_name] = self._create_record_info(
-            cw_rec_name,
+        cw_record_name = EpicsName(record_name + ":CAPTURE_WORD")
+        record_dict[cw_record_name] = self._create_record_info(
+            cw_record_name,
             "Name of field containing this bit",
             builder.stringIn,
             type(field_info.capture_word),
             initial_value=field_info.capture_word,
         )
 
-        offset_rec_name = EpicsName(record_name + ":OFFSET")
-        record_dict[offset_rec_name] = self._create_record_info(
-            offset_rec_name,
+        offset_record_name = EpicsName(record_name + ":OFFSET")
+        record_dict[offset_record_name] = self._create_record_info(
+            offset_record_name,
             "Position of this bit in captured word",
             builder.longIn,
             type(field_info.offset),
@@ -1540,12 +1518,12 @@ class IocRecordFactory:
             initial_value=values[record_name],
         )
 
-        capture_rec = EpicsName(record_name + ":CAPTURE")
+        capture_record_name = EpicsName(record_name + ":CAPTURE")
         labels, capture_index = self._process_labels(
-            field_info.capture_labels, values[capture_rec]
+            field_info.capture_labels, values[capture_record_name]
         )
-        record_dict[capture_rec] = self._create_record_info(
-            capture_rec,
+        record_dict[capture_record_name] = self._create_record_info(
+            capture_record_name,
             "Capture options",
             builder.mbbOut,
             int,
@@ -1553,31 +1531,31 @@ class IocRecordFactory:
             initial_value=capture_index,
         )
 
-        offset_rec = EpicsName(record_name + ":OFFSET")
-        record_dict[offset_rec] = self._create_record_info(
-            offset_rec,
+        offset_record_name = EpicsName(record_name + ":OFFSET")
+        record_dict[offset_record_name] = self._create_record_info(
+            offset_record_name,
             "Offset",
             builder.aOut,
             float,
-            initial_value=values[offset_rec],
+            initial_value=values[offset_record_name],
         )
 
-        scale_rec = EpicsName(record_name + ":SCALE")
-        record_dict[scale_rec] = self._create_record_info(
-            scale_rec,
+        scale_record_name = EpicsName(record_name + ":SCALE")
+        record_dict[scale_record_name] = self._create_record_info(
+            scale_record_name,
             "Scale factor",
             builder.aOut,
             float,
-            initial_value=values[scale_rec],
+            initial_value=values[scale_record_name],
         )
 
-        units_rec = EpicsName(record_name + ":UNITS")
-        record_dict[units_rec] = self._create_record_info(
-            units_rec,
+        units_record_name = EpicsName(record_name + ":UNITS")
+        record_dict[units_record_name] = self._create_record_info(
+            units_record_name,
             "Units string",
             builder.stringOut,
             str,
-            initial_value=values[units_rec],
+            initial_value=values[units_record_name],
         )
 
         # TODO: Work out how to test SCALED, as well as all tabular,
@@ -1585,38 +1563,56 @@ class IocRecordFactory:
 
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
-        scaled_rec = record_name + ":SCALED"
-        scaled_calc_rec = builder.records.calc(
-            scaled_rec,
+        scaled_record_name = record_name + ":SCALED"
+        scaled_calc_record = builder.records.calc(
+            scaled_record_name,
             CALC="A*B + C",
             INPA=builder.CP(record_dict[record_name].record),
-            INPB=builder.CP(record_dict[scale_rec].record),
-            INPC=builder.CP(record_dict[offset_rec].record),
+            INPB=builder.CP(record_dict[scale_record_name].record),
+            INPC=builder.CP(record_dict[offset_record_name].record),
             DESC="Value with scaling applied",
         )
 
         # Create the POSITIONS "table" of records. Most are aliases of the records
         # created above.
-        positions_str = f"POSITIONS:{self._pos_out_row_counter}"
+        positions_record_name = f"POSITIONS:{self._pos_out_row_counter}"
         builder.records.stringin(
-            positions_str + ":NAME",
+            positions_record_name + ":NAME",
             VAL=record_name,
             DESC="Table of configured positional outputs",
         ),
 
-        scaled_calc_rec.add_alias(self._record_prefix + ":" + positions_str + ":VAL")
+        scaled_calc_record.add_alias(
+            self._record_prefix + ":" + positions_record_name + ":VAL"
+        )
 
-        record_dict[capture_rec].record.add_alias(
-            self._record_prefix + ":" + positions_str + ":" + capture_rec.split(":")[-1]
+        record_dict[capture_record_name].record.add_alias(
+            self._record_prefix
+            + ":"
+            + positions_record_name
+            + ":"
+            + capture_record_name.split(":")[-1]
         )
-        record_dict[offset_rec].record.add_alias(
-            self._record_prefix + ":" + positions_str + ":" + offset_rec.split(":")[-1]
+        record_dict[offset_record_name].record.add_alias(
+            self._record_prefix
+            + ":"
+            + positions_record_name
+            + ":"
+            + offset_record_name.split(":")[-1]
         )
-        record_dict[scale_rec].record.add_alias(
-            self._record_prefix + ":" + positions_str + ":" + scale_rec.split(":")[-1]
+        record_dict[scale_record_name].record.add_alias(
+            self._record_prefix
+            + ":"
+            + positions_record_name
+            + ":"
+            + scale_record_name.split(":")[-1]
         )
-        record_dict[units_rec].record.add_alias(
-            self._record_prefix + ":" + positions_str + ":" + units_rec.split(":")[-1]
+        record_dict[units_record_name].record.add_alias(
+            self._record_prefix
+            + ":"
+            + positions_record_name
+            + ":"
+            + units_record_name.split(":")[-1]
         )
 
         self._pos_out_row_counter += 1
@@ -1638,12 +1634,12 @@ class IocRecordFactory:
         # you do with them is to turn their Capture attribute on/off.
         # The field itself has no value.
 
-        capture_rec = EpicsName(record_name + ":CAPTURE")
+        capture_record_name = EpicsName(record_name + ":CAPTURE")
         labels, capture_index = self._process_labels(
-            field_info.capture_labels, values[capture_rec]
+            field_info.capture_labels, values[capture_record_name]
         )
-        record_dict[capture_rec] = self._create_record_info(
-            capture_rec,
+        record_dict[capture_record_name] = self._create_record_info(
+            capture_record_name,
             field_info.description,
             builder.mbbOut,
             int,
@@ -1675,8 +1671,8 @@ class IocRecordFactory:
         bits_index = int(bits_index_str)
         offset = bits_index * 32
 
-        capture_rec = EpicsName(record_name + ":CAPTURE")
-        capture_record_info = record_dict[capture_rec]
+        capture_record_name = EpicsName(record_name + ":CAPTURE")
+        capture_record_info = record_dict[capture_record_name]
 
         # There is a single CAPTURE record which is alias'd to appear in each row.
         # This is because you can only capture a whole field's worth of bits at a time,
@@ -1717,6 +1713,9 @@ class IocRecordFactory:
         assert field_info.labels
         record_dict: Dict[EpicsName, _RecordInfo] = {}
 
+        # This should be an mbbOut record, but there are too many posssible labels
+        # TODO: There will need to be some mechanism to retrieve the labels,
+        # but there's a BITS table that can probably be used
         validator = StringRecordLabelValidator(field_info.labels)
 
         record_dict[record_name] = self._create_record_info(
@@ -1728,18 +1727,18 @@ class IocRecordFactory:
             validate=validator.validate,
         )
 
-        delay_rec = EpicsName(record_name + ":DELAY")
-        record_dict[delay_rec] = self._create_record_info(
-            delay_rec,
+        delay_record_name = EpicsName(record_name + ":DELAY")
+        record_dict[delay_record_name] = self._create_record_info(
+            delay_record_name,
             "Clock delay on input",
             builder.longOut,
             int,
-            initial_value=values[delay_rec],
+            initial_value=values[delay_record_name],
         )
 
-        max_delay_rec = EpicsName(record_name + ":MAX_DELAY")
-        record_dict[max_delay_rec] = self._create_record_info(
-            max_delay_rec,
+        max_delay_record_name = EpicsName(record_name + ":MAX_DELAY")
+        record_dict[max_delay_record_name] = self._create_record_info(
+            max_delay_record_name,
             "Maximum valid input delay",
             builder.longIn,
             type(field_info.max_delay),
@@ -1762,7 +1761,8 @@ class IocRecordFactory:
         record_dict: Dict[EpicsName, _RecordInfo] = {}
 
         # This should be an mbbOut record, but there are too many posssible labels
-        # TODO: Add a :LABELS record so users can get valid values?
+        # TODO: There will need to be some mechanism to retrieve the labels,
+        # but there's a POSITIONS table that can probably be used
         validator = StringRecordLabelValidator(field_info.labels)
 
         record_dict[record_name] = self._create_record_info(
@@ -1935,9 +1935,9 @@ class IocRecordFactory:
             **kwargs,
         )
 
-        max_record = EpicsName(record_name + ":MAX")
-        record_dict[max_record] = self._create_record_info(
-            max_record,
+        max_record_name = EpicsName(record_name + ":MAX")
+        record_dict[max_record_name] = self._create_record_info(
+            max_record_name,
             "Maximum valid value for this field",
             builder.longIn,
             type(field_info.max),
@@ -2055,27 +2055,27 @@ class IocRecordFactory:
             record_name, field_info.description, record_creation_func, float, **kwargs
         )
 
-        offset_rec = EpicsName(record_name + ":OFFSET")
-        record_dict[offset_rec] = self._create_record_info(
-            offset_rec,
+        offset_record_name = EpicsName(record_name + ":OFFSET")
+        record_dict[offset_record_name] = self._create_record_info(
+            offset_record_name,
             "Offset from scaled data to value",
             builder.aIn,
             type(field_info.offset),
             initial_value=field_info.offset,
         )
 
-        scale_rec = EpicsName(record_name + ":SCALE")
-        record_dict[scale_rec] = self._create_record_info(
-            scale_rec,
+        scale_record_name = EpicsName(record_name + ":SCALE")
+        record_dict[scale_record_name] = self._create_record_info(
+            scale_record_name,
             "Scaling from raw data to value",
             builder.aIn,
             type(field_info.scale),
             initial_value=field_info.scale,
         )
 
-        units_rec = EpicsName(record_name + ":UNITS")
-        record_dict[units_rec] = self._create_record_info(
-            units_rec,
+        units_record_name = EpicsName(record_name + ":UNITS")
+        record_dict[units_record_name] = self._create_record_info(
+            units_record_name,
             "Units associated with value",
             builder.stringIn,
             type(field_info.units),
@@ -2433,6 +2433,20 @@ class IocRecordFactory:
         ("write", "time"): _make_subtype_time_write,
     }
 
+    async def _arm_on_update(self, new_val: int) -> None:
+        """Process an update to the Arm record, to arm/disarm the PandA"""
+        logging.debug(f"Entering HDF5:Arm record on_update method, value {new_val}")
+        try:
+            if new_val:
+                logging.info("Arming PandA")
+                await self._client.send(Arm())
+            else:
+                logging.info("Disarming PandA")
+                await self._client.send(Disarm())
+
+        except Exception:
+            logging.exception("Failure arming/disarming PandA")
+
     def create_block_records(
         self, block: str, block_info: BlockInfo, block_values: Dict[EpicsName, str]
     ) -> Dict[EpicsName, _RecordInfo]:
@@ -2451,6 +2465,17 @@ class IocRecordFactory:
             )
 
         if block == "PCAP":
+            builder.boolOut(
+                "PCAP:ARM",
+                ZNAM=ZNAM_STR,
+                ONAM=ONAM_STR,
+                initial_value=0,  # PythonSoftIOC issue #43
+                always_update=True,  # No way to synchronize Armed status
+                # with the PandA, so just let the user always rewrite it
+                on_update=self._arm_on_update,
+                DESC="Arm/Disarm the PandA",
+            )
+
             _HDF5RecordController(self._client, self._record_prefix)
 
         return record_dict
@@ -2553,8 +2578,6 @@ async def update(
         all_records: The dictionary of all records that are expected to be updated when
             PandA reports changes. This is NOT all records in the IOC.
         poll_period: The wait time, in seconds, before the next GetChanges is called.
-            TODO: This will eventually need to become a millisecond wait, so we can poll
-            at 10HZ
         all_values_dict: The dictionary containing the most recent value of all records
             as returned from GetChanges. This method will update values in the dict,
             which will be read and used in other places"""
@@ -2620,14 +2643,15 @@ async def update(
                 table_field = PandAName(table_field)
                 table_field = _panda_to_epics_name(table_field)
                 # Tables must have a MODE record defined - use it to update the table
-                mode_rec_name = EpicsName(table_field + ":MODE")
-                if mode_rec_name not in all_records:
+                mode_record_name = EpicsName(table_field + ":MODE")
+                if mode_record_name not in all_records:
                     logging.error(
-                        f"Table MODE record {mode_rec_name} not found in known records"
+                        f"Table MODE record {mode_record_name} not found."
+                        f" Skipping update to table {table_field}"
                     )
                     continue
 
-                table_updater = all_records[mode_rec_name].table_updater
+                table_updater = all_records[mode_record_name].table_updater
                 assert table_updater
                 table_updater.update_table(value_list)
 
