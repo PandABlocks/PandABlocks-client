@@ -363,7 +363,7 @@ class _RecordUpdater:
             # Thrown by some data_type_func calls.
             # Some values, e.g. tables, do not use this update mechanism
             logging.debug(f"Ignoring update to record {self.record_name}")
-            pass
+
         except Exception:
             logging.exception(
                 f"Unable to Put record {self.record_name}, value {new_val}, to PandA",
@@ -1167,6 +1167,21 @@ class _HDF5RecordController:
         return val.tobytes().decode()[:-1]
 
 
+@dataclass
+class StringRecordLabelValidator:
+    """Validate that a given string is a valid label for a PandA enum field.
+    This is necessary for several fields which have too many labels to fit in
+    an EPICS mbbi/mbbo record, and so use string records instead."""
+
+    labels: List[str]
+
+    def validate(self, record: RecordWrapper, new_val: str):
+        if new_val in self.labels:
+            return True
+        logging.warning(f"Value {new_val} not valid for record {record.name}")
+        return False
+
+
 class IocRecordFactory:
     """Class to handle creating PythonSoftIOC records for a given field defined in
     a PandA"""
@@ -1699,7 +1714,10 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, _RecordInfo]:
         self._check_num_values(values, 2)
         assert isinstance(field_info, BitMuxFieldInfo)
+        assert field_info.labels
         record_dict: Dict[EpicsName, _RecordInfo] = {}
+
+        validator = StringRecordLabelValidator(field_info.labels)
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -1707,6 +1725,7 @@ class IocRecordFactory:
             builder.stringOut,
             str,
             initial_value=values[record_name],
+            validate=validator.validate,
         )
 
         delay_rec = EpicsName(record_name + ":DELAY")
@@ -1735,17 +1754,6 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, ScalarRecordValue],
     ) -> Dict[EpicsName, _RecordInfo]:
-        @dataclass
-        class PosMuxValidator:
-            """Validate that a given string is a valid label for a PosMux field"""
-
-            labels: List[str]
-
-            def validate(self, record: RecordWrapper, new_val: str):
-                if new_val in self.labels:
-                    return True
-                logging.warning(f"Value {new_val} not valid for record {record.name}")
-                return False
 
         self._check_num_values(values, 1)
         assert isinstance(field_info, PosMuxFieldInfo)
@@ -1755,7 +1763,7 @@ class IocRecordFactory:
 
         # This should be an mbbOut record, but there are too many posssible labels
         # TODO: Add a :LABELS record so users can get valid values?
-        validator = PosMuxValidator(field_info.labels)
+        validator = StringRecordLabelValidator(field_info.labels)
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -2594,7 +2602,6 @@ async def update(
                 # Only Out records need process=False set.
                 extra_kwargs = {}
                 if not record_info.is_in_record:
-                    # TODO: Test
                     extra_kwargs.update({"process": False})
 
                 try:
