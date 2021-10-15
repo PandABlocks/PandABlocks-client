@@ -5,7 +5,7 @@ import importlib
 import inspect
 import logging
 import os
-from asyncio.futures import CancelledError
+from asyncio import CancelledError
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
@@ -138,7 +138,7 @@ async def _create_softioc(
     asyncio.create_task(update(client, all_records, 1, all_values_dict))
 
 
-# TODO: Update softioc once issue #43 (and hopefully others) have been fixed
+# TODO: Update softioc version once issue #43 (and hopefully others) have been fixed
 def create_softioc(host: str, record_prefix: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
@@ -502,6 +502,7 @@ class TablePacking:
             table_fields.values(), table_records.values()
         ):
             curr_val = record_info.record.get()
+            assert isinstance(curr_val, np.ndarray)  # Check no SCALAR records here
             # PandA always handles tables in uint32 format
             curr_val = np.uint32(curr_val)
 
@@ -509,9 +510,10 @@ class TablePacking:
                 # Create 1-D array sufficiently long to exactly hold the entire table
                 packed = np.zeros((len(curr_val), row_words), dtype=np.uint32)
             else:
-                assert len(packed) == len(
-                    curr_val
-                ), "Table waveform lengths mismatched, cannot pack data"
+                assert len(packed) == len(curr_val), (
+                    f"Table record {record_info.record.name} has mismatched length "
+                    "compared to other records, cannot pack data"
+                )
 
             offset = field_details.bit_low
 
@@ -636,9 +638,13 @@ class _TableUpdater:
         if new_label == TableModeEnum.SUBMIT.name:
             try:
                 # Send all EPICS data to PandA
+                logging.info(f"Sending table data for {self.table_name} to PandA")
                 assert self.field_info.row_words
+                packed_data = []
                 packed_data = TablePacking.pack(
-                    self.field_info.row_words, self.table_records, self.table_fields
+                    self.field_info.row_words,
+                    self._get_table_field_records(),
+                    self.table_fields,
                 )
 
                 panda_field_name = _epics_to_panda_name(self.table_name)
@@ -664,13 +670,14 @@ class _TableUpdater:
                     )
                     return
 
-                # TODO: Manual test this area
                 assert isinstance(old_val, list)
                 field_data = TablePacking.unpack(
                     self.field_info.row_words, self.table_fields, old_val
                 )
                 # Table records are never In type, so can always disable processing
-                for record_info, data in zip(self.table_records.values(), field_data):
+                for record_info, data in zip(
+                    self._get_table_field_records().values(), field_data
+                ):
                     record_info.record.set(data, process=False)
             finally:
                 # Already in on_update of this record, so disable processing to
@@ -681,6 +688,7 @@ class _TableUpdater:
 
         elif new_label == TableModeEnum.DISCARD.name:
             # Recreate EPICS data from PandA data
+            logging.info(f"Re-fetching table {self.table_name} data from PandA")
             panda_field_name = _epics_to_panda_name(self.table_name)
             panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
