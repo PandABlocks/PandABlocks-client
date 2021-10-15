@@ -9,20 +9,20 @@ from softioc import alarm
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
-from pandablocks.ioc import (
+from pandablocks.ioc._tables import TableModeEnum, TablePacking, _TableUpdater
+from pandablocks.ioc._types import (
     EpicsName,
-    IocRecordFactory,
     PandAName,
     RecordValue,
-    TableModeEnum,
-    TablePacking,
-    _BlockAndFieldInfo,
-    _ensure_block_number_present,
     _epics_to_panda_name,
     _panda_to_epics_name,
     _RecordInfo,
+)
+from pandablocks.ioc.ioc import (
+    IocRecordFactory,
+    _BlockAndFieldInfo,
+    _ensure_block_number_present,
     _RecordUpdater,
-    _TableUpdater,
     introspect_panda,
 )
 from pandablocks.responses import (
@@ -46,7 +46,7 @@ from tests.conftest import DummyServer
 TEST_PREFIX = "TEST-PREFIX"
 counter = 0
 
-
+# TODO: Split tests up - tables and HDF5 are in their own files now
 @pytest.fixture
 def ioc_record_factory():
     """Create a new IocRecordFactory instance with a new, unique, namespace.
