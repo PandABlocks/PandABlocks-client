@@ -24,6 +24,11 @@ def _epics_to_panda_name(field_name: EpicsName) -> PandAName:
     return PandAName(field_name.replace(":", "."))
 
 
+# Constants used in bool records
+ZNAM_STR = "0"
+ONAM_STR = "1"
+
+
 class _InErrorException(Exception):
     """Placeholder exception to mark a field as being in error as reported by PandA"""
 
