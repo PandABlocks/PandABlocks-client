@@ -22,6 +22,7 @@ from pandablocks.commands import (
 )
 from pandablocks.ioc._hdf_ioc import _HDF5RecordController
 from pandablocks.ioc._tables import (
+    TableFieldRecordContainer,
     TableModeEnum,
     TablePacking,
     TableRecordWrapper,
@@ -1018,12 +1019,16 @@ class IocRecordFactory:
         def _raiseIgnoreException(ignored):
             raise IgnoreException("This item should be ignored")
 
+        table_fields_records: Dict[str, TableFieldRecordContainer] = {
+            k: TableFieldRecordContainer(v, None) for k, v in field_info.fields.items()
+        }
+
         # Create the updater
         table_updater = _TableUpdater(
             self._client,
             record_name,
             field_info,
-            field_info.fields,
+            table_fields_records,
             record_dict,  # Dict is filled throughout this method
             self._all_values_dict,
         )
@@ -1032,15 +1037,19 @@ class IocRecordFactory:
         # unlike field_info's fields. This means the record dict inside the table
         # updater are also in the same bit order.
         field_data = TablePacking.unpack(
-            field_info.row_words, table_updater.table_fields, values[record_name]
+            field_info.row_words,
+            table_updater.table_fields_records,
+            values[record_name],
         )
 
-        for (field_name, field_details), data in zip(
-            table_updater.table_fields.items(), field_data
+        for (field_name, field_record_container), data in zip(
+            table_updater.table_fields_records.items(), field_data
         ):
+            field_details = field_record_container.field
+
             full_name = record_name + ":" + field_name
             full_name = EpicsName(full_name)
-            record_dict[full_name] = self._create_record_info(
+            field_record_container.record_info = self._create_record_info(
                 full_name,
                 field_details.description,
                 builder.WaveformOut,
@@ -1058,7 +1067,7 @@ class IocRecordFactory:
             )
 
             # This line is a workaround for issue #37 in PythonSoftIOC
-            record_dict[full_name].record.set(data, process=False)
+            field_record_container.record_info.record.set(data, process=False)
 
             # Scalar record gives access to individual cell in a column,
             # in combination with the INDEX record defined below
@@ -1881,7 +1890,7 @@ async def update(
 
                 mode_record = all_records[mode_record_name].record
                 assert isinstance(mode_record, TableRecordWrapper)
-                mode_record.set(value_list)
+                mode_record.update_table(value_list)
 
             await asyncio.sleep(poll_period)
         except Exception:

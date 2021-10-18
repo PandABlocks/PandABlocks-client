@@ -9,7 +9,12 @@ from softioc import alarm
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
-from pandablocks.ioc._tables import TableModeEnum, TablePacking, _TableUpdater
+from pandablocks.ioc._tables import (
+    TableFieldRecordContainer,
+    TableModeEnum,
+    TablePacking,
+    _TableUpdater,
+)
 from pandablocks.ioc._types import EpicsName, RecordValue, _RecordInfo
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 
@@ -218,25 +223,27 @@ def table_unpacked_data(table_fields) -> Dict[EpicsName, ndarray]:
 
 
 @pytest.fixture
-def table_unpacked_data_records(
-    table_fields, table_unpacked_data
-) -> Dict[EpicsName, _RecordInfo]:
+def table_fields_records(
+    table_fields: Dict[str, TableFieldDetails],
+    table_unpacked_data: Dict[EpicsName, ndarray],
+) -> Dict[str, TableFieldRecordContainer]:
     """A faked list of records containing the table_unpacked_data"""
 
     data = {}
-    for field_name, data_array in zip(table_fields, table_unpacked_data.values()):
+    for (field_name, field_info), data_array in zip(
+        table_fields.items(), table_unpacked_data.values()
+    ):
         mocked_record = MagicMock()
         mocked_record.get = MagicMock(return_value=data_array)
-        info = _RecordInfo(mocked_record, lambda x: None)
-        data[field_name] = info
+        record_info = _RecordInfo(mocked_record, lambda x: None)
+        data[field_name] = TableFieldRecordContainer(field_info, record_info)
     return data
 
 
 @pytest.fixture
 def table_updater(
     table_field_info: TableFieldInfo,
-    table_fields: Dict[str, TableFieldDetails],
-    table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
+    table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data_dict: Dict[EpicsName, RecordValue],
 ) -> _TableUpdater:
     """Provides a _TableUpdater with configured records and mocked functionality"""
@@ -259,12 +266,15 @@ def table_updater(
         ],
     )
 
+    # The list of other records, e.g. SCALED, MODE and INDEX, for the table
+    other_records: Dict[EpicsName, _RecordInfo] = {}
+
     updater = _TableUpdater(
         client,
         EpicsName("SEQ1.TABLE"),
         table_field_info,
-        table_fields,
-        table_unpacked_data_records,
+        table_fields_records,
+        other_records,
         table_data_dict,
     )
 
@@ -275,13 +285,15 @@ def table_updater(
 
 def test_table_packing_unpack(
     table_field_info: TableFieldInfo,
-    table_fields: Dict[str, TableFieldDetails],
+    table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data: List[str],
     table_unpacked_data,
 ):
     """Test table unpacking works as expected"""
     assert table_field_info.row_words
-    unpacked = TablePacking.unpack(table_field_info.row_words, table_fields, table_data)
+    unpacked = TablePacking.unpack(
+        table_field_info.row_words, table_fields_records, table_data
+    )
 
     for actual, expected in zip(unpacked, table_unpacked_data.values()):
         assert numpy.array_equal(actual, expected)
@@ -289,15 +301,12 @@ def test_table_packing_unpack(
 
 def test_table_packing_pack(
     table_field_info: TableFieldInfo,
-    table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
-    table_fields: Dict[str, TableFieldDetails],
+    table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data: List[str],
 ):
     """Test table unpacking works as expected"""
     assert table_field_info.row_words
-    unpacked = TablePacking.pack(
-        table_field_info.row_words, table_unpacked_data_records, table_fields
-    )
+    unpacked = TablePacking.pack(table_field_info.row_words, table_fields_records)
 
     for actual, expected in zip(unpacked, table_data):
         assert actual == expected
@@ -305,41 +314,41 @@ def test_table_packing_pack(
 
 def test_table_packing_pack_length_mismatched(
     table_field_info: TableFieldInfo,
-    table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
-    table_fields: Dict[str, TableFieldDetails],
+    table_fields_records: Dict[str, TableFieldRecordContainer],
 ):
     """Test that mismatching lengths on waveform inputs causes an exception"""
     assert table_field_info.row_words
 
     # Adjust one of the record lengths so it mismatches
-    table_unpacked_data_records[EpicsName("OUTC1")].record.get = MagicMock(
-        return_value=array([1, 2, 3, 4, 5, 6, 7, 8])
-    )
+    record_info = table_fields_records[EpicsName("OUTC1")].record_info
+    assert record_info
+    record_info.record.get = MagicMock(return_value=array([1, 2, 3, 4, 5, 6, 7, 8]))
 
     with pytest.raises(AssertionError):
-        TablePacking.pack(
-            table_field_info.row_words, table_unpacked_data_records, table_fields
-        )
+        TablePacking.pack(table_field_info.row_words, table_fields_records)
 
 
 def test_table_packing_roundtrip(
     table_field_info: TableFieldInfo,
     table_fields: Dict[str, TableFieldDetails],
+    table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data: List[str],
 ):
     """Test that calling unpack -> pack yields the same data"""
     assert table_field_info.row_words
-    unpacked = TablePacking.unpack(table_field_info.row_words, table_fields, table_data)
+    unpacked = TablePacking.unpack(
+        table_field_info.row_words, table_fields_records, table_data
+    )
 
     # Put these values into Mocks for the Records
-    data: Dict[EpicsName, _RecordInfo] = {}
-    for field_name, data_array in zip(table_fields, unpacked):
+    data: Dict[str, TableFieldRecordContainer] = {}
+    for (field_name, field_info), data_array in zip(table_fields.items(), unpacked):
         mocked_record = MagicMock()
         mocked_record.get = MagicMock(return_value=data_array)
-        info = _RecordInfo(mocked_record, lambda x: None)
-        data[EpicsName(field_name)] = info
+        record_info = _RecordInfo(mocked_record, lambda x: None)
+        data[field_name] = TableFieldRecordContainer(field_info, record_info)
 
-    packed = TablePacking.pack(table_field_info.row_words, data, table_fields)
+    packed = TablePacking.pack(table_field_info.row_words, data)
 
     assert packed == table_data
 
@@ -349,13 +358,16 @@ def test_table_updater_fields_sorted(table_updater: _TableUpdater):
 
     # Bits start at 0
     curr_bit = -1
-    for field in table_updater.table_fields.values():
-        assert curr_bit < field.bit_low, "Fields are not in bit order"
+    for field in table_updater.table_fields_records.values():
+        field_details = field.field
+        assert curr_bit < field_details.bit_low, "Fields are not in bit order"
         assert (
-            field.bit_low <= field.bit_high  # fields may be 1 bit wide
+            field_details.bit_low <= field_details.bit_high  # fields may be 1 bit wide
         ), "Field had incorrect bit_low and bit_high order"
-        assert curr_bit < field.bit_high, "Field had bit_high lower than bit_low"
-        curr_bit = field.bit_high
+        assert (
+            curr_bit < field_details.bit_high
+        ), "Field had bit_high lower than bit_low"
+        curr_bit = field_details.bit_high
 
 
 def test_table_updater_validate_mode_view(table_updater: _TableUpdater):
@@ -431,12 +443,14 @@ async def test_table_updater_update_mode_view(table_updater: _TableUpdater):
     ), "record set method was unexpectedly called"
 
 
-# TODO: uncomment and see if it passes after new table field record structures
-# @pytest.mark.asyncio
-# async def test_table_updater_update_mode_submit(table_updater: _TableUpdater):
-#     """Test that update_mode with new value of SUBMIT sends data to PandA"""
-#     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
+@pytest.mark.asyncio
+async def test_table_updater_update_mode_submit(
+    table_updater: _TableUpdater, table_data: List[str]
+):
+    """Test that update_mode with new value of SUBMIT sends data to PandA"""
+    await table_updater.update_mode(TableModeEnum.SUBMIT.value)
+    assert isinstance(table_updater.client.send, AsyncMock)
 
-#     assert table_updater.client.send.assert_called_once_with(
-#         Put(table_updater.table_name, ["ABC"])
-#     )
+    table_updater.client.send.assert_called_once_with(
+        Put(table_updater.table_name, table_data)
+    )

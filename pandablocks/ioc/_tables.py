@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from softioc import alarm
@@ -29,7 +29,7 @@ class TableRecordWrapper:
     record: RecordWrapper
     table_updater: "_TableUpdater"
 
-    def set(self, values: List[str]) -> None:
+    def update_table(self, values: List[str]) -> None:
         """Set the given values into the table records"""
         self.table_updater.update_table(values)
 
@@ -38,13 +38,22 @@ class TableRecordWrapper:
         return getattr(self.record, name)
 
 
+@dataclass
+class TableFieldRecordContainer:
+    """Associates a TableFieldDetails with RecordInfo, and thus its WaveformOut
+    record."""
+
+    field: TableFieldDetails
+    record_info: Optional[_RecordInfo]
+
+
 class TablePacking:
     """Class to handle packing and unpacking Table data to and from a PandA"""
 
     @staticmethod
     def unpack(
         row_words: int,
-        table_fields: Dict[str, TableFieldDetails],
+        table_fields_records: Dict[str, TableFieldRecordContainer],
         table_data: List[str],
     ) -> List[np.ndarray]:
         """Unpacks the given `packed` data based on the fields provided.
@@ -68,7 +77,8 @@ class TablePacking:
         packed = data.T
 
         unpacked = []
-        for name, field_details in table_fields.items():
+        for field_record in table_fields_records.values():
+            field_details = field_record.field
             offset = field_details.bit_low
             bit_len = field_details.bit_high - field_details.bit_low + 1
 
@@ -102,18 +112,15 @@ class TablePacking:
 
     @staticmethod
     def pack(
-        row_words: int,
-        table_records: Dict[EpicsName, _RecordInfo],
-        table_fields: Dict[str, TableFieldDetails],
+        row_words: int, table_fields_records: Dict[str, TableFieldRecordContainer]
     ) -> List[str]:
         """Pack the records based on the field definitions into the format PandA expects
         for table writes.
         Args:
             row_words: The number of 32-bit words per row
-            table_records: The list of fields and their associated _RecordInfo
-                structure, used to access the value of each record.
-            table_fields: The list of fields present in the packed data. Must be ordered
-                in bit-ascending order (i.e. lowest bit_low field first)
+            table_fields_records: The list of fields and their associated _RecordInfo
+                structure, used to access the value of each record. The fields and
+                records must be in bit-ascending order (i.e. lowest bit_low field first)
 
         Returns:
             List[str]: The list of data ready to be sent to PandA
@@ -123,9 +130,11 @@ class TablePacking:
 
         # Iterate over the zipped fields and their associated records to construct the
         # packed array.
-        for field_details, record_info in zip(
-            table_fields.values(), table_records.values()
-        ):
+        for field_container in table_fields_records.values():
+            field_details = field_container.field
+            record_info = field_container.record_info
+            assert record_info
+
             curr_val = record_info.record.get()
             assert isinstance(curr_val, np.ndarray)  # Check no SCALAR records here
             # PandA always handles tables in uint32 format
@@ -176,18 +185,18 @@ class _TableUpdater:
         client: The client to be used to read/write to the PandA
         table_name: The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
         field_info: The TableFieldInfo structure for this table
-        table_fields: The list of all fields in the table. During initialization they
-            will be sorted into bit-ascending order
-        table_records: The list of records that comprises this table. Must be in
-            bit-ascending order, matching that of the sorted table_fields.
-        all_values_dict: The dictionary containing the most recent value of all records
-            as returned from GetChanges. This dict will be dynamically updated by other
-            methods."""
+        table_fields_records: The list of field definitions and their associated
+            RecordInfo structures.
+        table_records: The list of non-field (i.e. non-Waveform) records that are also
+            part of this table.
+        all_values_dict: The pointer to the global dictionary containing the most recent
+            value of all records as returned from GetChanges. This dict will be
+            dynamically updated by other methods."""
 
     client: AsyncioClient
     table_name: EpicsName
     field_info: TableFieldInfo
-    table_fields: Dict[str, TableFieldDetails]
+    table_fields_records: Dict[str, TableFieldRecordContainer]
     table_records: Dict[EpicsName, _RecordInfo]
     all_values_dict: Dict[EpicsName, RecordValue]
 
@@ -195,8 +204,11 @@ class _TableUpdater:
         # Called at the end of dataclass's __init__
         # The field order will be whatever was configured in the PandA.
         # Ensure fields in bit order from lowest to highest so we can parse data
-        self.table_fields = dict(
-            sorted(self.table_fields.items(), key=lambda item: item[1].bit_low)
+        self.table_fields_records = dict(
+            sorted(
+                self.table_fields_records.items(),
+                key=lambda item: item[1].field.bit_low,
+            )
         )
 
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
@@ -268,9 +280,7 @@ class _TableUpdater:
                 assert self.field_info.row_words
                 packed_data = []
                 packed_data = TablePacking.pack(
-                    self.field_info.row_words,
-                    self._get_table_field_records(),
-                    self.table_fields,
+                    self.field_info.row_words, self.table_fields_records
                 )
 
                 panda_field_name = _epics_to_panda_name(self.table_name)
@@ -298,13 +308,14 @@ class _TableUpdater:
 
                 assert isinstance(old_val, list)
                 field_data = TablePacking.unpack(
-                    self.field_info.row_words, self.table_fields, old_val
+                    self.field_info.row_words, self.table_fields_records, old_val
                 )
                 # Table records are never In type, so can always disable processing
-                for record_info, data in zip(
-                    self._get_table_field_records().values(), field_data
+                for field_record, data in zip(
+                    self.table_fields_records.values(), field_data
                 ):
-                    record_info.record.set(data, process=False)
+                    assert field_record.record_info
+                    field_record.record_info.record.set(data, process=False)
             finally:
                 # Already in on_update of this record, so disable processing to
                 # avoid recursion
@@ -320,7 +331,7 @@ class _TableUpdater:
 
             assert self.field_info.row_words
             field_data = TablePacking.unpack(
-                self.field_info.row_words, self.table_fields, panda_vals
+                self.field_info.row_words, self.table_fields_records, panda_vals
             )
 
             for record_info, data in zip(self.table_records.values(), field_data):
@@ -344,14 +355,16 @@ class _TableUpdater:
         if curr_mode == TableModeEnum.VIEW:
             assert self.field_info.row_words
             field_data = TablePacking.unpack(
-                self.field_info.row_words, self.table_fields, list(new_values)
+                self.field_info.row_words, self.table_fields_records, list(new_values)
             )
 
-            table_field_records = self._get_table_field_records()
-            for record_info, data in zip(table_field_records.values(), field_data):
+            for field_record, data in zip(
+                self.table_fields_records.values(), field_data
+            ):
+                assert field_record.record_info
                 # Must skip processing as the validate method would reject the update
-                record_info.record.set(data, process=False)
-                self._update_scalar(record_info.record.name)
+                field_record.record_info.record.set(data, process=False)
+                self._update_scalar(field_record.record_info.record.name)
         else:
             # No other mode allows PandA updates to EPICS records
             logging.warning(
@@ -362,8 +375,9 @@ class _TableUpdater:
     async def update_index(self, new_val) -> None:
         """Update the SCALAR record for every column in the table based on the new
         index and/or new waveform data."""
-        for record_info in self._get_table_field_records().values():
-            self._update_scalar(record_info.record.name)
+        for field_record in self.table_fields_records.values():
+            assert field_record.record_info
+            self._update_scalar(field_record.record_info.record.name)
 
     def _update_scalar(self, waveform_record_name: str) -> None:
         """Update the column's SCALAR record based on the new index and/or new waveform
@@ -376,9 +390,11 @@ class _TableUpdater:
 
         # Remove namespace from record name
         _, waveform_record_name = waveform_record_name.split(":", maxsplit=1)
+        _, field_name = waveform_record_name.rsplit(":", maxsplit=1)
 
-        waveform_record = self.table_records[EpicsName(waveform_record_name)].record
-        waveform_data = waveform_record.get()
+        record_info = self.table_fields_records[field_name].record_info
+        assert record_info
+        waveform_data = record_info.record.get()
 
         scalar_record = self.table_records[
             EpicsName(waveform_record_name + ":SCALAR")
@@ -402,15 +418,6 @@ class _TableUpdater:
         # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
         # alarm value to UDF_ALARM, but I'm specifying it for clarity.
         scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
-
-    def _get_table_field_records(self) -> Dict[EpicsName, _RecordInfo]:
-        """Filter the list of all table records to only return those of the table
-        fields, removing all SCALAR, INDEX, and MODE records."""
-        return {
-            EpicsName(k): v
-            for k, v in self.table_records.items()
-            if not k.endswith(("SCALAR", "INDEX", "MODE"))
-        }
 
     def set_mode_record_info(self, record_info: _RecordInfo) -> None:
         """Set the special MODE record that controls the behaviour of this table"""
