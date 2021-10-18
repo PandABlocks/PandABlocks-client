@@ -122,8 +122,7 @@ class TablePacking:
         packed = None
 
         # Iterate over the zipped fields and their associated records to construct the
-        # packed array. Note that the MODE record is at the end of the table_records,
-        # and so will be ignored by zip() as it has no associated value in table_fields
+        # packed array.
         for field_details, record_info in zip(
             table_fields.values(), table_records.values()
         ):
@@ -179,7 +178,8 @@ class _TableUpdater:
         field_info: The TableFieldInfo structure for this table
         table_fields: The list of all fields in the table. During initialization they
             will be sorted into bit-ascending order
-        table_records: The list of records that comprises this table
+        table_records: The list of records that comprises this table. Must be in
+            bit-ascending order, matching that of the sorted table_fields.
         all_values_dict: The dictionary containing the most recent value of all records
             as returned from GetChanges. This dict will be dynamically updated by other
             methods."""

@@ -8,6 +8,7 @@ from numpy import array, int32, ndarray, uint8, uint16, uint32
 from softioc import alarm
 
 from pandablocks.asyncio import AsyncioClient
+from pandablocks.commands import Put
 from pandablocks.ioc._tables import TableModeEnum, TablePacking, _TableUpdater
 from pandablocks.ioc._types import EpicsName, RecordValue, _RecordInfo
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
@@ -163,7 +164,7 @@ def table_field_info(table_fields) -> TableFieldInfo:
 
 
 @pytest.fixture
-def table_data():
+def table_data() -> List[str]:
     """Table data associated with table_fields and table_field_info fixtures.
     See table_unpacked_data for the unpacked equivalent"""
     return [
@@ -237,16 +238,26 @@ def table_updater(
     table_fields: Dict[str, TableFieldDetails],
     table_unpacked_data_records: Dict[EpicsName, _RecordInfo],
     table_data_dict: Dict[EpicsName, RecordValue],
-):
+) -> _TableUpdater:
     """Provides a _TableUpdater with configured records and mocked functionality"""
     client = AsyncioClient("123")
     client.send = AsyncMock()  # type: ignore
     # mypy doesn't play well with mocking so suppress error
 
     mocked_mode_record = MagicMock()
-    # Default mode record to view, as per default construction
+    # Default mode record to VIEW, as per default construction
     mocked_mode_record.get = MagicMock(return_value=TableModeEnum.VIEW.value)
-    record_info = _RecordInfo(mocked_mode_record, lambda x: None)
+    mocked_mode_record.set = MagicMock()
+    mode_record_info = _RecordInfo(
+        mocked_mode_record,
+        lambda x: None,
+        labels=[
+            TableModeEnum.VIEW.name,
+            TableModeEnum.EDIT.name,
+            TableModeEnum.SUBMIT.name,
+            TableModeEnum.DISCARD.name,
+        ],
+    )
 
     updater = _TableUpdater(
         client,
@@ -257,7 +268,7 @@ def table_updater(
         table_data_dict,
     )
 
-    updater.set_mode_record_info(record_info)
+    updater.set_mode_record_info(mode_record_info)
 
     return updater
 
@@ -392,7 +403,7 @@ def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
     assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
-def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater, capsys):
+def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
     """Test the validate method when mode is unknown"""
 
     table_updater._mode_record_info.record.get = MagicMock(return_value="UnknownValue")
@@ -405,3 +416,27 @@ def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater, capsy
     table_updater._mode_record_info.record.set_alarm.assert_called_once_with(
         alarm.INVALID_ALARM, alarm.UDF_ALARM
     )
+
+
+@pytest.mark.asyncio
+async def test_table_updater_update_mode_view(table_updater: _TableUpdater):
+    """Test that update_mode with new value of VIEW takes no action"""
+    await table_updater.update_mode(TableModeEnum.VIEW.value)
+
+    assert (
+        not table_updater.client.send.called  # type: ignore
+    ), "client send method was unexpectedly called"
+    assert (
+        not table_updater._mode_record_info.record.set.called
+    ), "record set method was unexpectedly called"
+
+
+# TODO: uncomment and see if it passes after new table field record structures
+# @pytest.mark.asyncio
+# async def test_table_updater_update_mode_submit(table_updater: _TableUpdater):
+#     """Test that update_mode with new value of SUBMIT sends data to PandA"""
+#     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
+
+#     assert table_updater.client.send.assert_called_once_with(
+#         Put(table_updater.table_name, ["ABC"])
+#     )

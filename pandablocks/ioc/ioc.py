@@ -1029,7 +1029,8 @@ class IocRecordFactory:
         )
 
         # Note that the table_updater's table_fields are guaranteed sorted in bit order,
-        # unlike field_info's fields.
+        # unlike field_info's fields. This means the record dict inside the table
+        # updater are also in the same bit order.
         field_data = TablePacking.unpack(
             field_info.row_words, table_updater.table_fields, values[record_name]
         )
@@ -1083,7 +1084,7 @@ class IocRecordFactory:
             elif field_details.subtype == "enum":
                 assert field_details.labels
                 record_creation_func = builder.mbbIn
-                # Only calling process_labels for label length checking
+                # Only call process_labels for label length check - already have value
                 scalar_labels, initial_value = self._process_labels(
                     field_details.labels, field_details.labels[initial_value]
                 )
