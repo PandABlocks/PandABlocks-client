@@ -53,7 +53,5 @@ class _RecordInfo:
     record: RecordWrapper
     data_type_func: Callable
     labels: Optional[List[str]] = None
-    # TODO: Removing this for the moment to work out circular dependency
-    # table_updater: Optional[_TableUpdater] = None
     # PythonSoftIOC issues #52 or #54 may remove need for is_in_record
     is_in_record: bool = True

@@ -107,7 +107,7 @@ class BitOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `bit_out`"""
 
     capture_word: Optional[str] = None
-    offset: Optional[int] = None  # TODO: PandA returns 0 - is this an int or a float 0?
+    offset: Optional[int] = None
 
 
 @dataclass

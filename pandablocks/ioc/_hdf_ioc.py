@@ -113,7 +113,7 @@ class _HDF5RecordController:
         self._num_capture_record = builder.longOut(
             num_capture_record_name,
             initial_value=0,  # Infinite capture
-            DESC="Num frames to capture. 0 = infinite",
+            DESC="Number of frames to capture. 0=infinite",
             DRVL=0,
             validate=self._parameter_validate,
         )

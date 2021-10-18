@@ -394,7 +394,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     block: str
     extended_metadata: bool = True
 
-    def _param_uint(
+    def _uint(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         field_info = UintFieldInfo(field_type, field_subtype)
@@ -605,6 +605,16 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         field_info.capture_labels = list(capture_labels)
         return field_name, field_info
 
+    class NoAttributesException(Exception):
+        """Exception to indicate this type-subtype pair has no defined attributes"""
+
+    def _no_attributes(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+        """Calling this method indicates type-subtype pair is known and
+        has no attributes"""
+        raise self.NoAttributesException
+
     def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
@@ -641,18 +651,30 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 ("bit_mux", None): self._bit_mux,
                 ("pos_mux", None): self._pos_mux,
                 ("table", None): self._table,
-                ("param", "uint"): self._param_uint,
-                ("read", "uint"): self._param_uint,
-                ("write", "uint"): self._param_uint,
+                ("param", "uint"): self._uint,
+                ("read", "uint"): self._uint,
+                ("write", "uint"): self._uint,
+                ("param", "int"): self._no_attributes,
+                ("read", "int"): self._no_attributes,
+                ("write", "int"): self._no_attributes,
                 ("param", "scalar"): self._scalar,
                 ("read", "scalar"): self._scalar,
                 ("write", "scalar"): self._scalar,
-                ("param", "time"): self._subtype_time,
-                ("read", "time"): self._subtype_time,
-                ("write", "time"): self._subtype_time,
+                ("param", "bit"): self._no_attributes,
+                ("read", "bit"): self._no_attributes,
+                ("write", "bit"): self._no_attributes,
+                ("param", "action"): self._no_attributes,
+                ("read", "action"): self._no_attributes,
+                ("write", "action"): self._no_attributes,
+                ("param", "lut"): self._no_attributes,
+                ("read", "lut"): self._no_attributes,
+                ("write", "lut"): self._no_attributes,
                 ("param", "enum"): self._enum,
                 ("read", "enum"): self._enum,
                 ("write", "enum"): self._enum,
+                ("param", "time"): self._subtype_time,
+                ("read", "time"): self._subtype_time,
+                ("write", "time"): self._subtype_time,
             }
 
             # Always create default FieldInfo. If necessary we will replace it later
@@ -668,13 +690,19 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                         )
                     )
 
+                except self.NoAttributesException:
+                    logging.debug(
+                        f"No attributes defined for field {field_name}, "
+                        f"type {(field_type, subtype)}"
+                    )
+
                 except KeyError:
-                    # No type-specific commands to create
-                    # Many fields have no attributes so this is frequently expected
-                    # Also serves for future-proofing if new types/subtypes are defined
+                    # This exception will be hit if PandA ever defines new types
                     # TODO: Add tests for unknown types and subtypes
-                    # TODO: Add a warning we encountered an unknown type
-                    pass
+                    logging.exception(
+                        f"Unknown type {(field_type, subtype)} detected for "
+                        f"{field_name}, cannot retrieve information for it."
+                    )
 
                 # Description is common to all fields
                 # Note that we don't get the description for any attributes - these are
