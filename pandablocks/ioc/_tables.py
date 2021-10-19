@@ -334,8 +334,11 @@ class _TableUpdater:
                 self.field_info.row_words, self.table_fields_records, panda_vals
             )
 
-            for record_info, data in zip(self.table_records.values(), field_data):
-                record_info.record.set(data, process=False)
+            for field_record, data in zip(
+                self.table_fields_records.values(), field_data
+            ):
+                assert field_record.record_info
+                field_record.record_info.record.set(data, process=False)
 
             # Already in on_update of this record, so disable processing to
             # avoid recursion

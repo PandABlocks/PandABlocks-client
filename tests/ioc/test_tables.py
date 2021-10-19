@@ -1,22 +1,31 @@
 from typing import Dict, List
 
 import numpy
+import numpy.testing
 import pytest
 from mock import AsyncMock
-from mock.mock import MagicMock
+from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, int32, ndarray, uint8, uint16, uint32
 from softioc import alarm
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import Put
+from pandablocks.commands import GetMultiline, Put
 from pandablocks.ioc._tables import (
     TableFieldRecordContainer,
     TableModeEnum,
     TablePacking,
     _TableUpdater,
 )
-from pandablocks.ioc._types import EpicsName, RecordValue, _RecordInfo
+from pandablocks.ioc._types import (
+    EpicsName,
+    RecordValue,
+    _InErrorException,
+    _RecordInfo,
+)
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
+
+PANDA_FORMAT_TABLE_NAME = "SEQ1.TABLE"
+EPICS_FORMAT_TABLE_NAME = "SEQ1:TABLE"
 
 
 @pytest.fixture
@@ -190,7 +199,7 @@ def table_data() -> List[str]:
 
 @pytest.fixture
 def table_data_dict(table_data: List[str]) -> Dict[EpicsName, RecordValue]:
-    return {EpicsName("SEQ1:TABLE"): table_data}
+    return {EpicsName(EPICS_FORMAT_TABLE_NAME): table_data}
 
 
 @pytest.fixture
@@ -234,6 +243,9 @@ def table_fields_records(
         table_fields.items(), table_unpacked_data.values()
     ):
         mocked_record = MagicMock()
+        type(mocked_record).name = PropertyMock(
+            return_value=EPICS_FORMAT_TABLE_NAME + ":" + field_name
+        )
         mocked_record.get = MagicMock(return_value=data_array)
         record_info = _RecordInfo(mocked_record, lambda x: None)
         data[field_name] = TableFieldRecordContainer(field_info, record_info)
@@ -266,12 +278,15 @@ def table_updater(
         ],
     )
 
-    # The list of other records, e.g. SCALED, MODE and INDEX, for the table
-    other_records: Dict[EpicsName, _RecordInfo] = {}
+    # The list of other records, i.e. SCALAR and INDEX, for the table
+    other_records: Dict[EpicsName, _RecordInfo] = {
+        EpicsName("SEQ1:TABLE:POSITION:SCALAR"): MagicMock(),
+        EpicsName("SEQ1:TABLE:INDEX"): MagicMock(),
+    }
 
     updater = _TableUpdater(
         client,
-        EpicsName("SEQ1.TABLE"),
+        EpicsName(EPICS_FORMAT_TABLE_NAME),
         table_field_info,
         table_fields_records,
         other_records,
@@ -449,8 +464,237 @@ async def test_table_updater_update_mode_submit(
 ):
     """Test that update_mode with new value of SUBMIT sends data to PandA"""
     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
+
     assert isinstance(table_updater.client.send, AsyncMock)
+    table_updater.client.send.assert_called_once_with(
+        Put(PANDA_FORMAT_TABLE_NAME, table_data)
+    )
+
+    table_updater._mode_record_info.record.set.assert_called_once_with(
+        TableModeEnum.VIEW.value, process=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_table_updater_update_mode_submit_exception(
+    table_updater: _TableUpdater,
+    table_data: List[str],
+    table_unpacked_data: Dict[EpicsName, ndarray],
+):
+    """Test that update_mode with new value of SUBMIT handles an exception from Put
+    correctly"""
+
+    assert isinstance(table_updater.client.send, AsyncMock)
+    table_updater.client.send.side_effect = Exception("Mocked exception")
+
+    await table_updater.update_mode(TableModeEnum.SUBMIT.value)
 
     table_updater.client.send.assert_called_once_with(
-        Put(table_updater.table_name, table_data)
+        Put(PANDA_FORMAT_TABLE_NAME, table_data)
+    )
+
+    # Confirm each record received the expected data
+    for field_name, data in table_unpacked_data.items():
+        # Note table_unpacked_data is deliberately in a different order to the sorted
+        # data, hence use this lookup mechanism instead
+        record_info = table_updater.table_fields_records[field_name].record_info
+        assert record_info
+        # numpy arrays don't play nice with mock's equality comparisons, do it ourself
+        called_args = record_info.record.set.call_args
+
+        numpy.testing.assert_array_equal(data, called_args[0][0])
+
+    table_updater._mode_record_info.record.set.assert_called_once_with(
+        TableModeEnum.VIEW.value, process=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_table_updater_update_mode_submit_exception_data_error(
+    table_updater: _TableUpdater, table_data: List[str]
+):
+    """Test that update_mode with an exception from Put and an InErrorException behaves
+    as expected"""
+    assert isinstance(table_updater.client.send, AsyncMock)
+    table_updater.client.send.side_effect = Exception("Mocked exception")
+
+    table_updater.all_values_dict[
+        EpicsName(EPICS_FORMAT_TABLE_NAME)
+    ] = _InErrorException("Mocked in error exception")
+
+    await table_updater.update_mode(TableModeEnum.SUBMIT.value)
+
+    for field_record in table_updater.table_fields_records.values():
+        assert field_record.record_info
+        record = field_record.record_info.record
+        record.set.assert_not_called()
+
+    table_updater.client.send.assert_called_once_with(
+        Put(PANDA_FORMAT_TABLE_NAME, table_data)
+    )
+
+
+@pytest.mark.asyncio
+async def test_table_updater_update_mode_discard(
+    table_updater: _TableUpdater,
+    table_data: List[str],
+    table_unpacked_data: Dict[EpicsName, ndarray],
+):
+    """Test that update_mode with new value of DISCARD resets record data"""
+    assert isinstance(table_updater.client.send, AsyncMock)
+    table_updater.client.send.return_value = table_data
+
+    await table_updater.update_mode(TableModeEnum.DISCARD.value)
+
+    table_updater.client.send.assert_called_once_with(
+        GetMultiline(PANDA_FORMAT_TABLE_NAME)
+    )
+
+    # Confirm each record received the expected data
+    for field_name, data in table_unpacked_data.items():
+        # Note table_unpacked_data is deliberately in a different order to the sorted
+        # data, hence use this lookup mechanism instead
+        record_info = table_updater.table_fields_records[field_name].record_info
+        assert record_info
+        # numpy arrays don't play nice with mock's equality comparisons, do it ourself
+        called_args = record_info.record.set.call_args
+
+        numpy.testing.assert_array_equal(data, called_args[0][0])
+
+    table_updater._mode_record_info.record.set.assert_called_once_with(
+        TableModeEnum.VIEW.value, process=False
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "enum_val", [TableModeEnum.EDIT.value, TableModeEnum.VIEW.value]
+)
+async def test_table_updater_update_mode_other(
+    table_updater: _TableUpdater,
+    table_unpacked_data: Dict[EpicsName, ndarray],
+    enum_val: int,
+):
+    """Test that update_mode with non-SUBMIT or DISCARD values takes no action"""
+
+    await table_updater.update_mode(enum_val)
+
+    assert isinstance(table_updater.client.send, AsyncMock)
+    table_updater.client.send.assert_not_called()
+
+    # Confirm each record was not called
+    for field_name, data in table_unpacked_data.items():
+        record_info = table_updater.table_fields_records[field_name].record_info
+        assert record_info
+
+        record_info.record.assert_not_called()
+
+    table_updater._mode_record_info.record.set.assert_not_called()
+
+
+def test_table_updater_update_table(
+    table_updater: _TableUpdater,
+    table_data: List[str],
+    table_unpacked_data: Dict[EpicsName, ndarray],
+):
+    """Test that update_table updates records with the new values"""
+
+    # update_scalar is too complex to test as well, so mock it out
+    table_updater._update_scalar = MagicMock()  # type: ignore
+
+    table_updater.update_table(table_data)
+
+    table_updater._mode_record_info.record.get.assert_called_once()
+
+    # Confirm each record received the expected data
+    for field_name, data in table_unpacked_data.items():
+        # Note table_unpacked_data is deliberately in a different order to the sorted
+        # data, hence use this lookup mechanism instead
+        record_info = table_updater.table_fields_records[field_name].record_info
+        assert record_info
+        # numpy arrays don't play nice with mock's equality comparisons, do it ourself
+        called_args = record_info.record.set.call_args
+
+        numpy.testing.assert_array_equal(data, called_args[0][0])
+
+    table_updater._update_scalar.assert_called()
+
+
+def test_table_updater_update_table_not_view(
+    table_updater: _TableUpdater,
+    table_data: List[str],
+    table_unpacked_data: Dict[EpicsName, ndarray],
+):
+    """Test that update_table does nothing when mode is not VIEW"""
+
+    # update_scalar is too complex to test as well, so mock it out
+    table_updater._update_scalar = MagicMock()  # type: ignore
+
+    table_updater._mode_record_info.record.get.return_value = TableModeEnum.EDIT
+
+    table_updater.update_table(table_data)
+
+    table_updater._mode_record_info.record.get.assert_called_once()
+
+    # Confirm the records were not called
+    for field_name, data in table_unpacked_data.items():
+        # Note table_unpacked_data is deliberately in a different order to the sorted
+        # data, hence use this lookup mechanism instead
+        record_info = table_updater.table_fields_records[field_name].record_info
+        assert record_info
+        record_info.record.set.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_table_updater_update_index(
+    table_updater: _TableUpdater,
+    table_fields: Dict[str, TableFieldDetails],
+):
+    """Test that update_index passes the full list of records to _update_scalar"""
+
+    # Just need to prove it was called, not that it ran
+    table_updater._update_scalar = MagicMock()  # type: ignore
+
+    await table_updater.update_index(None)
+
+    calls = []
+    for field in table_fields.keys():
+        calls.append(call(EPICS_FORMAT_TABLE_NAME + ":" + field))
+
+    table_updater._update_scalar.assert_has_calls(calls, any_order=True)
+
+
+def test_table_updater_update_scalar(
+    table_updater: _TableUpdater,
+):
+    """Test that update_scalar correctly updates the scalar record for a waveform"""
+    scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")
+    scalar_record = table_updater.table_records[scalar_record_name].record
+
+    index_record_name = EpicsName("SEQ1:TABLE:INDEX")
+    index_record = table_updater.table_records[index_record_name].record
+    index_record.get.return_value = 1
+
+    table_updater._update_scalar("ABC:SEQ1:TABLE:POSITION")
+
+    scalar_record.set.assert_called_once_with(
+        678, severity=alarm.NO_ALARM, alarm=alarm.UDF_ALARM
+    )
+
+
+def test_table_updater_update_scalar_index_out_of_bounds(
+    table_updater: _TableUpdater,
+):
+    """Test that update_scalar handles an invalid index"""
+    scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")
+    scalar_record = table_updater.table_records[scalar_record_name].record
+
+    index_record_name = EpicsName("SEQ1:TABLE:INDEX")
+    index_record = table_updater.table_records[index_record_name].record
+    index_record.get.return_value = 99
+
+    table_updater._update_scalar("ABC:SEQ1:TABLE:POSITION")
+
+    scalar_record.set.assert_called_once_with(
+        0, severity=alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM
     )
