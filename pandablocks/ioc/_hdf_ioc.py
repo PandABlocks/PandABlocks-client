@@ -1,8 +1,8 @@
 import asyncio
-import importlib
 import logging
 import os
 from asyncio import CancelledError
+from importlib.util import find_spec
 from typing import List, Optional
 
 import numpy as np
@@ -42,7 +42,7 @@ class _HDF5RecordController:
     _handle_hdf5_data_task: Optional[asyncio.Task] = None
 
     def __init__(self, client: AsyncioClient, record_prefix: str):
-        if importlib.util.find_spec("h5py") is None:
+        if find_spec("h5py") is None:
             logging.warning("No HDF5 support detected - skipping creating HDF5 records")
             return
 
@@ -335,6 +335,9 @@ class _HDF5RecordController:
                 self._get_scheme()
             except ValueError:
                 logging.exception("At least 1 required record had no value")
+                return False
+            except Exception:
+                logging.exception("Unexpected exception creating file name scheme")
                 return False
 
         return True
