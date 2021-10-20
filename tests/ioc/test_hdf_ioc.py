@@ -1,8 +1,12 @@
 # Tests for the _hdf_ioc.py file
 
+from typing import Generator
+
 import numpy
 import pytest
+from epicsdbbuilder import ResetRecords
 from mock.mock import MagicMock
+from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.ioc._hdf_ioc import _HDF5RecordController
@@ -12,7 +16,7 @@ counter = 0
 
 
 @pytest.fixture
-def hdf5_controller() -> _HDF5RecordController:
+def hdf5_controller() -> Generator:
     """Construct an HDF5 controller and mock various aspects of it"""
     global counter
     counter += 1
@@ -23,7 +27,14 @@ def hdf5_controller() -> _HDF5RecordController:
     hdf5_controller._capture_control_record = MagicMock()
     # Default return value for capturing off, allowing validation method to pass
     hdf5_controller._capture_control_record.get = MagicMock(return_value=0)
-    return hdf5_controller
+    # return hdf5_controller
+    yield hdf5_controller
+
+    # Remove any records created at epicsdbbuilder layer
+    ResetRecords()
+    # TODO: Decide if we keep this or not
+    # And at pythonSoftIoc level
+    RecordLookup._RecordDirectory.clear()
 
 
 def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordController):
@@ -45,13 +56,15 @@ def test_hdf_parameter_validate_capturing(hdf5_controller: _HDF5RecordController
 def test_hdf_template_validate(hdf5_controller: _HDF5RecordController):
     """Test _template_validate with some acceptable format strings"""
 
-    array = numpy.fromstring("Valid Format String %s %s %d\0", dtype=numpy.uint8)
+    array = numpy.frombuffer(
+        "Valid Format String %s %s %d".encode() + b"\0", dtype=numpy.uint8
+    )
     assert hdf5_controller._template_validate(MagicMock(), array) is True
 
-    array = numpy.fromstring("%s/%s_%d.h5\0", dtype=numpy.uint8)
+    array = numpy.frombuffer("%s/%s_%d.h5".encode() + b"\0", dtype=numpy.uint8)
     assert hdf5_controller._template_validate(MagicMock(), array) is True
 
-    array = numpy.fromstring("%s/%d%s.h5\0", dtype=numpy.uint8)
+    array = numpy.frombuffer("%s/%d%s.h5".encode() + b"\0", dtype=numpy.uint8)
     assert hdf5_controller._template_validate(MagicMock(), array) is True
 
 
@@ -60,10 +73,10 @@ def test_hdf_template_validate_wrong_string_specifiers(
 ):
     """Test _template_validate with an invalid number of string format specifiers"""
 
-    array = numpy.fromstring("Invalid %s %d\0", dtype=numpy.uint8)
+    array = numpy.frombuffer("Invalid %s %d".encode() + b"\0", dtype=numpy.uint8)
     assert hdf5_controller._template_validate(MagicMock(), array) is False
 
-    array = numpy.fromstring("Invalid %s %s %s %d\0", dtype=numpy.uint8)
+    array = numpy.frombuffer("Invalid %s %s %s %d".encode() + b"\0", dtype=numpy.uint8)
     assert hdf5_controller._template_validate(MagicMock(), array) is False
 
 
@@ -72,10 +85,12 @@ def test_hdf_template_validate_wrong_number_specifiers(
 ):
     """Test _template_validate with an invalid number of number format specifiers"""
 
-    array = numpy.fromstring("Invalid String %s %s\0", dtype=numpy.uint8)
+    array = numpy.frombuffer("Invalid String %s %s".encode() + b"\0", dtype=numpy.uint8)
     assert hdf5_controller._template_validate(MagicMock(), array) is False
 
-    array = numpy.fromstring("Invalid String %s %s %d %d\0", dtype=numpy.uint8)
+    array = numpy.frombuffer(
+        "Invalid String %s %s %d %d".encode() + b"\0", dtype=numpy.uint8
+    )
     assert hdf5_controller._template_validate(MagicMock(), array) is False
 
 
@@ -136,11 +151,11 @@ def test_hdf_waveform_record_to_string(
     hdf5_controller: _HDF5RecordController,
 ):
     """Test _waveform_record_to_string returns string version of array"""
-    test_str = "Test String\0"
-    array = numpy.fromstring(test_str, dtype=numpy.uint8)
+    test_str = "Test String".encode() + b"\0"
+    array = numpy.frombuffer(test_str, dtype=numpy.uint8)
     record = MagicMock()
     record.get = MagicMock(return_value=array)
-    assert hdf5_controller._waveform_record_to_string(record) == test_str[:-1]
+    assert hdf5_controller._waveform_record_to_string(record) == test_str[:-1].decode()
 
 
 def test_hdf_waveform_record_to_string_no_value(
@@ -158,15 +173,17 @@ def test_hdf_numpy_to_string(
     hdf5_controller: _HDF5RecordController,
 ):
     """Test _numpy_to_string returns expected string"""
-    test_str = "Test String\0"
-    array = numpy.fromstring(test_str, dtype=numpy.uint8)
-    assert hdf5_controller._numpy_to_string(array) == test_str[:-1]
+    test_str = "Test String".encode() + b"\0"
+    array = numpy.frombuffer(test_str, dtype=numpy.uint8)
+    assert hdf5_controller._numpy_to_string(array) == test_str[:-1].decode()
 
 
 def test_hdf_numpy_to_string_bad_dtype(
     hdf5_controller: _HDF5RecordController,
 ):
     """Test _numpy_to_string raises exception when dtype is wrong"""
-    array = numpy.fromstring("1 2", dtype=int, sep=" ")
+    test_str = "Test String".encode() + b"\0"
+    array = numpy.frombuffer(test_str, dtype=numpy.uint8)
+    array = array.astype(numpy.uint32)
     with pytest.raises(AssertionError):
         hdf5_controller._numpy_to_string(array)
