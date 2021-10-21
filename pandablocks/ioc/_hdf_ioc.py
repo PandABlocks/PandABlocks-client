@@ -77,50 +77,14 @@ class _HDF5RecordController:
             record_prefix + ":" + file_name_record_name.upper()
         )
 
-        # TODO: Delete this, and FileTemplate, just have FileName and
-        # FilePath.
-        # TODO: Change HDFWriter to take a deque for its file names, and
-        # make the caller provide the list
-        file_number_record_name = self._HDF5_PREFIX + ":FileNumber"
-        self._file_number_record = builder.aOut(
-            file_number_record_name,
-            DESC="Incrementing file number suffix",
-            validate=self._parameter_validate,
-        )
-        self._file_number_record.add_alias(
-            record_prefix + ":" + file_number_record_name.upper()
-        )
-
-        file_format_record_name = self._HDF5_PREFIX + ":FileTemplate"
-        self._file_format_record = builder.WaveformOut(
-            file_format_record_name,
-            length=64,
-            FTVL="UCHAR",
-            DESC="Format string used for file naming",
-            validate=self._template_validate,
-        )
-        self._file_format_record.add_alias(
-            record_prefix + ":" + file_format_record_name.upper()
-        )
-
-        # Add a trailing \0 for C-based tools that may try to read the
-        # entire waveform as a string
-        # Awkward form of data to work around issue #39
-        # https://github.com/dls-controls/pythonSoftIOC/issues/39
-        # Done here, rather than inside record creation above, to work around issue #37
-        # https://github.com/dls-controls/pythonSoftIOC/issues/37
-        self._file_format_record.set(
-            np.frombuffer("%s/%s_%d.h5".encode() + b"\0", dtype=np.uint8)
-        )
-
         num_capture_record_name = self._HDF5_PREFIX + ":NumCapture"
         self._num_capture_record = builder.longOut(
             num_capture_record_name,
             initial_value=0,  # Infinite capture
             DESC="Number of frames to capture. 0=infinite",
             DRVL=0,
-            validate=self._parameter_validate,
         )
+        # No validate - users are allowed to change this at any time
         self._num_capture_record.add_alias(
             record_prefix + ":" + num_capture_record_name.upper()
         )
@@ -184,36 +148,17 @@ class _HDF5RecordController:
             return False
         return True
 
-    def _template_validate(self, record: RecordWrapper, new_val: np.ndarray) -> bool:
-        """Validate that the FileTemplate record contains exactly the right number of
-        format specifiers"""
-        string_val = self._numpy_to_string(new_val)
-        string_format_count = string_val.count("%s")
-        number_format_count = string_val.count("%d")
-
-        if string_format_count != 2 or number_format_count != 1:
-            logging.error(
-                'FileTemplate record must contain exactly 2 "%s" '
-                'and exactly 1 "%d" format specifiers.'
-            )
-            return False
-
-        return self._parameter_validate(record, new_val)
-
     async def _handle_hdf5_data(self):
         """Handles writing HDF5 data from the PandA to file, based on configuration
         in the various HDF5 records.
         This method expects to be run as an asyncio Task."""
         # TODO: Test this method
-        # TODO: Remove the start_data memoization as the task is thrown away between
-        # captures
         try:
-            # Keep the start data around to compare against, if capture is
-            # enabled/disabled to know if we can keep using the same file
-            start_data: Optional[StartData] = None
+            file_open = False
             captured_frames: int = 0
-
-            pipeline: List[Pipeline] = create_default_pipeline(self._get_scheme())
+            # Only one filename - user must stop capture and set new FileName/FilePath
+            # for new files
+            pipeline: List[Pipeline] = create_default_pipeline([self._get_filename()])
             flush_period: float = self._flush_period_record.get()
 
             self._currently_capturing_record.set(1)
@@ -224,31 +169,8 @@ class _HDF5RecordController:
             ):
                 logging.debug(f"Received data packet: {data}")
                 if isinstance(data, StartData):
-                    if start_data and data != start_data:
-                        # PandA was disarmed, had config changed, and rearmed.
-                        # Cannot process to the same file with different start data.
-                        logging.error(
-                            "New start data detected, differs from previous start "
-                            "data for this file. Aborting HDF5 data capture."
-                        )
-
-                        self._status_message_record.set(
-                            "Mismatched StartData packet for file",
-                            severity=alarm.MAJOR_ALARM,
-                            alarm=alarm.STATE_ALARM,
-                        )
-                        pipeline[0].queue.put_nowait(
-                            EndData(captured_frames, EndReason.START_DATA_MISMATCH)
-                        )
-
-                        self._capture_control_record.set(0)
-                        break
-                    if start_data is None:
-                        # Only pass StartData to pipeline if we haven't previously
-                        # - if we have there will already be an in-progress HDF file
-                        # that we should just append data to
-                        start_data = data
-                        pipeline[0].queue.put_nowait(data)
+                    pipeline[0].queue.put_nowait(data)
+                    file_open = True
 
                 elif isinstance(data, FrameData):
                     pipeline[0].queue.put_nowait(data)
@@ -276,9 +198,9 @@ class _HDF5RecordController:
         except CancelledError:
             logging.info("Capturing task cancelled, closing HDF5 file")
             self._status_message_record.set("Capturing disabled")
-            # Only send EndData if we know the file was started i.e. that we've passed
-            # a start_data to the pipeline
-            if start_data:
+            # Only send EndData if we know the file was opened - could be cancelled
+            # before PandA has actually send any data
+            if file_open:
                 pipeline[0].queue.put_nowait(EndData(captured_frames, EndReason.OK))
 
         except Exception:
@@ -288,9 +210,9 @@ class _HDF5RecordController:
                 severity=alarm.MAJOR_ALARM,
                 alarm=alarm.STATE_ALARM,
             )
-            # Only send EndData if we know the file was started i.e. that we've passed
-            # a start_data to the pipeline
-            if start_data:
+            # Only send EndData if we know the file was opened - exception could happen
+            # before file was opened
+            if file_open:
                 pipeline[0].queue.put_nowait(
                     EndData(captured_frames, EndReason.UNKNOWN_EXCEPTION)
                 )
@@ -300,25 +222,15 @@ class _HDF5RecordController:
             stop_pipeline(pipeline)
             self._currently_capturing_record.set(0)
 
-    def _get_scheme(self) -> str:
-        """Create the scheme for the HDF5 file from the relevant record in the format
-        expected by the HDF module"""
-        format_str = self._waveform_record_to_string(self._file_format_record)
+    def _get_filename(self) -> str:
+        """Create the file path for the HDF5 file from the relevant records"""
 
-        # Mask out the required %d format specifier while we substitute in
-        # file directory and file name
-        MASK_CHARS = "##########"
-        masked_format_str = format_str.replace("%d", MASK_CHARS)
-
-        (substituted_format_str,) = (
-            masked_format_str
-            % (
+        return "/".join(
+            (
                 self._waveform_record_to_string(self._file_path_record),
                 self._waveform_record_to_string(self._file_name_record),
-            ),
+            )
         )
-
-        return substituted_format_str.replace(MASK_CHARS, "%d")
 
     async def _capture_on_update(self, new_val: int) -> None:
         """Process an update to the Capture record, to start/stop recording HDF5 data"""
@@ -338,12 +250,12 @@ class _HDF5RecordController:
         """Check the required records have been set before allowing Capture=1"""
         if new_val:
             try:
-                self._get_scheme()
+                self._get_filename()
             except ValueError:
                 logging.exception("At least 1 required record had no value")
                 return False
             except Exception:
-                logging.exception("Unexpected exception creating file name scheme")
+                logging.exception("Unexpected exception creating file name")
                 return False
 
         return True

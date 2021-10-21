@@ -1004,6 +1004,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, List[str]],
     ) -> Dict[EpicsName, _RecordInfo]:
+        # TODO: Mirror HDF5 and make the tables module make these records
         assert isinstance(field_info, TableFieldInfo)
         assert field_info.fields
         assert field_info.row_words

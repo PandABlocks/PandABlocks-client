@@ -1,7 +1,7 @@
 import logging
 import queue
 import threading
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type
 
 import h5py
 import numpy as np
@@ -61,14 +61,13 @@ class HDFWriter(Pipeline):
     written in a 1D dataset ``/<field.name>.<field.capture>``.
 
     Args:
-        scheme: Filepath scheme, where %d will be replaced with the
-            acquisition number, starting with 1
+        file_names: Iterator of file names. Must be full file paths. Will be called once
+            per file created.
     """
 
-    def __init__(self, scheme: str):
+    def __init__(self, file_names: Iterator[str]):
         super().__init__()
-        self.num = 1
-        self.scheme = scheme
+        self.file_names = file_names
         self.hdf_file: Optional[h5py.File] = None
         self.datasets: List[h5py.Dataset] = []
         self.what_to_do = {
@@ -94,7 +93,12 @@ class HDFWriter(Pipeline):
         )
 
     def open_file(self, data: StartData):
-        file_path = self.scheme % self.num
+        try:
+            file_path = next(self.file_names)
+        except IndexError:
+            logging.exception(
+                "Not enough file names available when opening new HDF5 file"
+            )
         self.hdf_file = h5py.File(file_path, "w", libver="latest")
         raw = data.process == "Raw"
         self.datasets = [self.create_dataset(field, raw) for field in data.fields]
@@ -117,10 +121,10 @@ class HDFWriter(Pipeline):
         self.hdf_file.close()
         self.hdf_file = None
         logging.info(
-            f"Closed '{self.scheme % self.num}' after writing {data.samples} "
+            # TODO: Test the .filename attribute
+            f"Closed '{self.hdf_file.filename}' after writing {data.samples} "
             f"samples. End reason is '{data.reason.value}'"
         )
-        self.num += 1
 
 
 class FrameProcessor(Pipeline):
@@ -155,13 +159,16 @@ class FrameProcessor(Pipeline):
         return [process(data.data) for process in self.processors]
 
 
-def create_default_pipeline(scheme: str) -> List[Pipeline]:
+def create_default_pipeline(
+    file_names: Iterator[str],
+) -> List[Pipeline]:
     """Create the default processing pipeline consisting of one `FrameProcessor` and
     one `HDFWriter`. See `create_pipeline` for more details.
 
     Args:
-        scheme: The file format scheme for output file, as required by `HDFWriter`"""
-    return create_pipeline(FrameProcessor(), HDFWriter(scheme))
+        file_names: Iterator of file names. Must be full file paths. Will be called once
+            per file created. As required by `HDFWriter`."""
+    return create_pipeline(FrameProcessor(), HDFWriter(file_names))
 
 
 def create_pipeline(*elements: Pipeline) -> List[Pipeline]:
@@ -188,7 +195,7 @@ def stop_pipeline(pipeline: List[Pipeline]):
 
 async def write_hdf_files(
     client: AsyncioClient,
-    scheme: str,
+    file_names: Iterator[str],
     num: int = 1,
     arm: bool = False,
     flush_period: float = 1,
@@ -198,13 +205,14 @@ async def write_hdf_files(
 
     Args:
         client: The `AsyncioClient` to use for communications
-        scheme: Filenaming scheme for HDF files, with %d for scan number starting at 1
+        file_names: Iterator of file names. Must be full file paths. Will be called once
+            per file created.
         num: The number of acquisitions to store in separate files
         arm: Whether to arm PCAP at the start, and after each successful acquisition
 
     """
     counter = 0
-    pipeline = create_default_pipeline(scheme)
+    pipeline = create_default_pipeline(file_names)
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)

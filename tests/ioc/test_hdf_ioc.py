@@ -84,12 +84,6 @@ async def test_hdf5_ioc(hdf5_subprocess_ioc):
     val = await caget(HDF5_PREFIX + ":FILENAME")
     assert val.size == 0
 
-    val = await caget(HDF5_PREFIX + ":FileNumber")
-    assert val == 0
-
-    val = await caget(HDF5_PREFIX + ":FILETEMPLATE")
-    assert val.tobytes().decode() == "%s/%s_%d.h5\0"
-
     val = await caget(HDF5_PREFIX + ":NumCapture")
     assert val == 0
 
@@ -124,10 +118,16 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc):
     val = await caget(HDF5_PREFIX + ":FilePath")
     assert val.tobytes().decode() == "/new/path"
 
+    await caput(HDF5_PREFIX + ":FileName", _string_to_buffer("name.h5"), wait=True)
+    val = await caget(HDF5_PREFIX + ":FileName")
+    assert val.tobytes().decode() == "name.h5"
+
     await caput(HDF5_PREFIX + ":Capture", 1, wait=True)
     assert await caget(HDF5_PREFIX + ":Capture") == 1
 
     await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/second/path"), wait=True)
+    val = await caget(HDF5_PREFIX + ":FilePath")
+    assert val.tobytes().decode() == "/new/path"  # put should have been blocked
 
 
 def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordController):
@@ -146,66 +146,25 @@ def test_hdf_parameter_validate_capturing(hdf5_controller: _HDF5RecordController
     assert hdf5_controller._parameter_validate(MagicMock(), None) is False
 
 
-def test_hdf_template_validate(hdf5_controller: _HDF5RecordController):
-    """Test _template_validate with some acceptable format strings"""
-
-    array = numpy.frombuffer(
-        "Valid Format String %s %s %d".encode() + b"\0", dtype=numpy.uint8
-    )
-    assert hdf5_controller._template_validate(MagicMock(), array) is True
-
-    array = numpy.frombuffer("%s/%s_%d.h5".encode() + b"\0", dtype=numpy.uint8)
-    assert hdf5_controller._template_validate(MagicMock(), array) is True
-
-    array = numpy.frombuffer("%s/%d%s.h5".encode() + b"\0", dtype=numpy.uint8)
-    assert hdf5_controller._template_validate(MagicMock(), array) is True
-
-
-def test_hdf_template_validate_wrong_string_specifiers(
+def test_hdf_get_filename(
     hdf5_controller: _HDF5RecordController,
 ):
-    """Test _template_validate with an invalid number of string format specifiers"""
-
-    array = numpy.frombuffer("Invalid %s %d".encode() + b"\0", dtype=numpy.uint8)
-    assert hdf5_controller._template_validate(MagicMock(), array) is False
-
-    array = numpy.frombuffer("Invalid %s %s %s %d".encode() + b"\0", dtype=numpy.uint8)
-    assert hdf5_controller._template_validate(MagicMock(), array) is False
-
-
-def test_hdf_template_validate_wrong_number_specifiers(
-    hdf5_controller: _HDF5RecordController,
-):
-    """Test _template_validate with an invalid number of number format specifiers"""
-
-    array = numpy.frombuffer("Invalid String %s %s".encode() + b"\0", dtype=numpy.uint8)
-    assert hdf5_controller._template_validate(MagicMock(), array) is False
-
-    array = numpy.frombuffer(
-        "Invalid String %s %s %d %d".encode() + b"\0", dtype=numpy.uint8
-    )
-    assert hdf5_controller._template_validate(MagicMock(), array) is False
-
-
-def test_hdf_get_scheme(
-    hdf5_controller: _HDF5RecordController,
-):
-    """Test _get_scheme works when all records have valid values"""
+    """Test _get_filename works when all records have valid values"""
 
     # Mock this method, we test it explicitly later
     hdf5_controller._waveform_record_to_string = MagicMock(  # type: ignore
-        side_effect=["%s/%s_%d.h5", "/some/path", "some_filename"]
+        side_effect=["/some/path", "some_filename"]
     )
 
-    assert hdf5_controller._get_scheme() == "/some/path/some_filename_%d.h5"
+    assert hdf5_controller._get_filename() == "/some/path/some_filename"
 
 
-def test_hdf_capture_validate_valid_scheme(
+def test_hdf_capture_validate_valid_filename(
     hdf5_controller: _HDF5RecordController,
 ):
-    """Test _capture_validate passes when a valid scheme is given"""
-    hdf5_controller._get_scheme = MagicMock(  # type: ignore
-        return_value="/valid/file%d.h5"
+    """Test _capture_validate passes when a valid filename is given"""
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
+        return_value="/valid/file.h5"
     )
 
     assert hdf5_controller._capture_validate(None, 1) is True
@@ -218,11 +177,11 @@ def test_hdf_capture_validate_new_value_zero(
     assert hdf5_controller._capture_validate(None, 0) is True
 
 
-def test_hdf_capture_validate_invalid_scheme(
+def test_hdf_capture_validate_invalid_filename(
     hdf5_controller: _HDF5RecordController,
 ):
-    """Test _capture_validate fails when scheme cannot be created"""
-    hdf5_controller._get_scheme = MagicMock(  # type: ignore
+    """Test _capture_validate fails when filename cannot be created"""
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
         side_effect=ValueError("Mocked value error")
     )
 
@@ -233,7 +192,7 @@ def test_hdf_capture_validate_exception(
     hdf5_controller: _HDF5RecordController,
 ):
     """Test _capture_validate fails due to other exceptions"""
-    hdf5_controller._get_scheme = MagicMock(  # type: ignore
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
         side_effect=Exception("Mocked error")
     )
 

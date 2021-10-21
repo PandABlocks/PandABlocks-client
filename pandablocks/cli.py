@@ -75,8 +75,17 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
         # to work
         from pandablocks.hdf import write_hdf_files
 
+        def file_name_generator(scheme: str):
+            """Yield incrementally numbered file names based on provided schema"""
+            counter = 1
+            while True:
+                yield scheme % counter
+                counter += 1
+
         async with AsyncioClient(host) as client:
-            await write_hdf_files(client, scheme=scheme, num=num, arm=arm)
+            await write_hdf_files(
+                client, file_names=file_name_generator(scheme), num=num, arm=arm
+            )
 
     # Don't use asyncio.run to workaround Python3.7 bug
     # https://bugs.python.org/issue38013
