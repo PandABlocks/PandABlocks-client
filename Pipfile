@@ -13,6 +13,7 @@ typed-ast = "*"
 # Test and docs dependencies
 pytest-cov = "*"
 pytest-mypy = "*"
+flake8 = "==3.9.2" # https://github.com/tholo/pytest-flake8/issues/81
 pytest-flake8 = "*"
 pytest-black = "*"
 mock = "*"
