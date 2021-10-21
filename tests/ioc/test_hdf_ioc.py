@@ -1,17 +1,22 @@
 # Tests for the _hdf_ioc.py file
 
+import asyncio
+import time
+from multiprocessing import Process
 from typing import Generator
 
 import numpy
 import pytest
+from aioca import caget, caput
 from epicsdbbuilder import ResetRecords
 from mock.mock import MagicMock
+from softioc import asyncio_dispatcher, builder, softioc
 from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.ioc._hdf_ioc import _HDF5RecordController
 
-TEST_PREFIX = "HDF-RECORD-PREFIX"
+NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
 counter = 0
 
 
@@ -22,7 +27,7 @@ def hdf5_controller() -> Generator:
     counter += 1
 
     hdf5_controller = _HDF5RecordController(
-        AsyncioClient("123"), TEST_PREFIX + str(counter)
+        AsyncioClient("123"), NAMESPACE_PREFIX + str(counter)
     )
     hdf5_controller._capture_control_record = MagicMock()
     # Default return value for capturing off, allowing validation method to pass
@@ -35,6 +40,94 @@ def hdf5_controller() -> Generator:
     # TODO: Decide if we keep this or not
     # And at pythonSoftIoc level
     RecordLookup._RecordDirectory.clear()
+
+
+def subprocess_func() -> None:
+    """Function to start the HDF5 IOC"""
+    # No need for counter as this runs in a separate process
+
+    async def wrapper(dispatcher):
+        builder.SetDeviceName(NAMESPACE_PREFIX)
+        _HDF5RecordController(AsyncioClient("123"), NAMESPACE_PREFIX)
+        builder.LoadDatabase()
+        softioc.iocInit(dispatcher)
+
+        await asyncio.Event().wait()
+
+    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
+    asyncio.run_coroutine_threadsafe(wrapper(dispatcher), dispatcher.loop).result()
+
+
+@pytest.fixture
+def hdf5_subprocess_ioc() -> Generator:
+    """Create an instance of HDF5 class in its own subprocess, then start the IOC"""
+
+    p = Process(target=subprocess_func)
+    p.start()
+    time.sleep(2)  # Give IOC some time to start up
+    yield
+    p.terminate()
+    p.join(10)
+    # Should never take anywhere near 10 seconds to terminate, it's just there
+    # to ensure the test doesn't hang indefinitely during cleanup
+
+
+@pytest.mark.asyncio
+async def test_hdf5_ioc(hdf5_subprocess_ioc):
+    """Run the HDF5 module as its own IOC and check the expected records are created,
+    with some default values checked"""
+    HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
+    val = await caget(HDF5_PREFIX + ":FilePath")
+    assert val.size == 0
+
+    # Mix and match between CamelCase and UPPERCASE to check aliases work
+    val = await caget(HDF5_PREFIX + ":FILENAME")
+    assert val.size == 0
+
+    val = await caget(HDF5_PREFIX + ":FileNumber")
+    assert val == 0
+
+    val = await caget(HDF5_PREFIX + ":FILETEMPLATE")
+    assert val.tobytes().decode() == "%s/%s_%d.h5\0"
+
+    val = await caget(HDF5_PREFIX + ":NumCapture")
+    assert val == 0
+
+    val = await caget(HDF5_PREFIX + ":FlushPeriod")
+    assert val == 1.0
+
+    val = await caget(HDF5_PREFIX + ":CAPTURE")
+    assert val == 0
+
+    val = await caget(HDF5_PREFIX + ":Status")
+    assert val == "OK"
+
+    val = await caget(HDF5_PREFIX + ":Capturing")
+    assert val == 0
+
+
+def _string_to_buffer(string: str):
+    """Convert a python string into a numpy buffer suitable for caput'ing to a Waveform
+    record"""
+    return numpy.frombuffer(string.encode(), dtype=numpy.uint8)
+
+
+@pytest.mark.asyncio
+async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc):
+    """Run the HDF5 module as its own IOC and check the _parameter_validate method
+    does not block updates, then blocks when capture record is changed"""
+    HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
+
+    # EPICS bug means caputs always appear to succeed, so do a caget to prove it worked
+
+    await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/new/path"), wait=True)
+    val = await caget(HDF5_PREFIX + ":FilePath")
+    assert val.tobytes().decode() == "/new/path"
+
+    await caput(HDF5_PREFIX + ":Capture", 1, wait=True)
+    assert await caget(HDF5_PREFIX + ":Capture") == 1
+
+    await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/second/path"), wait=True)
 
 
 def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordController):

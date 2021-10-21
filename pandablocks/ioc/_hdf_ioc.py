@@ -77,6 +77,10 @@ class _HDF5RecordController:
             record_prefix + ":" + file_name_record_name.upper()
         )
 
+        # TODO: Delete this, and FileTemplate, just have FileName and
+        # FilePath.
+        # TODO: Change HDFWriter to take a deque for its file names, and
+        # make the caller provide the list
         file_number_record_name = self._HDF5_PREFIX + ":FileNumber"
         self._file_number_record = builder.aOut(
             file_number_record_name,
@@ -200,7 +204,9 @@ class _HDF5RecordController:
         """Handles writing HDF5 data from the PandA to file, based on configuration
         in the various HDF5 records.
         This method expects to be run as an asyncio Task."""
-
+        # TODO: Test this method
+        # TODO: Remove the start_data memoization as the task is thrown away between
+        # captures
         try:
             # Keep the start data around to compare against, if capture is
             # enabled/disabled to know if we can keep using the same file
