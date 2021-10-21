@@ -158,7 +158,9 @@ class _HDF5RecordController:
             captured_frames: int = 0
             # Only one filename - user must stop capture and set new FileName/FilePath
             # for new files
-            pipeline: List[Pipeline] = create_default_pipeline([self._get_filename()])
+            pipeline: List[Pipeline] = create_default_pipeline(
+                iter([self._get_filename()])
+            )
             flush_period: float = self._flush_period_record.get()
 
             self._currently_capturing_record.set(1)

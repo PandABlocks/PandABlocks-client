@@ -76,7 +76,7 @@ def hdf(host: str, scheme: str, num: int, arm: bool):
         from pandablocks.hdf import write_hdf_files
 
         def file_name_generator(scheme: str):
-            """Yield incrementally numbered file names based on provided schema"""
+            """Yield incrementally numbered file names based on provided scheme"""
             counter = 1
             while True:
                 yield scheme % counter

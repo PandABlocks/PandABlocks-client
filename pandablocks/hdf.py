@@ -94,17 +94,18 @@ class HDFWriter(Pipeline):
 
     def open_file(self, data: StartData):
         try:
-            file_path = next(self.file_names)
+            self.file_path = next(self.file_names)
         except IndexError:
             logging.exception(
                 "Not enough file names available when opening new HDF5 file"
             )
-        self.hdf_file = h5py.File(file_path, "w", libver="latest")
+            raise
+        self.hdf_file = h5py.File(self.file_path, "w", libver="latest")
         raw = data.process == "Raw"
         self.datasets = [self.create_dataset(field, raw) for field in data.fields]
         self.hdf_file.swmr_mode = True
         logging.info(
-            f"Opened '{file_path}' with {data.sample_bytes} byte samples "
+            f"Opened '{self.file_path}' with {data.sample_bytes} byte samples "
             f"stored in {len(self.datasets)} datasets"
         )
 
@@ -121,10 +122,10 @@ class HDFWriter(Pipeline):
         self.hdf_file.close()
         self.hdf_file = None
         logging.info(
-            # TODO: Test the .filename attribute
-            f"Closed '{self.hdf_file.filename}' after writing {data.samples} "
+            f"Closed '{self.file_path}' after writing {data.samples} "
             f"samples. End reason is '{data.reason.value}'"
         )
+        self.file_path = ""
 
 
 class FrameProcessor(Pipeline):
