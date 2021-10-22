@@ -2,6 +2,7 @@
 
 import asyncio
 import time
+from asyncio import CancelledError
 from multiprocessing import Process
 from pathlib import Path
 from typing import Generator
@@ -17,8 +18,15 @@ from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.ioc._hdf_ioc import _HDF5RecordController
-from pandablocks.responses import EndData, EndReason, FrameData, ReadyData, StartData
-from tests.conftest import DummyServer
+from pandablocks.responses import (
+    EndData,
+    EndReason,
+    FieldCapture,
+    FrameData,
+    ReadyData,
+    StartData,
+)
+from tests.conftest import DummyServer, Rows
 
 NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
 HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
@@ -254,6 +262,281 @@ async def test_handle_data(
     pipeline_mock[0].queue.put_nowait.assert_called_with(EndData(5, EndReason.OK))
 
     mock_stop_pipeline.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+async def test_handle_data_two_start_data(
+    mock_create_default_pipeline: MagicMock,
+    mock_stop_pipeline: MagicMock,
+    hdf5_controller: _HDF5RecordController,
+    slow_dump_expected,
+):
+    """Test that _handle_hdf5_data works correctly over multiple datasets"""
+
+    async def mock_data(scaled, flush_period):
+        doubled_list = list(slow_dump_expected)[:-1]  # cut off EndData
+        doubled_list.extend(doubled_list)
+        for item in doubled_list:
+            yield item
+
+    # Set up all the mocks
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
+        return_value="Some/Filepath"
+    )
+    hdf5_controller._client.data = mock_data  # type: ignore
+    pipeline_mock = MagicMock()
+    mock_create_default_pipeline.side_effect = [pipeline_mock]
+    hdf5_controller._num_capture_record = MagicMock()
+    hdf5_controller._num_capture_record.get = MagicMock(return_value=10)  # type: ignore
+
+    await hdf5_controller._handle_hdf5_data()
+
+    # Check it ran correctly
+    assert hdf5_controller._capture_control_record.get() == 0
+    assert (
+        hdf5_controller._status_message_record.get()
+        == "Requested number of frames captured"
+    )
+    # len 12 as ReadyData isn't pushed to pipeline, only Start and Frame data.
+    assert pipeline_mock[0].queue.put_nowait.call_count == 12
+    pipeline_mock[0].queue.put_nowait.assert_called_with(EndData(10, EndReason.OK))
+
+    mock_stop_pipeline.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+async def test_handle_data_mismatching_start_data(
+    mock_create_default_pipeline: MagicMock,
+    mock_stop_pipeline: MagicMock,
+    hdf5_controller: _HDF5RecordController,
+):
+    """Test that _handle_hdf5_data stops capturing when different StartData items
+    received"""
+
+    async def mock_data(scaled, flush_period):
+        """Return a pair of data captures, with differing StartData items"""
+        list = [
+            ReadyData(),
+            StartData(
+                [
+                    FieldCapture(
+                        name="PCAP.BITS2",
+                        type=numpy.dtype("uint32"),
+                        capture="Value",
+                        scale=1,
+                        offset=0,
+                        units="",
+                    )
+                ],
+                0,
+                "Scaled",
+                "Framed",
+                52,
+            ),
+            FrameData(Rows([0, 1, 1, 3, 5.6e-08, 1, 2])),
+            # Implicit end of first data here
+            ReadyData(),
+            StartData(
+                [],
+                0,
+                "Different",
+                "Also Different",
+                52,
+            ),
+        ]
+        for item in list:
+            yield item
+
+    # Set up all the mocks
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
+        return_value="Some/Filepath"
+    )
+    hdf5_controller._client.data = mock_data  # type: ignore
+    pipeline_mock = MagicMock()
+    mock_create_default_pipeline.side_effect = [pipeline_mock]
+    hdf5_controller._num_capture_record = MagicMock()
+    hdf5_controller._num_capture_record.get = MagicMock(return_value=10)  # type: ignore
+
+    await hdf5_controller._handle_hdf5_data()
+
+    # Check it ran correctly
+    assert hdf5_controller._capture_control_record.get() == 0
+    assert (
+        hdf5_controller._status_message_record.get()
+        == "Mismatched StartData packet for file"
+    )
+    # len 3 - one StartData, one FrameData, one EndData
+    assert pipeline_mock[0].queue.put_nowait.call_count == 3
+    pipeline_mock[0].queue.put_nowait.assert_called_with(
+        EndData(1, EndReason.START_DATA_MISMATCH)
+    )
+
+    mock_stop_pipeline.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+async def test_handle_data_cancelled_error(
+    mock_create_default_pipeline: MagicMock,
+    mock_stop_pipeline: MagicMock,
+    hdf5_controller: _HDF5RecordController,
+):
+    """Test that _handle_hdf5_data stops capturing when it receives a CancelledError"""
+
+    async def mock_data(scaled, flush_period):
+        """Return the start of data capture, then raise a CancelledError.
+        This mimics the task being cancelled."""
+        list = [
+            ReadyData(),
+            StartData(
+                [
+                    FieldCapture(
+                        name="PCAP.BITS2",
+                        type=numpy.dtype("uint32"),
+                        capture="Value",
+                        scale=1,
+                        offset=0,
+                        units="",
+                    )
+                ],
+                0,
+                "Scaled",
+                "Framed",
+                52,
+            ),
+        ]
+        for item in list:
+            yield item
+        raise CancelledError
+
+    # Set up all the mocks
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
+        return_value="Some/Filepath"
+    )
+    hdf5_controller._client.data = mock_data  # type: ignore
+    pipeline_mock = MagicMock()
+    mock_create_default_pipeline.side_effect = [pipeline_mock]
+
+    await hdf5_controller._handle_hdf5_data()
+
+    # Check it ran correctly
+    assert hdf5_controller._capture_control_record.get() == 0
+    assert hdf5_controller._status_message_record.get() == "Capturing disabled"
+    # len 2 - one StartData, one EndData
+    assert pipeline_mock[0].queue.put_nowait.call_count == 2
+    pipeline_mock[0].queue.put_nowait.assert_called_with(EndData(0, EndReason.OK))
+
+    mock_stop_pipeline.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+async def test_handle_data_unexpected_exception(
+    mock_create_default_pipeline: MagicMock,
+    mock_stop_pipeline: MagicMock,
+    hdf5_controller: _HDF5RecordController,
+):
+    """Test that _handle_hdf5_data stops capturing when it receives an unexpected
+    exception"""
+
+    async def mock_data(scaled, flush_period):
+        """Return the start of data capture, then raise an Exception."""
+        list = [
+            ReadyData(),
+            StartData(
+                [
+                    FieldCapture(
+                        name="PCAP.BITS2",
+                        type=numpy.dtype("uint32"),
+                        capture="Value",
+                        scale=1,
+                        offset=0,
+                        units="",
+                    )
+                ],
+                0,
+                "Scaled",
+                "Framed",
+                52,
+            ),
+        ]
+        for item in list:
+            yield item
+        raise Exception("Test exception")
+
+    # Set up all the mocks
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
+        return_value="Some/Filepath"
+    )
+    hdf5_controller._client.data = mock_data  # type: ignore
+    pipeline_mock = MagicMock()
+    mock_create_default_pipeline.side_effect = [pipeline_mock]
+
+    await hdf5_controller._handle_hdf5_data()
+
+    # Check it ran correctly
+    assert hdf5_controller._capture_control_record.get() == 0
+    assert (
+        hdf5_controller._status_message_record.get()
+        == "Capturing disabled, unexpected exception"
+    )
+    # len 2 - one StartData, one EndData
+    assert pipeline_mock[0].queue.put_nowait.call_count == 2
+    pipeline_mock[0].queue.put_nowait.assert_called_with(
+        EndData(0, EndReason.UNKNOWN_EXCEPTION)
+    )
+
+    mock_stop_pipeline.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_capture_on_update(
+    hdf5_controller: _HDF5RecordController,
+):
+    """Test _capture_on_update correctly starts the data capture task"""
+    hdf5_controller._handle_hdf5_data = AsyncMock()  # type: ignore
+
+    await hdf5_controller._capture_on_update(1)
+
+    assert hdf5_controller._handle_hdf5_data_task is not None
+    hdf5_controller._handle_hdf5_data.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_capture_on_update_cancel_task(
+    hdf5_controller: _HDF5RecordController,
+):
+    """Test _capture_on_update correctly cancels an already running task
+    when Capture=0"""
+
+    task_mock = AsyncMock()
+    hdf5_controller._handle_hdf5_data_task = task_mock
+
+    await hdf5_controller._capture_on_update(0)
+
+    task_mock.cancel.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_capture_on_update_cancel_unexpected_task(
+    hdf5_controller: _HDF5RecordController,
+):
+    """Test _capture_on_update correctly cancels an already running task
+    when Capture=1"""
+    task_mock = AsyncMock()
+    hdf5_controller._handle_hdf5_data_task = task_mock
+    hdf5_controller._handle_hdf5_data = AsyncMock()  # type: ignore
+
+    await hdf5_controller._capture_on_update(1)
+
+    hdf5_controller._handle_hdf5_data.assert_called_once()  # type: ignore
+    task_mock.cancel.assert_called_once()
 
 
 def test_hdf_get_filename(

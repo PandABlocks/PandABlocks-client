@@ -190,7 +190,6 @@ class _HDF5RecordController:
                             EndData(captured_frames, EndReason.START_DATA_MISMATCH)
                         )
 
-                        self._capture_control_record.set(0)
                         break
                     if start_data is None:
                         # Only pass StartData to pipeline if we haven't previously
@@ -216,7 +215,6 @@ class _HDF5RecordController:
                             EndData(captured_frames, EndReason.OK)
                         )
 
-                        self._capture_control_record.set(0)
                         break
                 # Ignore EndData - handle terminating capture with the Capture
                 # record or when we capture the requested number of frames
@@ -246,6 +244,7 @@ class _HDF5RecordController:
         finally:
             logging.debug("Finishing processing HDF5 PandA data")
             stop_pipeline(pipeline)
+            self._capture_control_record.set(0)
             self._currently_capturing_record.set(0)
 
     def _get_filename(self) -> str:
