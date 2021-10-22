@@ -152,10 +152,10 @@ class _HDF5RecordController:
         """Handles writing HDF5 data from the PandA to file, based on configuration
         in the various HDF5 records.
         This method expects to be run as an asyncio Task."""
-        # TODO: Test this method
         try:
-            # Keep the start data around to compare against, if capture is
-            # enabled/disabled to know if we can keep using the same file
+            # Keep the start data around to compare against, for the case where a new
+            # capture, and thus new StartData, is sent without Capture ever being
+            # disabled
             start_data: Optional[StartData] = None
             captured_frames: int = 0
             # Only one filename - user must stop capture and set new FileName/FilePath

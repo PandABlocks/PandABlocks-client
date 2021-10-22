@@ -11,12 +11,13 @@ import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
 from epicsdbbuilder import ResetRecords
-from mock.mock import MagicMock
+from mock.mock import AsyncMock, MagicMock, patch
 from softioc import asyncio_dispatcher, builder, softioc
 from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.ioc._hdf_ioc import _HDF5RecordController
+from pandablocks.responses import EndData, EndReason, FrameData, ReadyData, StartData
 from tests.conftest import DummyServer
 
 NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
@@ -33,10 +34,6 @@ def hdf5_controller() -> Generator:
     hdf5_controller = _HDF5RecordController(
         AsyncioClient("localhost"), NAMESPACE_PREFIX + str(counter)
     )
-    hdf5_controller._capture_control_record = MagicMock()
-    # Default return value for capturing off, allowing validation method to pass
-    hdf5_controller._capture_control_record.get = MagicMock(return_value=0)
-    # return hdf5_controller
     yield hdf5_controller
 
     # Remove any records created at epicsdbbuilder layer
@@ -199,7 +196,11 @@ async def test_hdf5_file_writing(
 def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordController):
     """Test that parameter_validate allows record updates when capturing is off"""
 
+    hdf5_controller._capture_control_record = MagicMock()
+    # Default return value for capturing off, allowing validation method to pass
+    hdf5_controller._capture_control_record.get = MagicMock(return_value=0)
     hdf5_controller._capture_control_record.get.return_value = 0
+
     # Don't care about the record being validated, just mock it
     assert hdf5_controller._parameter_validate(MagicMock(), None) is True
 
@@ -207,9 +208,52 @@ def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordContro
 def test_hdf_parameter_validate_capturing(hdf5_controller: _HDF5RecordController):
     """Test that parameter_validate blocks record updates when capturing is on"""
 
+    hdf5_controller._capture_control_record = MagicMock()
+    # Default return value for capturing off, allowing validation method to pass
+    hdf5_controller._capture_control_record.get = MagicMock(return_value=0)
     hdf5_controller._capture_control_record.get.return_value = 1
+
     # Don't care about the record being validated, just mock it
     assert hdf5_controller._parameter_validate(MagicMock(), None) is False
+
+
+@pytest.mark.asyncio
+@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+async def test_handle_data(
+    mock_create_default_pipeline: MagicMock,
+    mock_stop_pipeline: MagicMock,
+    hdf5_controller: _HDF5RecordController,
+    slow_dump_expected,
+):
+    """Test that _handle_hdf5_data can process a normal stream of Data"""
+
+    async def mock_data(scaled, flush_period):
+        for item in slow_dump_expected:
+            yield item
+
+    # Set up all the mocks
+    hdf5_controller._get_filename = MagicMock(  # type: ignore
+        return_value="Some/Filepath"
+    )
+    hdf5_controller._client.data = mock_data  # type: ignore
+    pipeline_mock = MagicMock()
+    mock_create_default_pipeline.side_effect = [pipeline_mock]
+    hdf5_controller._num_capture_record = MagicMock()
+    hdf5_controller._num_capture_record.get = MagicMock(return_value=5)  # type: ignore
+
+    await hdf5_controller._handle_hdf5_data()
+
+    # Check it ran correctly
+    assert hdf5_controller._capture_control_record.get() == 0
+    assert (
+        hdf5_controller._status_message_record.get()
+        == "Requested number of frames captured"
+    )
+    assert pipeline_mock[0].queue.put_nowait.call_count == 7
+    pipeline_mock[0].queue.put_nowait.assert_called_with(EndData(5, EndReason.OK))
+
+    mock_stop_pipeline.assert_called_once()
 
 
 def test_hdf_get_filename(
