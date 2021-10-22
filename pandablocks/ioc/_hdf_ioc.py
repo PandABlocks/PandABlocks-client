@@ -19,7 +19,7 @@ from pandablocks.hdf import (
     stop_pipeline,
 )
 from pandablocks.ioc._types import ONAM_STR, ZNAM_STR
-from pandablocks.responses import EndReason
+from pandablocks.responses import EndReason, ReadyData
 
 
 class _HDF5RecordController:
@@ -154,7 +154,9 @@ class _HDF5RecordController:
         This method expects to be run as an asyncio Task."""
         # TODO: Test this method
         try:
-            file_open = False
+            # Keep the start data around to compare against, if capture is
+            # enabled/disabled to know if we can keep using the same file
+            start_data: Optional[StartData] = None
             captured_frames: int = 0
             # Only one filename - user must stop capture and set new FileName/FilePath
             # for new files
@@ -163,22 +165,44 @@ class _HDF5RecordController:
             )
             flush_period: float = self._flush_period_record.get()
 
-            self._currently_capturing_record.set(1)
-            self._status_message_record.set("Starting capture")
-
             async for data in self._client.data(
                 scaled=False, flush_period=flush_period
             ):
                 logging.debug(f"Received data packet: {data}")
-                if isinstance(data, StartData):
-                    pipeline[0].queue.put_nowait(data)
-                    file_open = True
+                if isinstance(data, ReadyData):
+                    self._currently_capturing_record.set(1)
+                    self._status_message_record.set("Starting capture")
+                elif isinstance(data, StartData):
+                    if start_data and data != start_data:
+                        # PandA was disarmed, had config changed, and rearmed.
+                        # Cannot process to the same file with different start data.
+                        logging.error(
+                            "New start data detected, differs from previous start "
+                            "data for this file. Aborting HDF5 data capture."
+                        )
+
+                        self._status_message_record.set(
+                            "Mismatched StartData packet for file",
+                            severity=alarm.MAJOR_ALARM,
+                            alarm=alarm.STATE_ALARM,
+                        )
+                        pipeline[0].queue.put_nowait(
+                            EndData(captured_frames, EndReason.START_DATA_MISMATCH)
+                        )
+
+                        self._capture_control_record.set(0)
+                        break
+                    if start_data is None:
+                        # Only pass StartData to pipeline if we haven't previously
+                        # - if we have there will already be an in-progress HDF file
+                        # that we should just append data to
+                        start_data = data
+                        pipeline[0].queue.put_nowait(data)
 
                 elif isinstance(data, FrameData):
                     pipeline[0].queue.put_nowait(data)
                     captured_frames += 1
                     num_to_capture: int = self._num_capture_record.get()
-                    # TODO: Test the below comparisons
                     if num_to_capture > 0 and captured_frames >= num_to_capture:
                         # Reached configured capture limit, stop the file
                         logging.info(
@@ -202,7 +226,7 @@ class _HDF5RecordController:
             self._status_message_record.set("Capturing disabled")
             # Only send EndData if we know the file was opened - could be cancelled
             # before PandA has actually send any data
-            if file_open:
+            if start_data:
                 pipeline[0].queue.put_nowait(EndData(captured_frames, EndReason.OK))
 
         except Exception:
@@ -214,7 +238,7 @@ class _HDF5RecordController:
             )
             # Only send EndData if we know the file was opened - exception could happen
             # before file was opened
-            if file_open:
+            if start_data:
                 pipeline[0].queue.put_nowait(
                     EndData(captured_frames, EndReason.UNKNOWN_EXCEPTION)
                 )

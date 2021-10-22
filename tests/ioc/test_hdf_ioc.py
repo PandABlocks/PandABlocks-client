@@ -9,7 +9,7 @@ from typing import Generator
 import h5py
 import numpy
 import pytest
-from aioca import caget, camonitor, caput
+from aioca import caget, camonitor, caput, purge_channel_caches
 from epicsdbbuilder import ResetRecords
 from mock.mock import MagicMock
 from softioc import asyncio_dispatcher, builder, softioc
@@ -155,29 +155,32 @@ async def test_hdf5_file_writing(
     await caput(HDF5_PREFIX + ":NumCapture", 1, wait=True)
     assert await caget(HDF5_PREFIX + ":NumCapture") == 1
 
+    # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
+    # and subsequently finishes
+    capturing_queue: asyncio.Queue = asyncio.Queue()
+    m = camonitor(HDF5_PREFIX + ":Capturing", capturing_queue.put)
+
+    # Initially Capturing should be 0
+    assert await capturing_queue.get() == 0
+
     await caput(HDF5_PREFIX + ":Capture", 1, wait=True)
     assert await caget(HDF5_PREFIX + ":Capture") == 1
 
-    # await asyncio.sleep(5)  # Give the capture some time to process
-    # capturing_event = asyncio.Event()
+    # Shortly after Capture = 1, Capturing should be set to 1
+    assert await capturing_queue.get() == 1
 
-    # async def wait_for_capturing_disabled():
-    #     val = await caget(HDF5_PREFIX + ":Capturing")
-    #     print(val)
-    #     if not val:
-    #         capturing_event.set()
+    # The HDF5 data will be processed, and when it's done Capturing is set to 0
+    assert await asyncio.wait_for(capturing_queue.get(), timeout=10) == 0
 
-    # camonitor(HDF5_PREFIX + ":Capturing", wait_for_capturing_disabled)
-
-    # await asyncio.wait_for(capturing_event.wait(), timeout=1000)
-
-    # TODO: Must be a better way to do this...
-    await asyncio.sleep(5)
+    m.close()
+    # Necessary aioca teardown code, to purge the channels before the event loop goes
+    purge_channel_caches()
 
     # Close capture, thus closing hdf5 file
     await caput(HDF5_PREFIX + ":Capture", 0, wait=True)
     assert await caget(HDF5_PREFIX + ":Capture") == 0
 
+    # Confirm file contains data we expect
     hdf_file = h5py.File(tmp_path / test_filename[:-1], "r")
     assert list(hdf_file) == [
         "COUNTER1.OUT.Max",
@@ -189,6 +192,8 @@ async def test_hdf5_file_writing(
         "PCAP.SAMPLES.Value",
         "PCAP.TS_START.Value",
     ]
+
+    assert len(hdf_file["/COUNTER1.OUT.Max"]) == 10000
 
 
 def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordController):
