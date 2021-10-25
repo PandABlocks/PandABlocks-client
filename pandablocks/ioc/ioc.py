@@ -939,6 +939,8 @@ class IocRecordFactory:
         # TODO: There will need to be some mechanism to retrieve the labels,
         # but there's a BITS table that can probably be used
         validator = StringRecordLabelValidator(field_info.labels)
+        # Ensure we're putting a valid value to start with
+        assert values[record_name] in field_info.labels
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -986,6 +988,8 @@ class IocRecordFactory:
         # TODO: There will need to be some mechanism to retrieve the labels,
         # but there's a POSITIONS table that can probably be used
         validator = StringRecordLabelValidator(field_info.labels)
+        # Ensure we're putting a valid value to start with
+        assert values[record_name] in field_info.labels
 
         record_dict[record_name] = self._create_record_info(
             record_name,

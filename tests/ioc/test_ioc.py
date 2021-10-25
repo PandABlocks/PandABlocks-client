@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import sys
 import time
 from multiprocessing import Process
 from typing import Dict, Generator, List
@@ -67,7 +69,7 @@ def dummy_server_introspect_panda(
     get_changes_scalar_data = (
         # Note the deliberate concatenation across lines - this must be a single
         # entry in the list
-        "!PCAP.TRIG_EDGE=Label2\n!PCAP.GATE=CLOCK1.OUT\n!PCAP.GATE.DELAY=1\n"
+        "!PCAP.TRIG_EDGE=Falling\n!PCAP.GATE=CLOCK1.OUT\n!PCAP.GATE.DELAY=1\n"
         "!*METADATA.LABEL_PCAP1=PcapMetadataLabel\n"
         "!SEQ1.TABLE<\n"
         "."
@@ -103,9 +105,9 @@ def dummy_server_introspect_panda(
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
         "!TABLE 7 table\n.",  # SEQ field
         get_changes_scalar_data,
-        "!Label1\n!Label2\n.",  # TRIG_EDGE enum labels
+        "!Rising\n!Falling\n!Either\n.",  # TRIG_EDGE enum labels
         "OK =100",  # GATE MAX_DELAY
-        "!LabelA\n!LabelB\n.",  # GATE labels
+        "!TTLIN1.VAL\n!INENC1.A\n!CLOCK1.OUT\n.",  # GATE labels
         "OK =Trig Edge Desc",
         "OK =Gate Desc",
         "OK =16384",  # TABLE MAX_LENGTH
@@ -133,7 +135,7 @@ def dummy_server_introspect_panda(
     ]
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
-    # dummy_server_in_thread.debug = True
+    dummy_server_in_thread.debug = True
     yield dummy_server_in_thread
 
 
@@ -141,11 +143,9 @@ def dummy_server_introspect_panda(
 def dummy_server_system(dummy_server_introspect_panda: DummyServer):
     """A server for a full system test"""
 
-    # Add data for GetChanges to consume. Number of returns is arbitrary.
+    # Add data for GetChanges to consume. Number of items should be bigger than
+    # the sleep time given during IOC startup
     dummy_server_introspect_panda.send += [
-        ".",
-        ".",
-        ".",
         ".",
         ".",
         ".",
@@ -155,23 +155,33 @@ def dummy_server_system(dummy_server_introspect_panda: DummyServer):
     yield dummy_server_introspect_panda
 
 
+@patch("pandablocks.ioc.ioc.AsyncioClient.close")
 @patch("pandablocks.ioc.ioc.softioc.interactive_ioc")
-def ioc_wrapper(mocked_interactive_ioc: MagicMock):
+def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMock):
     """Wrapper function to start the IOC and do some mocking"""
 
     async def inner_wrapper():
         create_softioc("localhost", TEST_PREFIX)
+        # If you see an error on the below line, it probably means an unexpected
+        # exception occurred during IOC startup
         mocked_interactive_ioc.assert_called_once()
+        mocked_client_close.assert_called_once()
         # Leave this process running until its torn down by pytest
         await asyncio.Event().wait()
+
+    # Have to add our own logger, otherwise pytest doesn't see logging messages from IOC
+    sh = logging.StreamHandler(sys.stderr)
+    sh.setLevel(logging.WARNING)
+    logging.getLogger("").addHandler(sh)
 
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()
     asyncio.run_coroutine_threadsafe(inner_wrapper(), dispatcher.loop).result()
 
 
 @pytest.fixture
-def subprocess_ioc() -> Generator:
+def subprocess_ioc(caplog) -> Generator:
     """Run the IOC in its own subprocess"""
+
     p = Process(target=ioc_wrapper)
     p.start()
     time.sleep(3)  # Give IOC some time to start up
@@ -204,15 +214,46 @@ async def test_create_softioc_system(
     that the input data is turned into a collection of records with the appropriate
     values."""
 
-    assert await caget(TEST_PREFIX + ":PCAP1:TRIG_EDGE") == 1  # == Label2
+    assert await caget(TEST_PREFIX + ":PCAP1:TRIG_EDGE") == 1  # == Falling
     assert await caget(TEST_PREFIX + ":PCAP1:GATE") == "CLOCK1.OUT"
     assert await caget(TEST_PREFIX + ":PCAP1:GATE:DELAY") == 1
+    assert await caget(TEST_PREFIX + ":PCAP1:GATE:MAX_DELAY") == 100
     assert await caget(TEST_PREFIX + ":PCAP1:LABEL") == "PcapMetadataLabel"
 
     # Check table fields
     for field_name, expected_array in table_unpacked_data.items():
         actual_array = await caget(TEST_PREFIX + ":SEQ1:TABLE:" + field_name)
         assert numpy.array_equal(actual_array, expected_array)
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_update(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+):
+    """Test that the update mechanism correctly changes record values when PandA sends
+    data"""
+
+    # Add more GetChanges data. Include some trailing empty changesets to allow test
+    # code to run.
+    dummy_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n.", ".", "."]
+
+    try:
+        # Set up a monitor to wait for the expected change
+        capturing_queue: asyncio.Queue = asyncio.Queue()
+        monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
+
+        curr_val = await asyncio.wait_for(capturing_queue.get(), 2)
+        # First response is the current value
+        assert curr_val == 1
+
+        # Wait for the new value to appear
+        curr_val = await asyncio.wait_for(capturing_queue.get(), 30)
+        assert curr_val == 2
+
+    finally:
+        monitor.close()
+        purge_channel_caches()
 
 
 def test_ensure_block_number_present():
@@ -236,18 +277,18 @@ async def test_introspect_panda(
                     type="param",
                     subtype="enum",
                     description="Trig Edge Desc",
-                    labels=["Label1", "Label2"],
+                    labels=["Rising", "Falling", "Either"],
                 ),
                 "GATE": BitMuxFieldInfo(
                     type="bit_mux",
                     subtype=None,
                     description="Gate Desc",
                     max_delay=100,
-                    labels=["LabelA", "LabelB"],
+                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
                 ),
             },
             values={
-                EpicsName("PCAP1:TRIG_EDGE"): "Label2",
+                EpicsName("PCAP1:TRIG_EDGE"): "Falling",
                 EpicsName("PCAP1:GATE"): "CLOCK1.OUT",
                 EpicsName("PCAP1:GATE:DELAY"): "1",
                 EpicsName("PCAP1:LABEL"): "PcapMetadataLabel",
@@ -263,7 +304,7 @@ async def test_introspect_panda(
         )
 
         assert all_values_dict == {
-            "PCAP1:TRIG_EDGE": "Label2",
+            "PCAP1:TRIG_EDGE": "Falling",
             "PCAP1:GATE": "CLOCK1.OUT",
             "PCAP1:GATE:DELAY": "1",
             "PCAP1:LABEL": "PcapMetadataLabel",
@@ -296,6 +337,14 @@ async def test_record_updater_labels():
     await updater.update("2")
 
     client.send.assert_called_once_with(Put("ABC.DEF", "Label3"))
+
+
+def idfn(val):
+    """helper function to nicely name parameterized test IDs"""
+    if isinstance(val, FieldInfo):
+        return val.type + "-" + str(val.subtype)  # subtype may be None
+    elif isinstance(val, (dict, list)):
+        return ""
 
 
 # TODO: Test the special types
@@ -408,7 +457,7 @@ async def test_record_updater_labels():
                 labels=["TTLIN1.VAL", "TTLIN2.VAL", "TTLIN3.VAL"],
             ),
             {
-                f"{TEST_RECORD}": "SRGATE4.OUT",
+                f"{TEST_RECORD}": "TTLIN1.VAL",
                 f"{TEST_RECORD}:DELAY": "0",
                 f"{TEST_RECORD}:MAX_DELAY": "31",
             },
@@ -424,7 +473,7 @@ async def test_record_updater_labels():
                 labels=["INENC1.VAL", "INENC2.VAL", "INENC3.VAL"],
             ),
             {
-                f"{TEST_RECORD}": "ZERO",
+                f"{TEST_RECORD}": "INENC2.VAL",
             },
             [
                 f"{TEST_RECORD}",
@@ -644,6 +693,7 @@ async def test_record_updater_labels():
             ],
         ),
     ],
+    ids=idfn,
 )
 def test_create_record(
     ioc_record_factory: IocRecordFactory, field_info, values, expected_records
