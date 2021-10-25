@@ -244,14 +244,14 @@ class DummyServer:
         # Add to this to give the data port something to send
         self.data: Iterable[bytes] = []
 
+        if self.debug and os.path.isfile(self._debug_file):
+            os.remove(self._debug_file)
+
     async def handle_ctrl(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         buf = Buffer()
         is_multiline = False
-
-        if self.debug:
-            os.remove(self._debug_file)
 
         while True:
             received = await reader.read(4096)

@@ -54,7 +54,6 @@ def hdf5_controller() -> Generator:
 
 def subprocess_func() -> None:
     """Function to start the HDF5 IOC"""
-    # No need for counter as this runs in a separate process
 
     async def wrapper(dispatcher):
         builder.SetDeviceName(NAMESPACE_PREFIX)
@@ -62,6 +61,7 @@ def subprocess_func() -> None:
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
 
+        # Leave this coroutine running until it's torn down by pytest
         await asyncio.Event().wait()
 
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()

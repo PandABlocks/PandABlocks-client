@@ -1,12 +1,14 @@
 import asyncio
 import time
 from multiprocessing import Process
-from typing import Generator
+from typing import Generator, List
 
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
 from epicsdbbuilder import ResetRecords
-from mock import AsyncMock
+from mock import AsyncMock, patch
+from mock.mock import MagicMock
+from softioc import asyncio_dispatcher
 from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
@@ -31,7 +33,6 @@ from pandablocks.responses import (
     PosOutFieldInfo,
     ScalarFieldInfo,
     SubtypeTimeFieldInfo,
-    TableFieldDetails,
     TableFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
@@ -55,7 +56,9 @@ def ioc_record_factory():
 
 
 @pytest.fixture
-def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
+def dummy_server_introspect_panda(
+    dummy_server_in_thread: DummyServer, table_data: List[str]
+):
     """A dummy server that responds to all the requests introspect_panda makes
     during its operation.
     Note that the order of responses was determined by trial and error."""
@@ -67,10 +70,32 @@ def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
         "!SEQ1.TABLE<\n"
         "."
     )
-    get_changes_multiline_data = "!1\n!2\n!3\n."
+
+    # Transform the plain list of values into one that PandA would send
+    tmp = ["!" + s + "\n" for s in table_data]
+    tmp.append(".")  # Add the terminator
+    get_changes_multiline_data = "".join(tmp)
+
+    table_fields_data = (
+        # Note the deliberate concatenation across lines - this must be a single
+        # entry in the list
+        "!15:0 REPEATS uint\n!19:16 TRIGGER enum\n!63:32 POSITION int\n"
+        "!95:64 TIME1 uint\n!20:20 OUTA1 uint\n!21:21 OUTB1 uint\n!22:22 OUTC1 uint\n"
+        "!23:23 OUTD1 uint\n!24:24 OUTE1 uint\n!25:25 OUTF1 uint\n!127:96 TIME2 uint\n"
+        "!26:26 OUTA2 uint\n!27:27 OUTB2 uint\n!28:28 OUTC2 uint\n!29:29 OUTD2 uint\n"
+        "!30:30 OUTE2 uint\n!31:31 OUTF2 uint\n."
+    )
+
+    trigger_field_labels = (
+        # Note the deliberate concatenation across lines - this must be a single
+        # entry in the list
+        "!Immediate\n!BITA=0\n!BITA=1\n!BITB=0\n!BITB=1\n!BITC=0\n!BITC=1\n"
+        "!POSA>=POSITION\n!POSA<=POSITION\n!POSB>=POSITION\n!POSB<=POSITION\n"
+        "!POSC>=POSITION\n!POSC<=POSITION\n."
+    )
 
     dummy_server_in_thread.send += [
-        "!PCAP 1\n!SEQ 3\n.",
+        "!PCAP 1\n!SEQ 1\n.",  # BLOCK definitions
         "OK =PCAP Desc",
         "OK =SEQ Desc",
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
@@ -82,13 +107,27 @@ def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
         "OK =Trig Edge Desc",
         "OK =Gate Desc",
         "OK =16384",  # TABLE MAX_LENGTH
-        "!15:0 REPEATS uint\n!19:16 TRIGGER enum\n!63:32 POSITION int\n.",  # TABLE flds
+        table_fields_data,
         "OK =Sequencer table of lines",  # TABLE Desc
         get_changes_multiline_data,
-        "!Immediate\n!BITA=0\n.",  # TRIGGER field labels
+        trigger_field_labels,
         "OK =Number of times the line will repeat",  # Repeats field desc
         "OK =The trigger condition to start the phases",  # TRIGGER field desc
         "OK =The position that can be used in trigger condition",  # POSITION field desc
+        "OK =The time the optional phase 1 should take",  # TIME1 desc
+        "OK =Output A value during phase 1",  # OUTA1 desc
+        "OK =Output B value during phase 1",  # OUTB1 desc
+        "OK =Output C value during phase 1",  # OUTC1 desc
+        "OK =Output D value during phase 1",  # OUTD1 desc
+        "OK =Output E value during phase 1",  # OUTE1 desc
+        "OK =Output F value during phase 1",  # OUTF1 desc
+        "OK =The time the mandatory phase 2 should take",  # TIME2 desc
+        "OK =Output A value during phase 2",  # OUTA2 desc
+        "OK =Output B value during phase 2",  # OUTB2 desc
+        "OK =Output C value during phase 2",  # OUTC2 desc
+        "OK =Output D value during phase 2",  # OUTD2 desc
+        "OK =Output E value during phase 2",  # OUTE2 desc
+        "OK =Output F value during phase 2",  # OUTF2 desc
     ]
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
@@ -96,10 +135,24 @@ def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
     yield dummy_server_in_thread
 
 
+@patch("pandablocks.ioc.ioc.softioc.interactive_ioc")
+def ioc_wrapper(mocked_interactive_ioc: MagicMock):
+    """Wrapper function to start the IOC and do some mocking"""
+
+    async def inner_wrapper():
+        create_softioc("localhost", TEST_PREFIX)
+        mocked_interactive_ioc.assert_called_once()
+        # Leave this process running until its torn down by pytest
+        await asyncio.Event().wait()
+
+    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
+    asyncio.run_coroutine_threadsafe(inner_wrapper(), dispatcher.loop).result()
+
+
 @pytest.fixture
 def subprocess_ioc() -> Generator:
     """Run the IOC in its own subprocess"""
-    p = Process(target=create_softioc, args=("localhost", TEST_PREFIX))
+    p = Process(target=ioc_wrapper)
     p.start()
     time.sleep(5)  # Give IOC some time to start up
     yield
@@ -108,6 +161,8 @@ def subprocess_ioc() -> Generator:
     # Should never take anywhere near 10 seconds to terminate, it's just there
     # to ensure the test doesn't hang indefinitely during cleanup
 
+    # TODO: These shouldn't need to be here - records are on another process.
+    # But they will need to go somewhere.
     # Remove any records created at epicsdbbuilder layer
     ResetRecords()
     # And at pythonSoftIoc level
@@ -123,8 +178,7 @@ TEST_RECORD = EpicsName("TEST:RECORD")
 async def test_create_softioc_system(dummy_server_introspect_panda, subprocess_ioc):
     """Top-level system test of the entire program, using some pre-canned data"""
 
-    await asyncio.sleep(100)
-    assert await caget(TEST_PREFIX + ":PCAP:TRIG_EDGE") == 999
+    assert await caget(TEST_PREFIX + ":PCAP1:TRIG_EDGE") == 1  # == Label2
 
 
 def test_ensure_block_number_present():
@@ -133,7 +187,11 @@ def test_ensure_block_number_present():
 
 
 @pytest.mark.asyncio
-async def test_introspect_panda(dummy_server_introspect_panda):
+async def test_introspect_panda(
+    dummy_server_introspect_panda,
+    table_field_info: TableFieldInfo,
+    table_data: List[str],
+):
     """High-level test that introspect_panda returns expected data structures"""
     async with AsyncioClient("localhost") as client:
         (data, all_values_dict) = await introspect_panda(client)
@@ -155,50 +213,19 @@ async def test_introspect_panda(dummy_server_introspect_panda):
                 ),
             },
             values={
-                "PCAP1:TRIG_EDGE": "Label2",
-                "PCAP1:GATE": "CLOCK1.OUT",
-                "PCAP1:GATE:DELAY": "1",
-                "PCAP1:LABEL": "PcapMetadataLabel",
+                EpicsName("PCAP1:TRIG_EDGE"): "Label2",
+                EpicsName("PCAP1:GATE"): "CLOCK1.OUT",
+                EpicsName("PCAP1:GATE:DELAY"): "1",
+                EpicsName("PCAP1:LABEL"): "PcapMetadataLabel",
             },
         )
 
         assert data["SEQ"] == _BlockAndFieldInfo(
             block_info=BlockInfo(number=3, description="SEQ Desc"),
             fields={
-                "TABLE": TableFieldInfo(
-                    type="table",
-                    subtype=None,
-                    description="Sequencer table of lines",
-                    max_length=16384,
-                    fields={
-                        "REPEATS": TableFieldDetails(
-                            subtype="uint",
-                            bit_low=0,
-                            bit_high=15,
-                            description="Number of times the line will repeat",
-                            labels=None,
-                        ),
-                        "TRIGGER": TableFieldDetails(
-                            subtype="enum",
-                            bit_low=16,
-                            bit_high=19,
-                            description="The trigger condition to start the phases",
-                            labels=["Immediate", "BITA=0"],
-                        ),
-                        "POSITION": TableFieldDetails(
-                            subtype="int",
-                            bit_low=32,
-                            bit_high=63,
-                            description=(
-                                "The position that can be used in trigger condition"
-                            ),
-                            labels=None,
-                        ),
-                    },
-                    row_words=2,
-                )
+                "TABLE": table_field_info,
             },
-            values={"SEQ1:TABLE": ["1", "2", "3"]},
+            values={EpicsName("SEQ1:TABLE"): table_data},
         )
 
         assert all_values_dict == {
@@ -206,7 +233,7 @@ async def test_introspect_panda(dummy_server_introspect_panda):
             "PCAP1:GATE": "CLOCK1.OUT",
             "PCAP1:GATE:DELAY": "1",
             "PCAP1:LABEL": "PcapMetadataLabel",
-            "SEQ1:TABLE": ["1", "2", "3"],
+            "SEQ1:TABLE": table_data,
         }
 
 
