@@ -88,6 +88,7 @@ async def _create_softioc(
     (all_records, all_values_dict) = await create_records(
         client, dispatcher, record_prefix
     )
+
     asyncio.create_task(update(client, all_records, 1, all_values_dict))
 
 
@@ -97,7 +98,6 @@ def create_softioc(host: str, record_prefix: str) -> None:
 
     This function will introspect a PandA for all defined Blocks, Fields of each Block,
     and Attributes of each Field, and create appropriate EPICS records for each.
-
 
     Args:
         host: The address of the PandA, in IP or hostname form. No port number required.

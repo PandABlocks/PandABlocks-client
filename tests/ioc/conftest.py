@@ -177,7 +177,9 @@ def table_data() -> List[str]:
 
 
 @pytest.fixture
-def table_unpacked_data(table_fields) -> Dict[EpicsName, ndarray]:
+def table_unpacked_data(
+    table_fields: Dict[str, TableFieldDetails]
+) -> Dict[EpicsName, ndarray]:
     """The unpacked equivalent of table_data"""
     array_values = [
         array([5, 0, 50000], dtype=uint16),
@@ -200,6 +202,6 @@ def table_unpacked_data(table_fields) -> Dict[EpicsName, ndarray]:
     ]
     data = {}
     for field_name, data_array in zip(table_fields.keys(), array_values):
-        data[field_name] = data_array
+        data[EpicsName(field_name)] = data_array
 
     return data

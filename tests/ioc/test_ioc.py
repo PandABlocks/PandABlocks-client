@@ -1,13 +1,15 @@
 import asyncio
 import time
 from multiprocessing import Process
-from typing import Generator, List
+from typing import Dict, Generator, List
 
+import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
 from epicsdbbuilder import ResetRecords
 from mock import AsyncMock, patch
 from mock.mock import MagicMock
+from numpy import ndarray
 from softioc import asyncio_dispatcher
 from softioc.device_core import RecordLookup
 
@@ -135,6 +137,24 @@ def dummy_server_introspect_panda(
     yield dummy_server_in_thread
 
 
+@pytest.fixture
+def dummy_server_system(dummy_server_introspect_panda: DummyServer):
+    """A server for a full system test"""
+
+    # Add data for GetChanges to consume. Number of returns is arbitrary.
+    dummy_server_introspect_panda.send += [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+    ]
+
+    yield dummy_server_introspect_panda
+
+
 @patch("pandablocks.ioc.ioc.softioc.interactive_ioc")
 def ioc_wrapper(mocked_interactive_ioc: MagicMock):
     """Wrapper function to start the IOC and do some mocking"""
@@ -154,7 +174,7 @@ def subprocess_ioc() -> Generator:
     """Run the IOC in its own subprocess"""
     p = Process(target=ioc_wrapper)
     p.start()
-    time.sleep(5)  # Give IOC some time to start up
+    time.sleep(3)  # Give IOC some time to start up
     yield
     p.terminate()
     p.join(10)
@@ -175,10 +195,24 @@ TEST_RECORD = EpicsName("TEST:RECORD")
 
 
 @pytest.mark.asyncio
-async def test_create_softioc_system(dummy_server_introspect_panda, subprocess_ioc):
-    """Top-level system test of the entire program, using some pre-canned data"""
+async def test_create_softioc_system(
+    dummy_server_system,
+    subprocess_ioc,
+    table_unpacked_data: Dict[EpicsName, ndarray],
+):
+    """Top-level system test of the entire program, using some pre-canned data. Tests
+    that the input data is turned into a collection of records with the appropriate
+    values."""
 
     assert await caget(TEST_PREFIX + ":PCAP1:TRIG_EDGE") == 1  # == Label2
+    assert await caget(TEST_PREFIX + ":PCAP1:GATE") == "CLOCK1.OUT"
+    assert await caget(TEST_PREFIX + ":PCAP1:GATE:DELAY") == 1
+    assert await caget(TEST_PREFIX + ":PCAP1:LABEL") == "PcapMetadataLabel"
+
+    # Check table fields
+    for field_name, expected_array in table_unpacked_data.items():
+        actual_array = await caget(TEST_PREFIX + ":SEQ1:TABLE:" + field_name)
+        assert numpy.array_equal(actual_array, expected_array)
 
 
 def test_ensure_block_number_present():
@@ -221,7 +255,7 @@ async def test_introspect_panda(
         )
 
         assert data["SEQ"] == _BlockAndFieldInfo(
-            block_info=BlockInfo(number=3, description="SEQ Desc"),
+            block_info=BlockInfo(number=1, description="SEQ Desc"),
             fields={
                 "TABLE": table_field_info,
             },
