@@ -1,5 +1,13 @@
+import asyncio
+import time
+from multiprocessing import Process
+from typing import Generator
+
 import pytest
+from aioca import caget, camonitor, caput, purge_channel_caches
+from epicsdbbuilder import ResetRecords
 from mock import AsyncMock
+from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
@@ -9,6 +17,7 @@ from pandablocks.ioc.ioc import (
     _BlockAndFieldInfo,
     _ensure_block_number_present,
     _RecordUpdater,
+    create_softioc,
     introspect_panda,
 )
 from pandablocks.responses import (
@@ -53,7 +62,8 @@ def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
     get_changes_scalar_data = (
         # Note the deliberate concatenation across lines - this must be a single
         # entry in the list
-        "!PCAP.FOO=1\n!PCAP.BAR=12.34\n!*METADATA.LABEL_PCAP1=PcapMetadataLabel\n"
+        "!PCAP.TRIG_EDGE=Label2\n!PCAP.GATE=CLOCK1.OUT\n!PCAP.GATE.DELAY=1\n"
+        "!*METADATA.LABEL_PCAP1=PcapMetadataLabel\n"
         "!SEQ1.TABLE<\n"
         "."
     )
@@ -86,7 +96,35 @@ def dummy_server_introspect_panda(dummy_server_in_thread: DummyServer):
     yield dummy_server_in_thread
 
 
+@pytest.fixture
+def subprocess_ioc() -> Generator:
+    """Run the IOC in its own subprocess"""
+    p = Process(target=create_softioc, args=("localhost", TEST_PREFIX))
+    p.start()
+    time.sleep(5)  # Give IOC some time to start up
+    yield
+    p.terminate()
+    p.join(10)
+    # Should never take anywhere near 10 seconds to terminate, it's just there
+    # to ensure the test doesn't hang indefinitely during cleanup
+
+    # Remove any records created at epicsdbbuilder layer
+    ResetRecords()
+    # And at pythonSoftIoc level
+    # TODO: Remove this hack and use use whatever comes out of
+    # https://github.com/dls-controls/pythonSoftIOC/issues/56
+    RecordLookup._RecordDirectory.clear()
+
+
 TEST_RECORD = EpicsName("TEST:RECORD")
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_system(dummy_server_introspect_panda, subprocess_ioc):
+    """Top-level system test of the entire program, using some pre-canned data"""
+
+    await asyncio.sleep(100)
+    assert await caget(TEST_PREFIX + ":PCAP:TRIG_EDGE") == 999
 
 
 def test_ensure_block_number_present():
@@ -117,8 +155,9 @@ async def test_introspect_panda(dummy_server_introspect_panda):
                 ),
             },
             values={
-                "PCAP1:FOO": "1",
-                "PCAP1:BAR": "12.34",
+                "PCAP1:TRIG_EDGE": "Label2",
+                "PCAP1:GATE": "CLOCK1.OUT",
+                "PCAP1:GATE:DELAY": "1",
                 "PCAP1:LABEL": "PcapMetadataLabel",
             },
         )
@@ -163,8 +202,9 @@ async def test_introspect_panda(dummy_server_introspect_panda):
         )
 
         assert all_values_dict == {
-            "PCAP1:BAR": "12.34",
-            "PCAP1:FOO": "1",
+            "PCAP1:TRIG_EDGE": "Label2",
+            "PCAP1:GATE": "CLOCK1.OUT",
+            "PCAP1:GATE:DELAY": "1",
             "PCAP1:LABEL": "PcapMetadataLabel",
             "SEQ1:TABLE": ["1", "2", "3"],
         }

@@ -46,8 +46,9 @@ def hdf5_controller() -> Generator:
 
     # Remove any records created at epicsdbbuilder layer
     ResetRecords()
-    # TODO: Decide if we keep this or not
     # And at pythonSoftIoc level
+    # TODO: Remove this hack and use use whatever comes out of
+    # https://github.com/dls-controls/pythonSoftIOC/issues/56
     RecordLookup._RecordDirectory.clear()
 
 
