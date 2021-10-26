@@ -1689,8 +1689,8 @@ class IocRecordFactory:
     def create_block_records(
         self, block: str, block_info: BlockInfo, block_values: Dict[EpicsName, str]
     ) -> Dict[EpicsName, _RecordInfo]:
-        """Create the block-level records. Currently this is just the LABEL record
-        for each block"""
+        """Create the block-level records, and any other one-off block initialisation
+        required."""
 
         record_dict = {}
         for key, value in block_values.items():

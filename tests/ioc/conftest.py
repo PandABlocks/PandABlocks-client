@@ -8,6 +8,19 @@ from pandablocks.responses import TableFieldDetails, TableFieldInfo
 
 
 @pytest.fixture
+def enable_codecov_multiprocess():
+    """Code to enable pytest-cov to work properly with multiprocessing"""
+    try:
+        from pytest_cov.embed import cleanup_on_sigterm
+    except ImportError:
+        pass
+    else:
+        cleanup_on_sigterm()
+
+    return
+
+
+@pytest.fixture
 def table_fields() -> Dict[str, TableFieldDetails]:
     """Table field definitions, taken from a SEQ.TABLE instance.
     Associated with table_data and table_field_info fixtures"""

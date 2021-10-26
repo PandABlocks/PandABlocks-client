@@ -69,7 +69,7 @@ def subprocess_func() -> None:
 
 
 @pytest.fixture
-def hdf5_subprocess_ioc() -> Generator:
+def hdf5_subprocess_ioc(enable_codecov_multiprocess) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC"""
 
     p = Process(target=subprocess_func)

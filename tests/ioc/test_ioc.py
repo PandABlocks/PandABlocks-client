@@ -21,6 +21,7 @@ from pandablocks.ioc._types import EpicsName
 from pandablocks.ioc.ioc import (
     IocRecordFactory,
     _BlockAndFieldInfo,
+    _create_softioc,
     _ensure_block_number_present,
     _RecordUpdater,
     create_softioc,
@@ -47,7 +48,6 @@ TEST_PREFIX = "TEST-PREFIX"
 counter = 0
 
 
-# TODO: Split tests up - tables and HDF5 are in their own files now
 @pytest.fixture
 def ioc_record_factory():
     """Create a new IocRecordFactory instance with a new, unique, namespace.
@@ -179,26 +179,19 @@ def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMoc
 
 
 @pytest.fixture
-def subprocess_ioc(caplog) -> Generator:
+def subprocess_ioc(enable_codecov_multiprocess) -> Generator:
     """Run the IOC in its own subprocess"""
 
     p = Process(target=ioc_wrapper)
-    p.start()
-    time.sleep(3)  # Give IOC some time to start up
-    yield
-    p.terminate()
-    p.join(10)
-    # Should never take anywhere near 10 seconds to terminate, it's just there
-    # to ensure the test doesn't hang indefinitely during cleanup
-
-    # TODO: These shouldn't need to be here - records are on another process.
-    # But they will need to go somewhere.
-    # Remove any records created at epicsdbbuilder layer
-    ResetRecords()
-    # And at pythonSoftIoc level
-    # TODO: Remove this hack and use use whatever comes out of
-    # https://github.com/dls-controls/pythonSoftIOC/issues/56
-    RecordLookup._RecordDirectory.clear()
+    try:
+        p.start()
+        time.sleep(3)  # Give IOC some time to start up
+        yield
+    finally:
+        p.terminate()
+        p.join(10)
+        # Should never take anywhere near 10 seconds to terminate, it's just there
+        # to ensure the test doesn't hang indefinitely during cleanup
 
 
 TEST_RECORD = EpicsName("TEST:RECORD")
@@ -248,12 +241,42 @@ async def test_create_softioc_update(
         assert curr_val == 1
 
         # Wait for the new value to appear
-        curr_val = await asyncio.wait_for(capturing_queue.get(), 30)
+        curr_val = await asyncio.wait_for(capturing_queue.get(), 10)
         assert curr_val == 2
 
     finally:
         monitor.close()
         purge_channel_caches()
+
+
+# TODO: Write update table test in the same vein as the above test
+# TODO: add checking the caplog records somewhere, probably in a system test too
+# @pytest.mark.asyncio
+# async def test_create_softioc_inline(
+#     dummy_server_system: DummyServer,
+#     caplog,
+# ):
+#     """Test the create_softioc method generates no logging messages during normal use.
+#     This test mostly exists for code coverage"""
+
+#     # later tests cannot create records at all even on a different namespace!
+#     caplog.set_level(logging.INFO)
+
+#     await _create_softioc(
+#         AsyncioClient("localhost"),
+#         TEST_PREFIX,
+#         asyncio_dispatcher.AsyncioDispatcher(asyncio.get_event_loop()),
+#     )
+
+#     log_message_printed = False
+#     for record in caplog.records:
+#         if record.levelno >= logging.WARNING:
+#             log_message_printed = True
+#             print(record)
+
+#     assert (
+#         log_message_printed is False
+#     ), "At least one WARNING or above logging message printed"
 
 
 def test_ensure_block_number_present():
