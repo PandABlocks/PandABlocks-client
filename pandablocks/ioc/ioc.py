@@ -1844,8 +1844,14 @@ async def update(
                     continue
 
                 logging.info(f"Setting record {field} to invalid value error state.")
-                record = all_records[field].record
-                record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
+                record_info: _RecordInfo = all_records[field]
+                # See PythonSoftIOC #53
+                if record_info.is_in_record:
+                    record_info.record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
+                else:
+                    logging.warning(
+                        f"Cannot set error state for record {record_info.record.name}"
+                    )
 
             for field, value in changes.values.items():
                 field = _ensure_block_number_present(field)
@@ -1858,7 +1864,7 @@ async def update(
                     )
                     continue
 
-                record_info: _RecordInfo = all_records[field]
+                record_info = all_records[field]
                 record = record_info.record
 
                 # Only Out records need process=False set.

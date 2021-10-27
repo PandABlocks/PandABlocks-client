@@ -38,6 +38,8 @@ ScalarRecordValue = Union[str, _InErrorException]
 TableRecordValue = List[str]
 RecordValue = Union[ScalarRecordValue, TableRecordValue]
 
+# TODO: Rename this, and probably a lot of other things, to remove leading _
+
 
 @dataclass
 class _RecordInfo:

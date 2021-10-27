@@ -9,14 +9,15 @@ import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
 from mock import AsyncMock, patch
-from mock.mock import MagicMock
+from mock.mock import MagicMock, call
 from numpy import ndarray
 from softioc import asyncio_dispatcher
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
-from pandablocks.ioc._types import EpicsName
+from pandablocks.ioc._types import ONAM_STR, ZNAM_STR, EpicsName, ScalarRecordValue
 from pandablocks.ioc.ioc import (
+    IgnoreException,
     IocRecordFactory,
     _BlockAndFieldInfo,
     _ensure_block_number_present,
@@ -29,6 +30,7 @@ from pandablocks.responses import (
     BitOutFieldInfo,
     BlockInfo,
     EnumFieldInfo,
+    ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
     FieldInfo,
     PosMuxFieldInfo,
@@ -43,6 +45,14 @@ from tests.conftest import DummyServer
 
 TEST_PREFIX = "TEST-PREFIX"
 counter = 0
+
+
+@pytest.fixture
+def record_updater() -> _RecordUpdater:
+    """Create a near-empty _RecordUpdater with a mocked client"""
+    client = AsyncioClient("123")
+    client.send = AsyncMock()  # type: ignore
+    return _RecordUpdater(EpicsName("ABC:DEF"), client, float, {})
 
 
 @pytest.fixture
@@ -74,7 +84,7 @@ def dummy_server_introspect_panda(
 
     # Transform the plain list of values into one that PandA would send
     tmp = ["!" + s + "\n" for s in table_data]
-    tmp.append(".")  # Add the terminator
+    tmp.append(".")  # Add the multiline terminator
     get_changes_multiline_data = "".join(tmp)
 
     table_fields_data = (
@@ -300,18 +310,67 @@ async def test_create_softioc_update_table(
 
 
 @pytest.mark.asyncio
+async def test_create_softioc_update_in_error(
+    dummy_server_system: DummyServer, subprocess_ioc, caplog
+):
+    """Test that the update mechanism correctly marks records as in error when PandA
+    reports the associated field is in error"""
+
+    # Add more GetChanges data. Include some trailing empty changesets to allow test
+    # code to run.
+    dummy_server_system.send += [
+        "!PCAP1.TRIG_EDGE (error)\n.",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+    ]
+
+    try:
+        # Set up a monitor to wait for the expected change
+        capturing_queue: asyncio.Queue = asyncio.Queue()
+        monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
+
+        curr_val = await asyncio.wait_for(capturing_queue.get(), 2)
+        # First response is the current value
+        assert curr_val == 1
+
+        # Wait for the new value to appear
+        # Cannot do this due to PythonSoftIOC issue #53. Leave test in place for
+        # coverage.
+        # err_val: AugmentedValue = await asyncio.wait_for(capturing_queue.get(), 100)
+        # assert err_val.severity == alarm.INVALID_ALARM
+        # assert err_val.status == alarm.UDF_ALARM
+
+    finally:
+        monitor.close()
+        purge_channel_caches()
+
+
+@pytest.mark.asyncio
 async def test_create_softioc_record_update_send_to_panda(
     # mocked_put: MagicMock,
     dummy_server_system: DummyServer,
     subprocess_ioc,
 ):
     """Test that updating a record causes the new value to be sent to PandA"""
-
     # Set the special response for the server
     dummy_server_system.expected_message_responses.update(
         {"PCAP1.TRIG_EDGE=Either": "OK"}
     )
 
+    # Few more responses to GetChanges to suppress error messages
+    dummy_server_system.send += [
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+        ".",
+    ]
     await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Either")
 
     # Give time for the on_update processing to occur
@@ -346,8 +405,6 @@ async def test_create_softioc_table_update_send_to_panda(
     # Give time for the on_update processing to occur
     await asyncio.sleep(2)
 
-    print(dummy_server_system.received)
-
     # Confirm the server received the expected string
     assert "" not in dummy_server_system.expected_message_responses
 
@@ -355,6 +412,37 @@ async def test_create_softioc_table_update_send_to_panda(
     assert "2457862145" in dummy_server_system.received
     assert "269877249" in dummy_server_system.received
     assert "4293918721" in dummy_server_system.received
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_arm_disarm(
+    # mocked_put: MagicMock,
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+):
+    """Test that the Arm and Disarm commands are correctly sent to PandA"""
+
+    # Set the special response for the server
+    dummy_server_system.expected_message_responses.update(
+        {"*PCAP.ARM=": "OK", "*PCAP.DISARM=": "OK"}
+    )
+
+    # Few more responses to GetChanges to suppress error messages
+    dummy_server_system.send += [".", ".", ".", "."]
+
+    await caput(TEST_PREFIX + ":PCAP:ARM", 1)
+    # Give time for the on_update processing to occur
+    await asyncio.sleep(1)
+
+    await caput(TEST_PREFIX + ":PCAP:ARM", 0)
+    # Give time for the on_update processing to occur
+    await asyncio.sleep(1)
+
+    print(dummy_server_system.received)
+
+    # Confirm the server received the expected strings
+    assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses
+    assert "*PCAP.DISARM=" not in dummy_server_system.expected_message_responses
 
 
 # TODO: add checking the caplog records somewhere, probably in a system test too
@@ -427,30 +515,68 @@ async def test_introspect_panda(
 
 
 @pytest.mark.asyncio
-async def test_record_updater():
+async def test_record_updater(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client"""
-    client = AsyncioClient("123")
-    client.send = AsyncMock()
-    updater = _RecordUpdater("ABC:DEF", client, float, {})
 
-    await updater.update("1.0")
-
-    client.send.assert_called_once_with(Put("ABC.DEF", "1.0"))
+    await record_updater.update("1.0")
+    mock: AsyncMock = record_updater.client.send  # type: ignore
+    mock.assert_called_once_with(Put("ABC.DEF", "1.0"))
 
 
 @pytest.mark.asyncio
-async def test_record_updater_labels():
+async def test_record_updater_labels(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client
     when the data is a label index"""
-    client = AsyncioClient("123")
-    client.send = AsyncMock()
-    updater = _RecordUpdater(
-        "ABC:DEF", client, float, None, labels=["Label1", "Label2", "Label3"]
-    )
 
-    await updater.update("2")
+    record_updater.labels = ["Label1", "Label2", "Label3"]
 
-    client.send.assert_called_once_with(Put("ABC.DEF", "Label3"))
+    await record_updater.update("2")
+    mock: AsyncMock = record_updater.client.send  # type: ignore
+    mock.assert_called_once_with(Put("ABC.DEF", "Label3"))
+
+
+@pytest.mark.asyncio
+async def test_record_updater_value_none(record_updater: _RecordUpdater):
+    """Test that the record updater succesfully Put's data to the client
+    when the data is 'None' e.g. for action-write fields"""
+
+    await record_updater.update(None)
+    mock: AsyncMock = record_updater.client.send  # type: ignore
+    mock.assert_called_once_with(Put("ABC.DEF", None))
+
+
+@pytest.mark.asyncio
+async def test_record_updater_ignore(record_updater: _RecordUpdater):
+    """Test that the record updater correctly ignores records with the relevant
+    data_type_func"""
+
+    def raiseIgnoreException(ignored):
+        raise IgnoreException("This item should be ignored")
+
+    record_updater.data_type_func = raiseIgnoreException
+
+    await record_updater.update("2")
+    mock: AsyncMock = record_updater.client.send  # type: ignore
+    mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_record_updater_restore_previous_value(record_updater: _RecordUpdater):
+    """Test that the record updater rolls back records to previous value on
+    Put failure"""
+
+    # Configure the updater with mocked record and value
+    mocked_record = MagicMock()
+    record_updater.add_record(mocked_record)
+
+    record_updater.all_values_dict = {EpicsName("ABC:DEF"): "999"}
+
+    mocked_send: AsyncMock = record_updater.client.send  # type: ignore
+    mocked_send.side_effect = Exception("Injected exception")
+
+    await record_updater.update("1.0")
+
+    mocked_record.set.assert_called_once_with("999", process=False)
 
 
 def idfn(val):
@@ -817,3 +943,94 @@ def test_create_record(
     returned_records = ioc_record_factory.create_record(TEST_RECORD, field_info, values)
     assert len(returned_records) == len(expected_records)
     assert all(key in returned_records for key in expected_records)
+
+
+@patch("pandablocks.ioc.ioc.IocRecordFactory._make_ext_out")
+@patch("pandablocks.ioc.ioc.builder.records")
+def test_make_ext_out_bits(
+    mocked_builder_records: MagicMock,
+    mocked_ext_out: MagicMock,
+    ioc_record_factory: IocRecordFactory,
+):
+    """Test _make_ext_out_bits creates all the records expected"""
+
+    record_name = EpicsName("PCAP:BITS0")
+    bits = [
+        "TTLIN1.VAL",
+        "TTLIN2.VAL",
+        "TTLIN3.VAL",
+        "TTLIN4.VAL",
+        "TTLIN5.VAL",
+        "TTLIN6.VAL",
+        "LVDSIN1.VAL",
+        "LVDSIN2.VAL",
+        "INENC1.A",
+        "INENC2.A",
+        "INENC3.A",
+        "INENC4.A",
+        "INENC1.B",
+        "INENC2.B",
+        "INENC3.B",
+        "INENC4.B",
+        "INENC1.Z",
+        "INENC2.Z",
+        "INENC3.Z",
+        "INENC4.Z",
+        "INENC1.DATA",
+        "INENC2.DATA",
+        "INENC3.DATA",
+        "INENC4.DATA",
+        "INENC1.CONN",
+        "INENC2.CONN",
+        "INENC3.CONN",
+        "INENC4.CONN",
+        "OUTENC1.CLK",
+        "OUTENC2.CLK",
+        "OUTENC3.CLK",
+        "OUTENC4.CLK",
+    ]
+    field_info = ExtOutBitsFieldInfo(
+        "ext_out", "bits", "Test Description", ["No", "Value"], bits
+    )
+    values: Dict[EpicsName, ScalarRecordValue] = {
+        EpicsName(f"{record_name}:CAPTURE"): "No",
+    }
+
+    # Mock the return from _make_ext_out so we can examine what happens
+    mocked_capture_record_info = MagicMock()
+    mocked_ext_out.return_value = {record_name + ":CAPTURE": mocked_capture_record_info}
+
+    ioc_record_factory._make_ext_out_bits(
+        record_name,
+        field_info,
+        values,
+    )
+
+    # Confirm correct aliases added to Capture record
+    calls = [
+        call(ioc_record_factory._record_prefix + ":BITS:" + str(i) + ":CAPTURE")
+        for i in range(0, 32)
+    ]
+
+    mocked_capture_record: MagicMock = mocked_capture_record_info.record
+    mocked_capture_record.add_alias.assert_has_calls(calls)
+
+    # Confirm correct bi and stringin records created
+    # This isn't a great test, but it's very complex to set up all the
+    # necessary linked records as a system test, so this'll do.
+    for i, label in enumerate(bits):
+        link = ioc_record_factory._record_prefix + ":" + label.replace(".", ":") + " CP"
+        enumerated_bits_prefix = f"BITS:{i}"
+        mocked_builder_records.bi.assert_any_call(
+            enumerated_bits_prefix + ":VAL",
+            INP=link,
+            DESC="Value of field connected to this BIT",
+            ZNAM=ZNAM_STR,
+            ONAM=ONAM_STR,
+        )
+
+        mocked_builder_records.stringin.assert_any_call(
+            enumerated_bits_prefix + ":NAME",
+            VAL=label,
+            DESC="Name of field connected to this BIT",
+        )
