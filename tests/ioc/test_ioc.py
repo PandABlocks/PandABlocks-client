@@ -224,8 +224,8 @@ async def test_create_softioc_update(
     dummy_server_system: DummyServer,
     subprocess_ioc,
 ):
-    """Test that the update mechanism correctly changes record values when PandA sends
-    data"""
+    """Test that the update mechanism correctly changes record values when PandA
+    reports values have changed"""
 
     # Add more GetChanges data. Include some trailing empty changesets to allow test
     # code to run.
@@ -249,24 +249,60 @@ async def test_create_softioc_update(
         purge_channel_caches()
 
 
-# TODO: Write update table test in the same vein as the above test
+@pytest.mark.asyncio
+async def test_create_softioc_update_table(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+    table_unpacked_data,
+):
+    """Test that the update mechanism correctly changes table values when PandA
+    reports values have changed"""
+
+    # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
+    # to all zero values. Include some trailing empty changesets to ensure test code has
+    # time to run.
+    dummy_server_system.send += [
+        "!SEQ1.TABLE<\n.",
+        # Deliberate concatenation here
+        "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
+        "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
+        "!2222\n.",
+        ".",
+        ".",
+    ]
+
+    try:
+        # Set up a monitor to wait for the expected change
+        capturing_queue: asyncio.Queue = asyncio.Queue()
+        monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:TIME1", capturing_queue.put)
+
+        curr_val: ndarray = await asyncio.wait_for(capturing_queue.get(), 2)
+        # First response is the current value
+        assert numpy.array_equal(curr_val, table_unpacked_data["TIME1"])
+
+        # Wait for the new value to appear
+        curr_val = await asyncio.wait_for(capturing_queue.get(), 1000)
+        assert numpy.array_equal(
+            curr_val,
+            [100, 0, 9, 5, 99999],
+        )
+
+        # And check some other columns too
+        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:TRIGGER")
+        assert numpy.array_equal(curr_val, [0, 0, 0, 9, 12])
+
+        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:POSITION")
+        assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
+
+        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
+        assert numpy.array_equal(curr_val, [0, 0, 1, 1, 0])
+
+    finally:
+        monitor.close()
+        purge_channel_caches()
+
+
 # TODO: add checking the caplog records somewhere, probably in a system test too
-# @pytest.mark.asyncio
-# async def test_create_softioc_inline(
-#     dummy_server_system: DummyServer,
-#     caplog,
-# ):
-#     """Test the create_softioc method generates no logging messages during normal use.
-#     This test mostly exists for code coverage"""
-
-#     # later tests cannot create records at all even on a different namespace!
-#     caplog.set_level(logging.INFO)
-
-#     await _create_softioc(
-#         AsyncioClient("localhost"),
-#         TEST_PREFIX,
-#         asyncio_dispatcher.AsyncioDispatcher(asyncio.get_event_loop()),
-#     )
 
 #     log_message_printed = False
 #     for record in caplog.records:
