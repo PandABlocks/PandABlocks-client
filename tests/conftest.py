@@ -4,7 +4,7 @@ import threading
 from collections import deque
 from io import BufferedReader
 from pathlib import Path
-from typing import Deque, Iterable, Iterator, List
+from typing import Deque, Dict, Iterable, Iterator, List
 
 import numpy as np
 import pytest
@@ -236,6 +236,12 @@ class DummyServer:
     debug = False
     _debug_file = "out.txt"
 
+    # Mechanism to tell the server to send a specific response back to the client
+    # when it sees an expected string. When the expected message is seen the
+    # response will be left-appended to the send buffer so it is sent next.
+    # Items are removed from the Dict when they are sent.
+    expected_message_responses: Dict[str, str] = {}
+
     def __init__(self):
         # This will be added to whenever control port gets a message
         self.received: List[str] = []
@@ -259,7 +265,11 @@ class DummyServer:
                 break
             buf += received
             for line in buf:
-                self.received.append(line.decode())
+                decoded_line = line.decode()
+                self.received.append(decoded_line)
+                if decoded_line in self.expected_message_responses:
+                    self.send.appendleft(self.expected_message_responses[decoded_line])
+                    del self.expected_message_responses[decoded_line]
                 if line.endswith(b"<") or line.endswith(b"<B"):
                     is_multiline = True
                 if not is_multiline or not line:

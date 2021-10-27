@@ -8,12 +8,10 @@ from typing import Dict, Generator, List
 import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
-from epicsdbbuilder import ResetRecords
 from mock import AsyncMock, patch
 from mock.mock import MagicMock
 from numpy import ndarray
 from softioc import asyncio_dispatcher
-from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
@@ -21,7 +19,6 @@ from pandablocks.ioc._types import EpicsName
 from pandablocks.ioc.ioc import (
     IocRecordFactory,
     _BlockAndFieldInfo,
-    _create_softioc,
     _ensure_block_number_present,
     _RecordUpdater,
     create_softioc,
@@ -300,6 +297,64 @@ async def test_create_softioc_update_table(
     finally:
         monitor.close()
         purge_channel_caches()
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_record_update_send_to_panda(
+    # mocked_put: MagicMock,
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+):
+    """Test that updating a record causes the new value to be sent to PandA"""
+
+    # Set the special response for the server
+    dummy_server_system.expected_message_responses.update(
+        {"PCAP1.TRIG_EDGE=Either": "OK"}
+    )
+
+    await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Either")
+
+    # Give time for the on_update processing to occur
+    await asyncio.sleep(5)
+
+    # Confirm the server received the expected string
+    assert (
+        "PCAP1.TRIG_EDGE=Either" not in dummy_server_system.expected_message_responses
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_table_update_send_to_panda(
+    # mocked_put: MagicMock,
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+):
+    """Test that updating a table causes the new value to be sent to PandA"""
+
+    # Set the special response for the server
+    dummy_server_system.expected_message_responses.update({"": "OK"})
+
+    # Few more responses to GetChanges to suppress error messages
+    dummy_server_system.send += [".", ".", ".", "."]
+
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
+
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", [1, 1, 1])
+
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT")
+
+    # Give time for the on_update processing to occur
+    await asyncio.sleep(2)
+
+    print(dummy_server_system.received)
+
+    # Confirm the server received the expected string
+    assert "" not in dummy_server_system.expected_message_responses
+
+    # Check the three numbers that should have updated from the REPEATS column change
+    assert "2457862145" in dummy_server_system.received
+    assert "269877249" in dummy_server_system.received
+    assert "4293918721" in dummy_server_system.received
 
 
 # TODO: add checking the caplog records somewhere, probably in a system test too
