@@ -23,7 +23,6 @@ from pandablocks.ioc._types import (
     _InErrorException,
 )
 from pandablocks.ioc.ioc import (
-    IgnoreException,
     IocRecordFactory,
     _BlockAndFieldInfo,
     _ensure_block_number_present,
@@ -544,21 +543,6 @@ async def test_record_updater_value_none(record_updater: _RecordUpdater):
     await record_updater.update(None)
     mock: AsyncMock = record_updater.client.send  # type: ignore
     mock.assert_called_once_with(Put("ABC.DEF", None))
-
-
-@pytest.mark.asyncio
-async def test_record_updater_ignore(record_updater: _RecordUpdater):
-    """Test that the record updater correctly ignores records with the relevant
-    data_type_func"""
-
-    def raiseIgnoreException(ignored):
-        raise IgnoreException("This item should be ignored")
-
-    record_updater.data_type_func = raiseIgnoreException
-
-    await record_updater.update("2")
-    mock: AsyncMock = record_updater.client.send  # type: ignore
-    mock.assert_not_called()
 
 
 @pytest.mark.asyncio

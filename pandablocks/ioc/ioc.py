@@ -259,10 +259,6 @@ def _create_dicts_from_changes(
     return values, all_values_dict
 
 
-class IgnoreException(Exception):
-    """Raised to indicate the current item should not be handled"""
-
-
 @dataclass
 class _RecordUpdater:
     """Handles Put'ing data back to the PandA when an EPICS record is updated.
@@ -309,11 +305,6 @@ class _RecordUpdater:
 
             # On success the new value will be polled by GetChanges and stored into
             # the all_values_dict
-
-        except IgnoreException:
-            # Thrown by some data_type_func calls.
-            # Some values, e.g. tables, do not use this update mechanism
-            logging.debug(f"Ignoring update to record {self.record_name}")
 
         except Exception:
             logging.exception(
@@ -779,9 +770,6 @@ class IocRecordFactory:
             initial_value=values[units_record_name],
         )
 
-        # TODO: Work out how to test SCALED, as well as all tabular,
-        # records as they aren't returned at all
-
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
         scaled_record_name = record_name + ":SCALED"
@@ -1018,10 +1006,10 @@ class IocRecordFactory:
         # The INDEX record's starting value
         DEFAULT_INDEX = 0
 
-        # A mechanism to stop the EPICS on_update processing from occurring
-        # for table records - their updates are handled through the _TableUpdater
-        def _raiseIgnoreException(ignored):
-            raise IgnoreException("This item should be ignored")
+        # Placeholder data_type_func for _create_record_info, which does nothing.
+        # It's never actually called, but if it is it'll do nothing to the data.
+        def do_nothing(val):
+            return val
 
         table_fields_records: Dict[str, TableFieldRecordContainer] = {
             k: TableFieldRecordContainer(v, None) for k, v in field_info.fields.items()
@@ -1057,7 +1045,7 @@ class IocRecordFactory:
                 full_name,
                 field_details.description,
                 builder.WaveformOut,
-                _raiseIgnoreException,
+                do_nothing,
                 validate=table_updater.validate_waveform,
                 on_update_name=table_updater.update_waveform,
                 # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
@@ -1101,12 +1089,18 @@ class IocRecordFactory:
                 scalar_labels, initial_value = self._process_labels(
                     field_details.labels, field_details.labels[initial_value]
                 )
+            else:
+                logging.error(
+                    f"Unknown table field subtype {field_details.subtype} detected "
+                    f"on table {record_name} field {field_name}. Using defaults."
+                )
+                record_creation_func = builder.longIn
 
             record_dict[scalar_record_name] = self._create_record_info(
                 scalar_record_name,
                 "Scalar val (set by INDEX rec) of column",
                 record_creation_func,
-                _raiseIgnoreException,
+                do_nothing,
                 initial_value=initial_value,
                 labels=scalar_labels,
                 **lopr,
@@ -1127,7 +1121,7 @@ class IocRecordFactory:
             mode_record_name,
             "Controls PandA <-> EPICS data interface",
             builder.mbbOut,
-            _raiseIgnoreException,
+            do_nothing,
             labels=labels,
             initial_value=index_value,
             on_update=table_updater.update_mode,
@@ -1145,7 +1139,7 @@ class IocRecordFactory:
             index_record_name,
             "Index for all SCALAR records on table",
             builder.longOut,
-            _raiseIgnoreException,
+            do_nothing,
             initial_value=DEFAULT_INDEX,
             on_update=table_updater.update_index,
             LOPR=0,
