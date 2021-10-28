@@ -10,6 +10,7 @@ from click.exceptions import ClickException
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetState, SetState, T
+from pandablocks.ioc import create_softioc
 
 # Default prompt
 PROMPT = "< "
@@ -142,3 +143,13 @@ def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
             await client.send(SetState(state))
 
     asyncio_run(_load(host, state))
+
+
+@cli.command()
+@click.argument("host")
+@click.argument("prefix")
+def softioc(host: str, prefix: str):
+    """
+    Create a soft IOC, using "prefix" for the namespace of the records.
+    """
+    create_softioc(host, prefix)

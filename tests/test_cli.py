@@ -1,6 +1,6 @@
 from collections import deque
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import h5py
 import numpy as np
@@ -132,3 +132,11 @@ def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
     assert result.exit_code == 0, result.exc_info
 
     assert dummy_server_in_thread.received == commands
+
+
+@patch("pandablocks.cli.create_softioc")
+def test_run_softioc(mocked_create_softioc: MagicMock):
+    runner = CliRunner()
+
+    runner.invoke(cli.cli, ["softioc", "localhost", "MY-PREFIX"])
+    mocked_create_softioc.assert_called_once_with("localhost", "MY-PREFIX")
