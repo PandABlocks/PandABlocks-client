@@ -201,11 +201,14 @@ class _HDF5RecordController:
                 elif isinstance(data, FrameData):
                     pipeline[0].queue.put_nowait(data)
                     captured_frames += 1
-                    num_to_capture: int = self._num_capture_record.get()
-                    if num_to_capture > 0 and captured_frames >= num_to_capture:
+                    num_frames_to_capture: int = self._num_capture_record.get()
+                    if (
+                        num_frames_to_capture > 0
+                        and captured_frames >= num_frames_to_capture
+                    ):
                         # Reached configured capture limit, stop the file
                         logging.info(
-                            f"Requested number of frames ({num_to_capture}) "
+                            f"Requested number of frames ({num_frames_to_capture}) "
                             "captured, disabling Capture."
                         )
                         self._status_message_record.set(

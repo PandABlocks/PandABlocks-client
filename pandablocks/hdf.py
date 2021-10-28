@@ -208,7 +208,7 @@ async def write_hdf_files(
         client: The `AsyncioClient` to use for communications
         file_names: Iterator of file names. Must be full file paths. Will be called once
             per file created.
-        num: The number of acquisitions to store in separate files
+        num: The number of acquisitions to store in separate files. 0 = Infinite capture
         arm: Whether to arm PCAP at the start, and after each successful acquisition
 
     """
@@ -217,15 +217,13 @@ async def write_hdf_files(
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
-            if type(data) in (ReadyData, EndData):
-                # TODO: Infinite capture should be 0 or less - this logic currently
-                # aborts on 0
+            if type(data) == EndData:
+                counter += 1
                 if counter == num:
                     # We produced the right number of frames
                     break
-                elif arm:
-                    # Told to arm at the beginning, and after each acquisition ends
-                    await client.send(Arm())
-                counter += 1
+            if type(data) in (ReadyData, EndData) and arm:
+                # Told to arm at the beginning, and after each acquisition ends
+                await client.send(Arm())
     finally:
         stop_pipeline(pipeline)

@@ -1126,7 +1126,7 @@ class IocRecordFactory:
             initial_value=index_value,
             on_update=table_updater.update_mode,
         )
-        # TODO: Why is the line below NOT a MyPy error?
+
         mode_record_info.record = TableRecordWrapper(
             mode_record_info.record, table_updater
         )
@@ -1866,8 +1866,9 @@ async def update(
                     extra_kwargs.update({"process": False})
 
                 try:
-                    # TODO: Test this with pos_mux/bit_mux fields - they have labels
-                    # but are actually string records!
+                    # Note bit_mux/pos_mux fields probably should have labels in their
+                    # RecordInfo, but that would break this code. This is only designed
+                    # for mbbi/mbbo records.
                     if record_info.labels:
                         # Record is enum, convert string the PandA returns into
                         # an int index
