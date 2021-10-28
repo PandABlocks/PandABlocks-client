@@ -1,21 +1,27 @@
 import asyncio
-import logging
-import sys
 import time
 from multiprocessing import Process
+from pathlib import Path
 from typing import Dict, Generator, List
 
 import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
+from conftest import custom_logger
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from numpy import ndarray
-from softioc import asyncio_dispatcher
+from softioc import asyncio_dispatcher, builder
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
-from pandablocks.ioc._types import ONAM_STR, ZNAM_STR, EpicsName, ScalarRecordValue
+from pandablocks.ioc._types import (
+    ONAM_STR,
+    ZNAM_STR,
+    EpicsName,
+    ScalarRecordValue,
+    _InErrorException,
+)
 from pandablocks.ioc.ioc import (
     IgnoreException,
     IocRecordFactory,
@@ -176,11 +182,7 @@ def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMoc
         # Leave this process running until its torn down by pytest
         await asyncio.Event().wait()
 
-    # Have to add our own logger, otherwise pytest doesn't see logging messages from IOC
-    sh = logging.StreamHandler(sys.stderr)
-    sh.setLevel(logging.WARNING)
-    logging.getLogger("").addHandler(sh)
-
+    custom_logger()
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()
     asyncio.run_coroutine_threadsafe(inner_wrapper(), dispatcher.loop).result()
 
@@ -338,8 +340,7 @@ async def test_create_softioc_update_in_error(
         assert curr_val == 1
 
         # Wait for the new value to appear
-        # Cannot do this due to PythonSoftIOC issue #53. Leave test in place for
-        # coverage.
+        # Cannot do this due to PythonSoftIOC issue #53.
         # err_val: AugmentedValue = await asyncio.wait_for(capturing_queue.get(), 100)
         # assert err_val.severity == alarm.INVALID_ALARM
         # assert err_val.status == alarm.UDF_ALARM
@@ -1034,3 +1035,42 @@ def test_make_ext_out_bits(
             VAL=label,
             DESC="Name of field connected to this BIT",
         )
+
+
+def test_create_record_info_value_error(
+    ioc_record_factory: IocRecordFactory, tmp_path: Path
+):
+    """Test _create_record_info when value is an _InErrorException.
+    This test succeeds if no exceptions are thrown."""
+
+    ioc_record_factory._create_record_info(
+        EpicsName("SomeOutRec"),
+        None,
+        builder.aOut,
+        float,
+        initial_value=_InErrorException("Mocked exception"),
+    )
+
+    ioc_record_factory._create_record_info(
+        EpicsName("SomeInRec"),
+        None,
+        builder.aIn,
+        float,
+        initial_value=_InErrorException("Mocked exception"),
+    )
+
+    # TODO: Is this a stupid idea?
+    record_file = tmp_path / "records.db"
+    builder.WriteRecords(record_file)
+
+    file_contents = record_file.read_text()
+
+    num_sevr = file_contents.count("SEVR")
+    num_stat = file_contents.count("STAT")
+
+    assert (
+        num_sevr == 2
+    ), f"SEVR not found twice in record file contents: {file_contents}"
+    assert (
+        num_stat == 2
+    ), f"STAT not found twice in record file contents: {file_contents}"

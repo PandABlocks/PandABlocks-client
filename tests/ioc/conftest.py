@@ -1,3 +1,5 @@
+import logging
+import sys
 from typing import Dict, List
 
 import pytest
@@ -18,6 +20,14 @@ def enable_codecov_multiprocess():
         cleanup_on_sigterm()
 
     return
+
+
+def custom_logger():
+    """Add a custom logger, otherwise pytest doesn't see logging messages
+    from spawned Processes"""
+    sh = logging.StreamHandler(sys.stderr)
+    sh.setLevel(logging.WARNING)
+    logging.getLogger("").addHandler(sh)
 
 
 @pytest.fixture

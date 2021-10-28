@@ -11,6 +11,7 @@ import h5py
 import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
+from conftest import custom_logger
 from epicsdbbuilder import ResetRecords
 from mock.mock import AsyncMock, MagicMock, patch
 from softioc import asyncio_dispatcher, builder, softioc
@@ -64,6 +65,7 @@ def subprocess_func() -> None:
         # Leave this coroutine running until it's torn down by pytest
         await asyncio.Event().wait()
 
+    custom_logger()
     dispatcher = asyncio_dispatcher.AsyncioDispatcher()
     asyncio.run_coroutine_threadsafe(wrapper(dispatcher), dispatcher.loop).result()
 
@@ -74,7 +76,7 @@ def hdf5_subprocess_ioc(enable_codecov_multiprocess) -> Generator:
 
     p = Process(target=subprocess_func)
     p.start()
-    time.sleep(2)  # Give IOC some time to start up
+    time.sleep(3)  # Give IOC some time to start up
     yield
     p.terminate()
     p.join(10)
@@ -516,7 +518,7 @@ async def test_capture_on_update_cancel_task(
     """Test _capture_on_update correctly cancels an already running task
     when Capture=0"""
 
-    task_mock = AsyncMock()
+    task_mock = MagicMock()
     hdf5_controller._handle_hdf5_data_task = task_mock
 
     await hdf5_controller._capture_on_update(0)
@@ -530,7 +532,7 @@ async def test_capture_on_update_cancel_unexpected_task(
 ):
     """Test _capture_on_update correctly cancels an already running task
     when Capture=1"""
-    task_mock = AsyncMock()
+    task_mock = MagicMock()
     hdf5_controller._handle_hdf5_data_task = task_mock
     hdf5_controller._handle_hdf5_data = AsyncMock()  # type: ignore
 

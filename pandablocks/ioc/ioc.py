@@ -519,9 +519,8 @@ class IocRecordFactory:
                 logging.warning(
                     f"Marking record {record_name} as invalid due to error from PandA"
                 )
-                extra_kwargs.update(
-                    {"severity": alarm.INVALID_ALARM, "alarm": alarm.UDF_ALARM}
-                )
+                # See PythonSoftIOC issue #57
+                extra_kwargs.update({"STAT": "UDF", "SEVR": "INVALID"})
             elif isinstance(initial_value, str):
                 kwargs["initial_value"] = data_type_func(initial_value)
 
