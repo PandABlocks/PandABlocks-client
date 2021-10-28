@@ -698,7 +698,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
                 except KeyError:
                     # This exception will be hit if PandA ever defines new types
-                    # TODO: Add tests for unknown types and subtypes
                     logging.exception(
                         f"Unknown type {(field_type, subtype)} detected for "
                         f"{field_name}, cannot retrieve information for it."
