@@ -1,6 +1,7 @@
 # Tests for the _hdf_ioc.py file
 
 import asyncio
+import logging
 import time
 from asyncio import CancelledError
 from multiprocessing import Process
@@ -71,8 +72,11 @@ def subprocess_func() -> None:
 
 
 @pytest.fixture
-def hdf5_subprocess_ioc(enable_codecov_multiprocess) -> Generator:
-    """Create an instance of HDF5 class in its own subprocess, then start the IOC"""
+def hdf5_subprocess_ioc_no_logging_check(
+    enable_codecov_multiprocess, caplog, caplog_workaround
+) -> Generator:
+    """Create an instance of HDF5 class in its own subprocess, then start the IOC.
+    Note you probably want to use `hdf5_subprocess_ioc` instead."""
 
     p = Process(target=subprocess_func)
     p.start()
@@ -82,6 +86,30 @@ def hdf5_subprocess_ioc(enable_codecov_multiprocess) -> Generator:
     p.join(10)
     # Should never take anywhere near 10 seconds to terminate, it's just there
     # to ensure the test doesn't hang indefinitely during cleanup
+
+
+@pytest.fixture
+def hdf5_subprocess_ioc(
+    enable_codecov_multiprocess, caplog, caplog_workaround
+) -> Generator:
+    """Create an instance of HDF5 class in its own subprocess, then start the IOC.
+    When finished check logging logged no messages of WARNING or higher level."""
+    with caplog.at_level(logging.WARNING):
+        with caplog_workaround():
+            p = Process(target=subprocess_func)
+            p.start()
+            time.sleep(3)  # Give IOC some time to start up
+            yield
+            p.terminate()
+            p.join(10)
+            # Should never take anywhere near 10 seconds to terminate, it's just there
+            # to ensure the test doesn't hang indefinitely during cleanup
+
+    if len(caplog.messages) > 0:
+        # We expect all tests to pass without warnings (or worse) logged.
+        assert (
+            False
+        ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
 @pytest.mark.asyncio
@@ -119,7 +147,7 @@ def _string_to_buffer(string: str):
 
 
 @pytest.mark.asyncio
-async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc):
+async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_check):
     """Run the HDF5 module as its own IOC and check the _parameter_validate method
     does not block updates, then blocks when capture record is changed"""
 
@@ -143,10 +171,16 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc):
 
 @pytest.mark.asyncio
 async def test_hdf5_file_writing(
-    hdf5_subprocess_ioc, dummy_server_in_thread: DummyServer, raw_dump, tmp_path: Path
+    hdf5_subprocess_ioc,
+    dummy_server_async: DummyServer,
+    raw_dump,
+    tmp_path: Path,
+    caplog,
 ):
     """Test that an HDF5 file is written when Capture is enabled"""
-    dummy_server_in_thread.data = raw_dump
+    # For reasons unknown the threaded DummyServer prints warnings during its cleanup.
+    # The asyncio one does not, so just use that.
+    dummy_server_async.data = raw_dump
 
     test_dir = str(tmp_path) + "\0"
     test_filename = "test.h5\0"

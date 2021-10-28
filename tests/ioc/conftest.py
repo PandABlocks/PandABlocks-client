@@ -1,5 +1,8 @@
 import logging
 import sys
+from contextlib import contextmanager
+from logging import handlers
+from multiprocessing import Queue
 from typing import Dict, List
 
 import pytest
@@ -22,9 +25,34 @@ def enable_codecov_multiprocess():
     return
 
 
+@pytest.fixture()
+def caplog_workaround():
+    """Create a logger handler to capture all log messages done in child process,
+    then print them to the main thread's stdout/stderr so pytest's caplog fixture
+    can see them
+    See https://stackoverflow.com/questions/63052171/empty-messages-in-caplog-when-logs-emmited-in-a-different-process/63054881#63054881"""  # noqa: E501
+
+    @contextmanager
+    def ctx():
+        logger_queue = Queue()
+        logger = logging.getLogger()
+        logger.addHandler(handlers.QueueHandler(logger_queue))
+        yield
+        while not logger_queue.empty():
+            log_record: logging.LogRecord = logger_queue.get()
+            logger._log(
+                level=log_record.levelno,
+                msg=log_record.message,
+                args=log_record.args,
+                exc_info=log_record.exc_info,
+            )
+
+    return ctx
+
+
 def custom_logger():
-    """Add a custom logger, otherwise pytest doesn't see logging messages
-    from spawned Processes"""
+    """Add a custom logger that prints everything to subprocess's stderr,
+    otherwise pytest doesn't see logging messages from spawned Processes"""
     sh = logging.StreamHandler(sys.stderr)
     sh.setLevel(logging.WARNING)
     logging.getLogger("").addHandler(sh)

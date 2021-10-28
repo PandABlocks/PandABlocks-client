@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from multiprocessing import Process
 from pathlib import Path
@@ -187,19 +188,27 @@ def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMoc
 
 
 @pytest.fixture
-def subprocess_ioc(enable_codecov_multiprocess) -> Generator:
-    """Run the IOC in its own subprocess"""
+def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Generator:
+    """Run the IOC in its own subprocess. When finished check logging logged no
+    messages of WARNING or higher level."""
+    with caplog.at_level(logging.WARNING):
+        with caplog_workaround():
+            p = Process(target=ioc_wrapper)
+            try:
+                p.start()
+                time.sleep(3)  # Give IOC some time to start up
+                yield
+            finally:
+                p.terminate()
+                p.join(10)
+                # Should never take anywhere near 10 seconds to terminate, it's just
+                # there to ensure the test doesn't hang indefinitely during cleanup
 
-    p = Process(target=ioc_wrapper)
-    try:
-        p.start()
-        time.sleep(3)  # Give IOC some time to start up
-        yield
-    finally:
-        p.terminate()
-        p.join(10)
-        # Should never take anywhere near 10 seconds to terminate, it's just there
-        # to ensure the test doesn't hang indefinitely during cleanup
+    if len(caplog.messages) > 0:
+        # We expect all tests to pass without warnings (or worse) logged.
+        assert (
+            False
+        ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
 TEST_RECORD = EpicsName("TEST:RECORD")
@@ -312,7 +321,8 @@ async def test_create_softioc_update_table(
 
 @pytest.mark.asyncio
 async def test_create_softioc_update_in_error(
-    dummy_server_system: DummyServer, subprocess_ioc, caplog
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
 ):
     """Test that the update mechanism correctly marks records as in error when PandA
     reports the associated field is in error"""
@@ -437,8 +447,6 @@ async def test_create_softioc_arm_disarm(
     await caput(TEST_PREFIX + ":PCAP:ARM", 0)
     # Give time for the on_update processing to occur
     await asyncio.sleep(1)
-
-    print(dummy_server_system.received)
 
     # Confirm the server received the expected strings
     assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses

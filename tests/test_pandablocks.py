@@ -850,7 +850,6 @@ def test_get_fields_type_table():
     ]
 
 
-# TODO: What happens when returned field type and/or subype is garbage?
 def test_get_pcap_bits_labels():
     """Simple working testcase for GetPcapBitsLabels"""
 
