@@ -407,7 +407,16 @@ def test_get_fields_non_existant_block():
     ]
 
 
-# TODO: Confirm I've listed every possible type-subtype pair once
+def idfn(val):
+    """helper function to nicely name parameterized test IDs"""
+    if isinstance(val, str):
+        if val.count("?\n") > 0:
+            return ""
+        return val
+    else:
+        return ""
+
+
 # Table field handled in separate test due to extra round of network calls required
 @pytest.mark.parametrize(
     "field_type, field_subtype, expected_get_string, responses, expected_field_info",
@@ -432,6 +441,27 @@ def test_get_fields_non_existant_block():
             "TEST1.TEST_FIELD.MAX?\n*DESC.TEST.TEST_FIELD?\n",
             ["OK =58\n", "OK =Test Description\n"],
             UintFieldInfo("write", "uint", max=58, description="Test Description"),
+        ),
+        (
+            "param",
+            "int",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("param", "int", description="Test Description"),
+        ),
+        (
+            "read",
+            "int",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("read", "int", description="Test Description"),
+        ),
+        (
+            "write",
+            "int",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("write", "int", description="Test Description"),
         ),
         (
             "param",
@@ -485,6 +515,96 @@ def test_get_fields_non_existant_block():
         ),
         (
             "param",
+            "bit",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("param", "bit", description="Test Description"),
+        ),
+        (
+            "read",
+            "bit",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("read", "bit", description="Test Description"),
+        ),
+        (
+            "read",
+            "bit",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("read", "bit", description="Test Description"),
+        ),
+        (
+            "param",
+            "action",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("param", "action", description="Test Description"),
+        ),
+        (
+            "read",
+            "action",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("read", "action", description="Test Description"),
+        ),
+        (
+            "write",
+            "action",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("write", "action", description="Test Description"),
+        ),
+        (
+            "param",
+            "lut",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("param", "lut", description="Test Description"),
+        ),
+        (
+            "read",
+            "lut",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("read", "lut", description="Test Description"),
+        ),
+        (
+            "write",
+            "lut",
+            "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =Test Description\n"],
+            FieldInfo("write", "lut", description="Test Description"),
+        ),
+        (
+            "param",
+            "enum",
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            EnumFieldInfo(
+                "param", "enum", labels=["VAL1", "VAL2"], description="Test Description"
+            ),
+        ),
+        (
+            "read",
+            "enum",
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            EnumFieldInfo(
+                "read", "enum", labels=["VAL1", "VAL2"], description="Test Description"
+            ),
+        ),
+        (
+            "write",
+            "enum",
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            EnumFieldInfo(
+                "write", "enum", labels=["VAL1", "VAL2"], description="Test Description"
+            ),
+        ),
+        (
+            "param",
             "time",
             "*ENUMS.TEST.TEST_FIELD.UNITS?\n*DESC.TEST.TEST_FIELD?\n",
             ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
@@ -520,33 +640,6 @@ def test_get_fields_non_existant_block():
             ),
         ),
         (
-            "param",
-            "enum",
-            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
-            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
-            EnumFieldInfo(
-                "param", "enum", labels=["VAL1", "VAL2"], description="Test Description"
-            ),
-        ),
-        (
-            "read",
-            "enum",
-            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
-            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
-            EnumFieldInfo(
-                "read", "enum", labels=["VAL1", "VAL2"], description="Test Description"
-            ),
-        ),
-        (
-            "write",
-            "enum",
-            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
-            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
-            EnumFieldInfo(
-                "write", "enum", labels=["VAL1", "VAL2"], description="Test Description"
-            ),
-        ),
-        (
             "time",
             None,
             "*ENUMS.TEST.TEST_FIELD.UNITS?\nTEST1.TEST_FIELD.MIN?\n"
@@ -572,29 +665,6 @@ def test_get_fields_non_existant_block():
                 capture_word="PCAP.BITS1",
                 offset=12,
                 description="Test Description",
-            ),
-        ),
-        (
-            "bit_mux",
-            None,
-            "TEST1.TEST_FIELD.MAX_DELAY?\n*ENUMS.TEST.TEST_FIELD?\n"
-            + "*DESC.TEST.TEST_FIELD?\n",
-            ["OK =25\n", "!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
-            BitMuxFieldInfo(
-                "bit_mux",
-                None,
-                max_delay=25,
-                labels=["VAL1", "VAL2"],
-                description="Test Description",
-            ),
-        ),
-        (
-            "pos_mux",
-            None,
-            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
-            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
-            PosMuxFieldInfo(
-                "pos_mux", None, labels=["VAL1", "VAL2"], description="Test Description"
             ),
         ),
         (
@@ -647,7 +717,31 @@ def test_get_fields_non_existant_block():
                 description="Test Description",
             ),
         ),
+        (
+            "bit_mux",
+            None,
+            "TEST1.TEST_FIELD.MAX_DELAY?\n*ENUMS.TEST.TEST_FIELD?\n"
+            + "*DESC.TEST.TEST_FIELD?\n",
+            ["OK =25\n", "!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            BitMuxFieldInfo(
+                "bit_mux",
+                None,
+                max_delay=25,
+                labels=["VAL1", "VAL2"],
+                description="Test Description",
+            ),
+        ),
+        (
+            "pos_mux",
+            None,
+            "*ENUMS.TEST.TEST_FIELD?\n*DESC.TEST.TEST_FIELD?\n",
+            ["!VAL1\n!VAL2\n.\n", "OK =Test Description\n"],
+            PosMuxFieldInfo(
+                "pos_mux", None, labels=["VAL1", "VAL2"], description="Test Description"
+            ),
+        ),
     ],
+    ids=idfn,
 )
 def test_get_fields_parameterized_type(
     field_type, field_subtype, expected_get_string, responses, expected_field_info
