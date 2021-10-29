@@ -359,7 +359,6 @@ async def test_create_softioc_update_table(
 
 @pytest.mark.asyncio
 async def test_create_softioc_record_update_send_to_panda(
-    # mocked_put: MagicMock,
     dummy_server_system: DummyServer,
     subprocess_ioc,
 ):
@@ -392,7 +391,6 @@ async def test_create_softioc_record_update_send_to_panda(
 
 @pytest.mark.asyncio
 async def test_create_softioc_table_update_send_to_panda(
-    # mocked_put: MagicMock,
     dummy_server_system: DummyServer,
     subprocess_ioc,
 ):
@@ -420,6 +418,47 @@ async def test_create_softioc_table_update_send_to_panda(
     assert "2457862145" in dummy_server_system.received
     assert "269877249" in dummy_server_system.received
     assert "4293918721" in dummy_server_system.received
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_update_table_index(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+    table_unpacked_data,
+):
+    """Test that updating the INDEX updates the SCALAR values"""
+    try:
+        index_val = 0
+        # Set up monitors to wait for the expected changes
+        repeats_queue: asyncio.Queue = asyncio.Queue()
+        repeats_monitor = camonitor(
+            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
+        )
+        trigger_queue: asyncio.Queue = asyncio.Queue()
+        trigger_monitor = camonitor(
+            TEST_PREFIX + ":SEQ1:TABLE:TRIGGER:SCALAR", trigger_queue.put
+        )
+
+        # Confirm initial values are correct
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
+        assert curr_val == table_unpacked_data["REPEATS"][index_val]
+        curr_val = await asyncio.wait_for(trigger_queue.get(), 2)
+        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
+
+        # Now set a new INDEX
+        index_val = 1
+        await caput(TEST_PREFIX + ":SEQ1:TABLE:INDEX", index_val)
+
+        # Wait for the new values to appear
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
+        assert curr_val == table_unpacked_data["REPEATS"][index_val]
+        curr_val = await asyncio.wait_for(trigger_queue.get(), 10)
+        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
+
+    finally:
+        repeats_monitor.close()
+        trigger_monitor.close()
+        purge_channel_caches()
 
 
 @pytest.mark.asyncio

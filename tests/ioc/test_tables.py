@@ -57,7 +57,6 @@ def table_fields_records(
 @pytest.fixture
 def table_updater(
     table_field_info: TableFieldInfo,
-    table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data_dict: Dict[EpicsName, RecordValue],
     clear_records: None,
     table_unpacked_data: Dict[EpicsName, ndarray],
