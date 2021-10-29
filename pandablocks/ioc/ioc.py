@@ -391,15 +391,15 @@ class IocRecordFactory:
 
     def __init__(
         self,
-        record_prefix: str,
         client: AsyncioClient,
+        record_prefix: str,
         all_values_dict: Dict[EpicsName, RecordValue],
     ):
         """Initialise IocRecordFactory
 
         Args:
-            record_prefix: The record prefix a.k.a. the device name
             client: AsyncioClient used when records update to Put values back to PandA
+            record_prefix: The record prefix a.k.a. the device name
             all_values_dict: Dictionary of most recent values from PandA as reported by
                 GetChanges.
         """
@@ -1738,7 +1738,7 @@ async def create_records(
     # Dictionary containing every record of every type
     all_records: Dict[EpicsName, _RecordInfo] = {}
 
-    record_factory = IocRecordFactory(record_prefix, client, all_values_dict)
+    record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():

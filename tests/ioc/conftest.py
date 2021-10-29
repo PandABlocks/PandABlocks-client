@@ -6,7 +6,9 @@ from multiprocessing import Queue
 from typing import Dict, List
 
 import pytest
+from epicsdbbuilder import ResetRecords
 from numpy import array, int32, ndarray, uint8, uint16, uint32
+from softioc.device_core import RecordLookup
 
 from pandablocks.ioc._types import EpicsName
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
@@ -48,6 +50,23 @@ def caplog_workaround():
             )
 
     return ctx
+
+
+def _clear_records():
+    # Remove any records created at epicsdbbuilder layer
+    ResetRecords()
+    # And at pythonSoftIoc level
+    # TODO: Remove this hack and use use whatever comes out of
+    # https://github.com/dls-controls/pythonSoftIOC/issues/56
+    RecordLookup._RecordDirectory.clear()
+
+
+@pytest.fixture
+def clear_records():
+    """Fixture to delete all records before and after a test."""
+    _clear_records()
+    yield
+    _clear_records()
 
 
 def custom_logger():

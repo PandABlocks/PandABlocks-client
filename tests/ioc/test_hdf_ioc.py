@@ -13,10 +13,8 @@ import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
 from conftest import custom_logger
-from epicsdbbuilder import ResetRecords
 from mock.mock import AsyncMock, MagicMock, patch
 from softioc import asyncio_dispatcher, builder, softioc
-from softioc.device_core import RecordLookup
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.ioc._hdf_ioc import _HDF5RecordController
@@ -32,26 +30,17 @@ from tests.conftest import DummyServer, Rows
 
 NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
 HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
-counter = 0
 
 
 @pytest.fixture
-def hdf5_controller() -> Generator:
-    """Construct an HDF5 controller and mock various aspects of it"""
-    global counter
-    counter += 1
+def hdf5_controller(clear_records: None) -> Generator:
+    """Construct an HDF5 controller, ensuring we delete all records before
+    and after the test runs."""
 
     hdf5_controller = _HDF5RecordController(
-        AsyncioClient("localhost"), NAMESPACE_PREFIX + str(counter)
+        AsyncioClient("localhost"), NAMESPACE_PREFIX
     )
     yield hdf5_controller
-
-    # Remove any records created at epicsdbbuilder layer
-    ResetRecords()
-    # And at pythonSoftIoc level
-    # TODO: Remove this hack and use use whatever comes out of
-    # https://github.com/dls-controls/pythonSoftIOC/issues/56
-    RecordLookup._RecordDirectory.clear()
 
 
 def subprocess_func() -> None:

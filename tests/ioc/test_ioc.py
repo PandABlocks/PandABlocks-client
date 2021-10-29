@@ -50,7 +50,6 @@ from pandablocks.responses import (
 from tests.conftest import DummyServer
 
 TEST_PREFIX = "TEST-PREFIX"
-counter = 0
 
 
 @pytest.fixture
@@ -62,14 +61,12 @@ def record_updater() -> _RecordUpdater:
 
 
 @pytest.fixture
-def ioc_record_factory():
+def ioc_record_factory(clear_records: None):
     """Create a new IocRecordFactory instance with a new, unique, namespace.
     This means each test can run in the same process, as each test will get
     its own namespace.
     """
-    global counter
-    counter += 1
-    return IocRecordFactory(TEST_PREFIX + str(counter), AsyncioClient("123"), {})
+    return IocRecordFactory(AsyncioClient("123"), TEST_PREFIX, {})
 
 
 @pytest.fixture
