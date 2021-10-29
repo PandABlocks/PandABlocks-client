@@ -1,18 +1,15 @@
 import asyncio
-import logging
-import time
-from multiprocessing import Process
 from pathlib import Path
-from typing import Dict, Generator, List
+from typing import Dict, List
 
 import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
-from conftest import custom_logger
+from conftest import TEST_PREFIX
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from numpy import ndarray
-from softioc import asyncio_dispatcher, builder
+from softioc import builder
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import Put
@@ -28,7 +25,6 @@ from pandablocks.ioc.ioc import (
     _BlockAndFieldInfo,
     _ensure_block_number_present,
     _RecordUpdater,
-    create_softioc,
     introspect_panda,
 )
 from pandablocks.responses import (
@@ -49,8 +45,6 @@ from pandablocks.responses import (
 )
 from tests.conftest import DummyServer
 
-TEST_PREFIX = "TEST-PREFIX"
-
 
 @pytest.fixture
 def record_updater() -> _RecordUpdater:
@@ -67,145 +61,6 @@ def ioc_record_factory(clear_records: None):
     its own namespace.
     """
     return IocRecordFactory(AsyncioClient("123"), TEST_PREFIX, {})
-
-
-@pytest.fixture
-def dummy_server_introspect_panda(
-    dummy_server_in_thread: DummyServer, table_data: List[str]
-):
-    """A dummy server that responds to all the requests introspect_panda makes
-    during its operation.
-    Note that the order of responses was determined by trial and error."""
-    get_changes_scalar_data = (
-        # Note the deliberate concatenation across lines - this must be a single
-        # entry in the list
-        "!PCAP.TRIG_EDGE=Falling\n!PCAP.GATE=CLOCK1.OUT\n!PCAP.GATE.DELAY=1\n"
-        "!*METADATA.LABEL_PCAP1=PcapMetadataLabel\n"
-        "!SEQ1.TABLE<\n"
-        "."
-    )
-
-    # Transform the plain list of values into one that PandA would send
-    tmp = ["!" + s + "\n" for s in table_data]
-    tmp.append(".")  # Add the multiline terminator
-    get_changes_multiline_data = "".join(tmp)
-
-    table_fields_data = (
-        # Note the deliberate concatenation across lines - this must be a single
-        # entry in the list
-        "!15:0 REPEATS uint\n!19:16 TRIGGER enum\n!63:32 POSITION int\n"
-        "!95:64 TIME1 uint\n!20:20 OUTA1 uint\n!21:21 OUTB1 uint\n!22:22 OUTC1 uint\n"
-        "!23:23 OUTD1 uint\n!24:24 OUTE1 uint\n!25:25 OUTF1 uint\n!127:96 TIME2 uint\n"
-        "!26:26 OUTA2 uint\n!27:27 OUTB2 uint\n!28:28 OUTC2 uint\n!29:29 OUTD2 uint\n"
-        "!30:30 OUTE2 uint\n!31:31 OUTF2 uint\n."
-    )
-
-    trigger_field_labels = (
-        # Note the deliberate concatenation across lines - this must be a single
-        # entry in the list
-        "!Immediate\n!BITA=0\n!BITA=1\n!BITB=0\n!BITB=1\n!BITC=0\n!BITC=1\n"
-        "!POSA>=POSITION\n!POSA<=POSITION\n!POSB>=POSITION\n!POSB<=POSITION\n"
-        "!POSC>=POSITION\n!POSC<=POSITION\n."
-    )
-
-    dummy_server_in_thread.send += [
-        "!PCAP 1\n!SEQ 1\n.",  # BLOCK definitions
-        "OK =PCAP Desc",
-        "OK =SEQ Desc",
-        "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
-        "!TABLE 7 table\n.",  # SEQ field
-        get_changes_scalar_data,
-        "!Rising\n!Falling\n!Either\n.",  # TRIG_EDGE enum labels
-        "OK =100",  # GATE MAX_DELAY
-        "!TTLIN1.VAL\n!INENC1.A\n!CLOCK1.OUT\n.",  # GATE labels
-        "OK =Trig Edge Desc",
-        "OK =Gate Desc",
-        "OK =16384",  # TABLE MAX_LENGTH
-        table_fields_data,
-        "OK =Sequencer table of lines",  # TABLE Desc
-        get_changes_multiline_data,
-        trigger_field_labels,
-        "OK =Number of times the line will repeat",  # Repeats field desc
-        "OK =The trigger condition to start the phases",  # TRIGGER field desc
-        "OK =The position that can be used in trigger condition",  # POSITION field desc
-        "OK =The time the optional phase 1 should take",  # TIME1 desc
-        "OK =Output A value during phase 1",  # OUTA1 desc
-        "OK =Output B value during phase 1",  # OUTB1 desc
-        "OK =Output C value during phase 1",  # OUTC1 desc
-        "OK =Output D value during phase 1",  # OUTD1 desc
-        "OK =Output E value during phase 1",  # OUTE1 desc
-        "OK =Output F value during phase 1",  # OUTF1 desc
-        "OK =The time the mandatory phase 2 should take",  # TIME2 desc
-        "OK =Output A value during phase 2",  # OUTA2 desc
-        "OK =Output B value during phase 2",  # OUTB2 desc
-        "OK =Output C value during phase 2",  # OUTC2 desc
-        "OK =Output D value during phase 2",  # OUTD2 desc
-        "OK =Output E value during phase 2",  # OUTE2 desc
-        "OK =Output F value during phase 2",  # OUTF2 desc
-    ]
-    # If you need to change the above responses,
-    # it'll probably help to enable debugging on the server
-    # dummy_server_in_thread.debug = True
-    yield dummy_server_in_thread
-
-
-@pytest.fixture
-def dummy_server_system(dummy_server_introspect_panda: DummyServer):
-    """A server for a full system test"""
-
-    # Add data for GetChanges to consume. Number of items should be bigger than
-    # the sleep time given during IOC startup
-    dummy_server_introspect_panda.send += [
-        ".",
-        ".",
-        ".",
-        ".",
-    ]
-
-    yield dummy_server_introspect_panda
-
-
-@patch("pandablocks.ioc.ioc.AsyncioClient.close")
-@patch("pandablocks.ioc.ioc.softioc.interactive_ioc")
-def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMock):
-    """Wrapper function to start the IOC and do some mocking"""
-
-    async def inner_wrapper():
-        create_softioc("localhost", TEST_PREFIX)
-        # If you see an error on the below line, it probably means an unexpected
-        # exception occurred during IOC startup
-        mocked_interactive_ioc.assert_called_once()
-        mocked_client_close.assert_called_once()
-        # Leave this process running until its torn down by pytest
-        await asyncio.Event().wait()
-
-    custom_logger()
-    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
-    asyncio.run_coroutine_threadsafe(inner_wrapper(), dispatcher.loop).result()
-
-
-@pytest.fixture
-def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Generator:
-    """Run the IOC in its own subprocess. When finished check logging logged no
-    messages of WARNING or higher level."""
-    with caplog.at_level(logging.WARNING):
-        with caplog_workaround():
-            p = Process(target=ioc_wrapper)
-            try:
-                p.start()
-                time.sleep(3)  # Give IOC some time to start up
-                yield
-            finally:
-                p.terminate()
-                p.join(10)
-                # Should never take anywhere near 10 seconds to terminate, it's just
-                # there to ensure the test doesn't hang indefinitely during cleanup
-
-    if len(caplog.messages) > 0:
-        # We expect all tests to pass without warnings (or worse) logged.
-        assert (
-            False
-        ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
 TEST_RECORD = EpicsName("TEST:RECORD")
@@ -257,59 +112,6 @@ async def test_create_softioc_update(
         # Wait for the new value to appear
         curr_val = await asyncio.wait_for(capturing_queue.get(), 10)
         assert curr_val == 2
-
-    finally:
-        monitor.close()
-        purge_channel_caches()
-
-
-@pytest.mark.asyncio
-async def test_create_softioc_update_table(
-    dummy_server_system: DummyServer,
-    subprocess_ioc,
-    table_unpacked_data,
-):
-    """Test that the update mechanism correctly changes table values when PandA
-    reports values have changed"""
-
-    # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
-    # to all zero values. Include some trailing empty changesets to ensure test code has
-    # time to run.
-    dummy_server_system.send += [
-        "!SEQ1.TABLE<\n.",
-        # Deliberate concatenation here
-        "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
-        "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
-        "!2222\n.",
-        ".",
-        ".",
-    ]
-
-    try:
-        # Set up a monitor to wait for the expected change
-        capturing_queue: asyncio.Queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:TIME1", capturing_queue.put)
-
-        curr_val: ndarray = await asyncio.wait_for(capturing_queue.get(), 2)
-        # First response is the current value
-        assert numpy.array_equal(curr_val, table_unpacked_data["TIME1"])
-
-        # Wait for the new value to appear
-        curr_val = await asyncio.wait_for(capturing_queue.get(), 10)
-        assert numpy.array_equal(
-            curr_val,
-            [100, 0, 9, 5, 99999],
-        )
-
-        # And check some other columns too
-        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:TRIGGER")
-        assert numpy.array_equal(curr_val, [0, 0, 0, 9, 12])
-
-        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:POSITION")
-        assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
-
-        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
-        assert numpy.array_equal(curr_val, [0, 0, 1, 1, 0])
 
     finally:
         monitor.close()
@@ -387,111 +189,6 @@ async def test_create_softioc_record_update_send_to_panda(
     assert (
         "PCAP1.TRIG_EDGE=Either" not in dummy_server_system.expected_message_responses
     )
-
-
-@pytest.mark.asyncio
-async def test_create_softioc_table_update_send_to_panda(
-    dummy_server_system: DummyServer,
-    subprocess_ioc,
-):
-    """Test that updating a table causes the new value to be sent to PandA"""
-
-    # Set the special response for the server
-    dummy_server_system.expected_message_responses.update({"": "OK"})
-
-    # Few more responses to GetChanges to suppress error messages
-    dummy_server_system.send += [".", ".", ".", "."]
-
-    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
-
-    await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", [1, 1, 1])
-
-    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT")
-
-    # Give time for the on_update processing to occur
-    await asyncio.sleep(2)
-
-    # Confirm the server received the expected string
-    assert "" not in dummy_server_system.expected_message_responses
-
-    # Check the three numbers that should have updated from the REPEATS column change
-    assert "2457862145" in dummy_server_system.received
-    assert "269877249" in dummy_server_system.received
-    assert "4293918721" in dummy_server_system.received
-
-
-@pytest.mark.asyncio
-async def test_create_softioc_update_table_index(
-    dummy_server_system: DummyServer,
-    subprocess_ioc,
-    table_unpacked_data,
-):
-    """Test that updating the INDEX updates the SCALAR values"""
-    try:
-        index_val = 0
-        # Set up monitors to wait for the expected changes
-        repeats_queue: asyncio.Queue = asyncio.Queue()
-        repeats_monitor = camonitor(
-            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
-        )
-        trigger_queue: asyncio.Queue = asyncio.Queue()
-        trigger_monitor = camonitor(
-            TEST_PREFIX + ":SEQ1:TABLE:TRIGGER:SCALAR", trigger_queue.put
-        )
-
-        # Confirm initial values are correct
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
-        assert curr_val == table_unpacked_data["REPEATS"][index_val]
-        curr_val = await asyncio.wait_for(trigger_queue.get(), 2)
-        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
-
-        # Now set a new INDEX
-        index_val = 1
-        await caput(TEST_PREFIX + ":SEQ1:TABLE:INDEX", index_val)
-
-        # Wait for the new values to appear
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
-        assert curr_val == table_unpacked_data["REPEATS"][index_val]
-        curr_val = await asyncio.wait_for(trigger_queue.get(), 10)
-        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
-
-    finally:
-        repeats_monitor.close()
-        trigger_monitor.close()
-        purge_channel_caches()
-
-
-@pytest.mark.asyncio
-async def test_create_softioc_update_table_scalars_change(
-    dummy_server_system: DummyServer,
-    subprocess_ioc,
-    table_unpacked_data,
-):
-    """Test that updating the data in a waveform updates the associated SCALAR value"""
-    try:
-        index_val = 0
-        # Set up monitors to wait for the expected changes
-        repeats_queue: asyncio.Queue = asyncio.Queue()
-        repeats_monitor = camonitor(
-            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
-        )
-
-        # Confirm initial values are correct
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
-        assert curr_val == table_unpacked_data["REPEATS"][index_val]
-
-        # Now set a new value
-        await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
-        new_repeats_vals = [9, 99, 999]
-        await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", new_repeats_vals)
-
-        # Wait for the new values to appear
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
-        assert curr_val == new_repeats_vals[index_val]
-
-    finally:
-        repeats_monitor.close()
-        purge_channel_caches()
 
 
 @pytest.mark.asyncio

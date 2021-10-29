@@ -1,8 +1,11 @@
+import asyncio
 from typing import Dict, List
 
 import numpy
 import numpy.testing
 import pytest
+from aioca import caget, camonitor, caput, purge_channel_caches
+from conftest import TEST_PREFIX
 from mock import AsyncMock
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, ndarray
@@ -23,6 +26,7 @@ from pandablocks.ioc._types import (
     _RecordInfo,
 )
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
+from tests.conftest import DummyServer
 
 PANDA_FORMAT_TABLE_NAME = "SEQ1.TABLE"
 EPICS_FORMAT_TABLE_NAME = "SEQ1:TABLE"
@@ -104,6 +108,164 @@ def table_updater(
         )
 
     return updater
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_update_table(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+    table_unpacked_data,
+):
+    """Test that the update mechanism correctly changes table values when PandA
+    reports values have changed"""
+
+    # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
+    # to all zero values. Include some trailing empty changesets to ensure test code has
+    # time to run.
+    dummy_server_system.send += [
+        "!SEQ1.TABLE<\n.",
+        # Deliberate concatenation here
+        "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
+        "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
+        "!2222\n.",
+        ".",
+        ".",
+    ]
+
+    try:
+        # Set up a monitor to wait for the expected change
+        capturing_queue: asyncio.Queue = asyncio.Queue()
+        monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:TIME1", capturing_queue.put)
+
+        curr_val: ndarray = await asyncio.wait_for(capturing_queue.get(), 2)
+        # First response is the current value
+        assert numpy.array_equal(curr_val, table_unpacked_data["TIME1"])
+
+        # Wait for the new value to appear
+        curr_val = await asyncio.wait_for(capturing_queue.get(), 10)
+        assert numpy.array_equal(
+            curr_val,
+            [100, 0, 9, 5, 99999],
+        )
+
+        # And check some other columns too
+        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:TRIGGER")
+        assert numpy.array_equal(curr_val, [0, 0, 0, 9, 12])
+
+        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:POSITION")
+        assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
+
+        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
+        assert numpy.array_equal(curr_val, [0, 0, 1, 1, 0])
+
+    finally:
+        monitor.close()
+        purge_channel_caches()
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_table_update_send_to_panda(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+):
+    """Test that updating a table causes the new value to be sent to PandA"""
+
+    # Set the special response for the server
+    dummy_server_system.expected_message_responses.update({"": "OK"})
+
+    # Few more responses to GetChanges to suppress error messages
+    dummy_server_system.send += [".", ".", ".", "."]
+
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
+
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", [1, 1, 1])
+
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT")
+
+    # Give time for the on_update processing to occur
+    await asyncio.sleep(2)
+
+    # Confirm the server received the expected string
+    assert "" not in dummy_server_system.expected_message_responses
+
+    # Check the three numbers that should have updated from the REPEATS column change
+    assert "2457862145" in dummy_server_system.received
+    assert "269877249" in dummy_server_system.received
+    assert "4293918721" in dummy_server_system.received
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_update_table_index(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+    table_unpacked_data,
+):
+    """Test that updating the INDEX updates the SCALAR values"""
+    try:
+        index_val = 0
+        # Set up monitors to wait for the expected changes
+        repeats_queue: asyncio.Queue = asyncio.Queue()
+        repeats_monitor = camonitor(
+            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
+        )
+        trigger_queue: asyncio.Queue = asyncio.Queue()
+        trigger_monitor = camonitor(
+            TEST_PREFIX + ":SEQ1:TABLE:TRIGGER:SCALAR", trigger_queue.put
+        )
+
+        # Confirm initial values are correct
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
+        assert curr_val == table_unpacked_data["REPEATS"][index_val]
+        curr_val = await asyncio.wait_for(trigger_queue.get(), 2)
+        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
+
+        # Now set a new INDEX
+        index_val = 1
+        await caput(TEST_PREFIX + ":SEQ1:TABLE:INDEX", index_val)
+
+        # Wait for the new values to appear
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
+        assert curr_val == table_unpacked_data["REPEATS"][index_val]
+        curr_val = await asyncio.wait_for(trigger_queue.get(), 10)
+        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
+
+    finally:
+        repeats_monitor.close()
+        trigger_monitor.close()
+        purge_channel_caches()
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_update_table_scalars_change(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+    table_unpacked_data,
+):
+    """Test that updating the data in a waveform updates the associated SCALAR value"""
+    try:
+        index_val = 0
+        # Set up monitors to wait for the expected changes
+        repeats_queue: asyncio.Queue = asyncio.Queue()
+        repeats_monitor = camonitor(
+            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
+        )
+
+        # Confirm initial values are correct
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
+        assert curr_val == table_unpacked_data["REPEATS"][index_val]
+
+        # Now set a new value
+        await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
+        new_repeats_vals = [9, 99, 999]
+        await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", new_repeats_vals)
+
+        # Wait for the new values to appear
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
+        assert curr_val == new_repeats_vals[index_val]
+
+    finally:
+        repeats_monitor.close()
+        purge_channel_caches()
 
 
 def test_table_packing_unpack(
