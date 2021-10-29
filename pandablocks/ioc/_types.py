@@ -1,14 +1,13 @@
-from dataclasses import dataclass
-
-# Various new or derived types/classes for the IOC module
+# Various new or derived types/classes and helper functions for the IOC module
 # Mostly exists to avoid circular dependencies.
+from dataclasses import dataclass
 from typing import Callable, List, NewType, Optional, Union
 
 from softioc.pythonSoftIoc import RecordWrapper
 
 # EPICS format, i.e. ":" dividers
 EpicsName = NewType("EpicsName", str)
-# PAndA format, i.e. "." dividers
+# PandA format, i.e. "." dividers
 PandAName = NewType("PandAName", str)
 
 
