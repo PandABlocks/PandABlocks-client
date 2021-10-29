@@ -148,7 +148,7 @@ def dummy_server_introspect_panda(
     ]
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
-    dummy_server_in_thread.debug = True
+    # dummy_server_in_thread.debug = True
     yield dummy_server_in_thread
 
 
@@ -319,44 +319,45 @@ async def test_create_softioc_update_table(
         purge_channel_caches()
 
 
-@pytest.mark.asyncio
-async def test_create_softioc_update_in_error(
-    dummy_server_system: DummyServer,
-    subprocess_ioc,
-):
-    """Test that the update mechanism correctly marks records as in error when PandA
-    reports the associated field is in error"""
+# TODO: Enable this test once PythonSoftIOC issue #53 is resolved
+# @pytest.mark.asyncio
+# async def test_create_softioc_update_in_error(
+#     dummy_server_system: DummyServer,
+#     subprocess_ioc,
+# ):
+#     """Test that the update mechanism correctly marks records as in error when PandA
+#     reports the associated field is in error"""
 
-    # Add more GetChanges data. Include some trailing empty changesets to allow test
-    # code to run.
-    dummy_server_system.send += [
-        "!PCAP1.TRIG_EDGE (error)\n.",
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-    ]
+#     # Add more GetChanges data. Include some trailing empty changesets to allow test
+#     # code to run.
+#     dummy_server_system.send += [
+#         "!PCAP1.TRIG_EDGE (error)\n.",
+#         ".",
+#         ".",
+#         ".",
+#         ".",
+#         ".",
+#         ".",
+#     ]
 
-    try:
-        # Set up a monitor to wait for the expected change
-        capturing_queue: asyncio.Queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
+#     try:
+#         # Set up a monitor to wait for the expected change
+#         capturing_queue: asyncio.Queue = asyncio.Queue()
+#         monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
 
-        curr_val = await asyncio.wait_for(capturing_queue.get(), 2)
-        # First response is the current value
-        assert curr_val == 1
+#         curr_val = await asyncio.wait_for(capturing_queue.get(), 2)
+#         # First response is the current value
+#         assert curr_val == 1
 
-        # Wait for the new value to appear
-        # Cannot do this due to PythonSoftIOC issue #53.
-        # err_val: AugmentedValue = await asyncio.wait_for(capturing_queue.get(), 100)
-        # assert err_val.severity == alarm.INVALID_ALARM
-        # assert err_val.status == alarm.UDF_ALARM
+# # Wait for the new value to appear
+# Cannot do this due to PythonSoftIOC issue #53.
+# err_val: AugmentedValue = await asyncio.wait_for(capturing_queue.get(), 100)
+# assert err_val.severity == alarm.INVALID_ALARM
+# assert err_val.status == alarm.UDF_ALARM
 
-    finally:
-        monitor.close()
-        purge_channel_caches()
+#     finally:
+#         monitor.close()
+#         purge_channel_caches()
 
 
 @pytest.mark.asyncio
@@ -451,19 +452,6 @@ async def test_create_softioc_arm_disarm(
     # Confirm the server received the expected strings
     assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses
     assert "*PCAP.DISARM=" not in dummy_server_system.expected_message_responses
-
-
-# TODO: add checking the caplog records somewhere, probably in a system test too
-
-#     log_message_printed = False
-#     for record in caplog.records:
-#         if record.levelno >= logging.WARNING:
-#             log_message_printed = True
-#             print(record)
-
-#     assert (
-#         log_message_printed is False
-#     ), "At least one WARNING or above logging message printed"
 
 
 def test_ensure_block_number_present():
@@ -580,11 +568,10 @@ def idfn(val):
         return ""
 
 
-# TODO: Test the special types
 # Tests for every known type-subtype pair except the following, which have their own
 # separate tests:
 # ext_out - bits
-# table
+# table (separate file)
 # param - action
 # read - action
 @pytest.mark.parametrize(
@@ -1029,6 +1016,15 @@ def test_make_ext_out_bits(
         )
 
 
+@pytest.mark.parametrize("type", ["param", "read"])
+def test_create_record_action(ioc_record_factory: IocRecordFactory, type: str):
+    """Test the param-action and read-action types do not create records"""
+    assert (
+        ioc_record_factory.create_record(TEST_RECORD, FieldInfo(type, "action"), {})
+        == {}
+    )
+
+
 def test_create_record_info_value_error(
     ioc_record_factory: IocRecordFactory, tmp_path: Path
 ):
@@ -1051,7 +1047,7 @@ def test_create_record_info_value_error(
         initial_value=_InErrorException("Mocked exception"),
     )
 
-    # TODO: Is this a stupid idea?
+    # TODO: Is this a stupid way to check the SEVR and STAT attributes?
     record_file = tmp_path / "records.db"
     builder.WriteRecords(record_file)
 
