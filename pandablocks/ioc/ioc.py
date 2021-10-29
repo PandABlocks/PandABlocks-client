@@ -21,13 +21,7 @@ from pandablocks.commands import (
     Put,
 )
 from pandablocks.ioc._hdf_ioc import _HDF5RecordController
-from pandablocks.ioc._tables import (
-    TableFieldRecordContainer,
-    TableModeEnum,
-    TablePacking,
-    TableRecordWrapper,
-    _TableUpdater,
-)
+from pandablocks.ioc._tables import TableRecordWrapper, _TableUpdater
 from pandablocks.ioc._types import (
     ONAM_STR,
     ZNAM_STR,
@@ -39,6 +33,8 @@ from pandablocks.ioc._types import (
     _InErrorException,
     _panda_to_epics_name,
     _RecordInfo,
+    check_num_labels,
+    trim_description,
 )
 from pandablocks.responses import (
     BitMuxFieldInfo,
@@ -496,9 +492,7 @@ class IocRecordFactory:
             record_creation_func == builder.mbbIn
             or record_creation_func == builder.mbbOut
         ):
-            assert (
-                len(labels) <= 16
-            ), f"Too many labels ({len(labels)}) to create record {record_name}"
+            check_num_labels(labels, record_name)
 
         # Check the initial value is valid. If it is, apply data type conversion
         # otherwise mark the record as in error
@@ -532,18 +526,7 @@ class IocRecordFactory:
             )
             extra_kwargs.update({"on_update": record_updater.update})
 
-        # Record description field is a maximum of 40 characters long. Ensure any string
-        # is shorter than that before setting it.
-        if description and len(description) > 40:
-            # As per Tom Cobb, it's unlikely the descriptions will ever be truncated so
-            # we'll hide this message in low level logging only
-            logging.info(
-                f"Description for {record_name} longer than EPICS limit of "
-                f"40 characters. It will be truncated. Description: {description}"
-            )
-            description = description[:40]
-
-        extra_kwargs.update({"DESC": description})
+        extra_kwargs.update({"DESC": trim_description(description, record_name)})
 
         record = record_creation_func(
             record_name, *labels, *args, **extra_kwargs, **kwargs
@@ -996,158 +979,23 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, List[str]],
     ) -> Dict[EpicsName, _RecordInfo]:
-        # TODO: Mirror HDF5 and make the tables module make these records
         assert isinstance(field_info, TableFieldInfo)
-        assert field_info.fields
-        assert field_info.row_words
-        assert field_info.max_length
-
-        record_dict: Dict[EpicsName, _RecordInfo] = {}
-
-        # The INDEX record's starting value
-        DEFAULT_INDEX = 0
-
-        # Placeholder data_type_func for _create_record_info, which does nothing.
-        # It's never actually called, but if it is it'll do nothing to the data.
-        def do_nothing(val):
-            return val
-
-        table_fields_records: Dict[str, TableFieldRecordContainer] = {
-            k: TableFieldRecordContainer(v, None) for k, v in field_info.fields.items()
-        }
 
         # Create the updater
         table_updater = _TableUpdater(
             self._client,
             record_name,
             field_info,
-            table_fields_records,
-            record_dict,  # Dict is filled throughout this method
             self._all_values_dict,
+            record_name,
+        )
+        # Format the mode record name to remove namespace
+        mode_record_name: str = table_updater.mode_record_info.record.name
+        mode_record_name = EpicsName(
+            mode_record_name.replace(self._record_prefix + ":", "")
         )
 
-        # Note that the table_updater's table_fields are guaranteed sorted in bit order,
-        # unlike field_info's fields. This means the record dict inside the table
-        # updater are also in the same bit order.
-        field_data = TablePacking.unpack(
-            field_info.row_words,
-            table_updater.table_fields_records,
-            values[record_name],
-        )
-
-        for (field_name, field_record_container), data in zip(
-            table_updater.table_fields_records.items(), field_data
-        ):
-            field_details = field_record_container.field
-
-            full_name = record_name + ":" + field_name
-            full_name = EpicsName(full_name)
-            field_record_container.record_info = self._create_record_info(
-                full_name,
-                field_details.description,
-                builder.WaveformOut,
-                do_nothing,
-                validate=table_updater.validate_waveform,
-                on_update_name=table_updater.update_waveform,
-                # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
-                # Lines below work around issue #37 in PythonSoftIOC.
-                # Commented out lined should be reinstated, and length + datatype lines
-                # deleted, when that issue is fixed
-                # NELM=field_info.max_length,
-                # initial_value=data,
-                length=field_info.max_length,
-                datatype=data.dtype,
-            )
-
-            # This line is a workaround for issue #37 in PythonSoftIOC
-            field_record_container.record_info.record.set(data, process=False)
-
-            # Scalar record gives access to individual cell in a column,
-            # in combination with the INDEX record defined below
-            scalar_record_name = EpicsName(full_name + ":SCALAR")
-
-            # Three possible field types, do per-type config
-            record_creation_func: Callable
-            lopr = {}
-            scalar_labels: List[str] = []
-            # No better default than zero, despite the fact it could be a valid value
-            initial_value = data[DEFAULT_INDEX] if data.size > 0 else 0
-            if field_details.subtype == "int":
-                record_creation_func = builder.longIn
-
-            elif field_details.subtype == "uint":
-                record_creation_func = builder.longIn
-                assert initial_value >= 0, (
-                    f"initial value {initial_value} for uint record "
-                    f"{scalar_record_name} was negative"
-                )
-                lopr.update({"LOPR": 0})  # Clamp record to positive values only
-
-            elif field_details.subtype == "enum":
-                assert field_details.labels
-                record_creation_func = builder.mbbIn
-                # Only call process_labels for label length check - already have value
-                scalar_labels, initial_value = self._process_labels(
-                    field_details.labels, field_details.labels[initial_value]
-                )
-            else:
-                logging.error(
-                    f"Unknown table field subtype {field_details.subtype} detected "
-                    f"on table {record_name} field {field_name}. Using defaults."
-                )
-                record_creation_func = builder.longIn
-
-            record_dict[scalar_record_name] = self._create_record_info(
-                scalar_record_name,
-                "Scalar val (set by INDEX rec) of column",
-                record_creation_func,
-                do_nothing,
-                initial_value=initial_value,
-                labels=scalar_labels,
-                **lopr,
-            )
-
-        # Create the mode record that controls when to Put back to PandA
-        labels, index_value = self._process_labels(
-            [
-                TableModeEnum.VIEW.name,
-                TableModeEnum.EDIT.name,
-                TableModeEnum.SUBMIT.name,
-                TableModeEnum.DISCARD.name,
-            ],
-            TableModeEnum.VIEW.name,  # Default state is VIEW mode
-        )
-        mode_record_name = EpicsName(record_name + ":" + "MODE")
-        mode_record_info = self._create_record_info(
-            mode_record_name,
-            "Controls PandA <-> EPICS data interface",
-            builder.mbbOut,
-            do_nothing,
-            labels=labels,
-            initial_value=index_value,
-            on_update=table_updater.update_mode,
-        )
-
-        mode_record_info.record = TableRecordWrapper(
-            mode_record_info.record, table_updater
-        )
-        record_dict[mode_record_name] = mode_record_info
-        table_updater.set_mode_record_info(record_dict[mode_record_name])
-
-        # Index record specifies which element the scalar records should access
-        index_record_name = EpicsName(record_name + ":INDEX")
-        record_dict[index_record_name] = self._create_record_info(
-            index_record_name,
-            "Index for all SCALAR records on table",
-            builder.longOut,
-            do_nothing,
-            initial_value=DEFAULT_INDEX,
-            on_update=table_updater.update_index,
-            LOPR=0,
-            HOPR=field_info.max_length - 1,  # zero indexing
-        )
-
-        return record_dict
+        return {mode_record_name: table_updater.mode_record_info}
 
     def _make_uint(
         self,

@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from softioc import alarm
+from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
@@ -17,6 +17,8 @@ from pandablocks.ioc._types import (
     _epics_to_panda_name,
     _InErrorException,
     _RecordInfo,
+    check_num_labels,
+    trim_description,
 )
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 
@@ -176,19 +178,17 @@ class TableModeEnum(Enum):
     DISCARD = 3  # Discard all EPICS records, re-fetch from PandA
 
 
-@dataclass
 class _TableUpdater:
-    """Class to handle updating table records, batching PUTs into the smallest number
-    possible to avoid unnecessary/unwanted processing on the PandA
-
+    """Class to handle creating and updating tables.
+    #TODO: rewrite this
     Args:
         client: The client to be used to read/write to the PandA
         table_name: The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
         field_info: The TableFieldInfo structure for this table
-        table_fields_records: The list of field definitions and their associated
-            RecordInfo structures.
-        table_records: The list of non-field (i.e. non-Waveform) records that are also
-            part of this table.
+        table_fields_records: The dictionary of field definitions and their associated
+            TableFieldRecordContainer structures.
+        table_scalar_records: The list of non-field (i.e. non-Waveform) records that
+            are also part of this table.
         all_values_dict: The pointer to the global dictionary containing the most recent
             value of all records as returned from GetChanges. This dict will be
             dynamically updated by other methods."""
@@ -197,18 +197,179 @@ class _TableUpdater:
     table_name: EpicsName
     field_info: TableFieldInfo
     table_fields_records: Dict[str, TableFieldRecordContainer]
-    table_records: Dict[EpicsName, _RecordInfo]
+    table_scalar_records: Dict[EpicsName, _RecordInfo] = {}
     all_values_dict: Dict[EpicsName, RecordValue]
 
-    def __post_init__(self):
-        # Called at the end of dataclass's __init__
-        # The field order will be whatever was configured in the PandA.
+    def __init__(
+        self,
+        client: AsyncioClient,
+        table_name: EpicsName,
+        field_info: TableFieldInfo,
+        all_values_dict: Dict[EpicsName, RecordValue],
+        record_name: EpicsName,
+    ):
+        """Create all the table records"""
+        assert field_info.fields
+
+        self.client = client
+        self.table_name = table_name
+        self.field_info = field_info
+        self.table_fields_records = {
+            k: TableFieldRecordContainer(v, None) for k, v in field_info.fields.items()
+        }
+        self.all_values_dict = all_values_dict
+
+        # The input field order will be whatever was configured in the PandA.
         # Ensure fields in bit order from lowest to highest so we can parse data
         self.table_fields_records = dict(
             sorted(
                 self.table_fields_records.items(),
                 key=lambda item: item[1].field.bit_low,
             )
+        )
+
+        assert self.field_info.fields
+        assert self.field_info.row_words
+        assert self.field_info.max_length
+
+        # The INDEX record's starting value
+        DEFAULT_INDEX = 0
+
+        # Note that the table_updater's table_fields are guaranteed sorted in bit order,
+        # unlike field_info's fields. This means the record dict inside the table
+        # updater are also in the same bit order.
+        value = all_values_dict[record_name]
+        assert isinstance(value, list)
+        field_data = TablePacking.unpack(
+            self.field_info.row_words,
+            self.table_fields_records,
+            value,
+        )
+
+        for (field_name, field_record_container), data in zip(
+            self.table_fields_records.items(), field_data
+        ):
+            field_details = field_record_container.field
+
+            full_name = record_name + ":" + field_name
+            full_name = EpicsName(full_name)
+            description = trim_description(field_details.description, full_name)
+
+            field_record: RecordWrapper = builder.WaveformOut(
+                full_name,
+                DESC=description,
+                validate=self.validate_waveform,
+                on_update_name=self.update_waveform,
+                # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
+                # Lines below work around issue #37 in PythonSoftIOC.
+                # Commented out lined should be reinstated, and length + datatype lines
+                # deleted, when that issue is fixed
+                # NELM=field_info.max_length,
+                # initial_value=data,
+                length=field_info.max_length,
+                datatype=data.dtype,
+            )
+            # This line is part of a workaround for issue #37 in PythonSoftIOC
+            field_record.set(data, process=False)
+
+            # TODO: Do I need this? It doesn't seem to get used!
+            field_record_container.record_info = _RecordInfo(
+                field_record, lambda x: x, None, False
+            )
+
+            # Scalar record gives access to individual cell in a column,
+            # in combination with the INDEX record defined below
+            scalar_record_name = EpicsName(full_name + ":SCALAR")
+
+            # This description must be <= 40 charatcers
+            scalar_record_desc = "Scalar val (set by INDEX rec) of column"
+            # No better default than zero, despite the fact it could be a valid value
+            # PythonSoftIOC issue #53 may alleviate this.
+            initial_value = data[DEFAULT_INDEX] if data.size > 0 else 0
+
+            # Three possible field types, do per-type config
+            if field_details.subtype == "int":
+
+                scalar_record: RecordWrapper = builder.longIn(
+                    scalar_record_name,
+                    initial_value=initial_value,
+                    DESC=scalar_record_desc,
+                )
+
+            elif field_details.subtype == "uint":
+                assert initial_value >= 0, (
+                    f"initial value {initial_value} for uint record "
+                    f"{scalar_record_name} was negative"
+                )
+                scalar_record = builder.longIn(
+                    scalar_record_name,
+                    initial_value=initial_value,
+                    DESC=scalar_record_desc,
+                    LOPR=0,  # Clamp record to positive values only
+                )
+
+            elif field_details.subtype == "enum":
+                assert field_details.labels
+                check_num_labels(field_details.labels, scalar_record_name)
+                scalar_record = builder.mbbIn(
+                    scalar_record_name,
+                    *field_details.labels,
+                    initial_value=initial_value,
+                    DESC=scalar_record_desc,
+                )
+
+            else:
+                logging.error(
+                    f"Unknown table field subtype {field_details.subtype} detected "
+                    f"on table {record_name} field {field_name}. Using defaults."
+                )
+                scalar_record = builder.longIn(
+                    scalar_record_name,
+                    initial_value=initial_value,
+                    DESC=scalar_record_desc,
+                )
+
+            self.table_scalar_records[scalar_record_name] = _RecordInfo(
+                scalar_record, lambda x: x, None, False
+            )
+
+        # Create the mode record that controls when to Put back to PandA
+        labels = [
+            TableModeEnum.VIEW.name,
+            TableModeEnum.EDIT.name,
+            TableModeEnum.SUBMIT.name,
+            TableModeEnum.DISCARD.name,
+        ]
+        index_value = 0
+
+        mode_record_name = EpicsName(record_name + ":" + "MODE")
+
+        mode_record: RecordWrapper = builder.mbbOut(
+            mode_record_name,
+            *labels,
+            DESC="Controls PandA <-> EPICS data interface",
+            initial_value=index_value,
+            on_update=self.update_mode,
+        )
+
+        self.mode_record_info = _RecordInfo(mode_record, lambda x: x, labels, False)
+
+        # Re-wrap the record itself so that GetChanges can access this TableUpdater
+        self.mode_record_info.record = TableRecordWrapper(
+            self.mode_record_info.record, self
+        )
+
+        # Index record specifies which element the scalar records should access
+        index_record_name = EpicsName(record_name + ":INDEX")
+        self.index_record = builder.longOut(
+            index_record_name,
+            DESC="Index for all SCALAR records on table",
+            initial_value=DEFAULT_INDEX,
+            on_update=self.update_index,
+            LOPR=0,
+            HOPR=self.field_info.max_length - 1,
+            # Can't dynamically set HOPR to current length of table,
+            # best we can do is max possible length.
         )
 
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
@@ -223,7 +384,7 @@ class _TableUpdater:
             bool: `True` to allow record update, `False` otherwise.
         """
 
-        record_val = self._mode_record_info.record.get()
+        record_val = self.mode_record_info.record.get()
 
         if record_val == TableModeEnum.VIEW.value:
             logging.debug(
@@ -254,9 +415,7 @@ class _TableUpdater:
         else:
             logging.error("MODE record has unknown value: " + str(record_val))
             # In case it isn't already, set an alarm state on the record
-            self._mode_record_info.record.set_alarm(
-                alarm.INVALID_ALARM, alarm.UDF_ALARM
-            )
+            self.mode_record_info.record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
             return False
 
     async def update_waveform(self, new_val: int, record_name: str) -> None:
@@ -269,9 +428,9 @@ class _TableUpdater:
         Controls Put'ting data back to PandA, or re-Get'ting data from Panda
         and replacing record data."""
 
-        assert self._mode_record_info.labels
+        assert self.mode_record_info.labels
 
-        new_label = self._mode_record_info.labels[new_val]
+        new_label = self.mode_record_info.labels[new_val]
 
         if new_label == TableModeEnum.SUBMIT.name:
             try:
@@ -310,16 +469,16 @@ class _TableUpdater:
                 field_data = TablePacking.unpack(
                     self.field_info.row_words, self.table_fields_records, old_val
                 )
-                # Table records are never In type, so can always disable processing
                 for field_record, data in zip(
                     self.table_fields_records.values(), field_data
                 ):
                     assert field_record.record_info
+                    # Table records are never In type, so can always disable processing
                     field_record.record_info.record.set(data, process=False)
             finally:
                 # Already in on_update of this record, so disable processing to
                 # avoid recursion
-                self._mode_record_info.record.set(
+                self.mode_record_info.record.set(
                     TableModeEnum.VIEW.value, process=False
                 )
 
@@ -342,7 +501,7 @@ class _TableUpdater:
 
             # Already in on_update of this record, so disable processing to
             # avoid recursion
-            self._mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
+            self.mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
 
     def update_table(self, new_values: List[str]) -> None:
         """Update the waveform records with the given values from the PandA, depending
@@ -353,7 +512,7 @@ class _TableUpdater:
             new_values: The list of new values from the PandA
         """
 
-        curr_mode = TableModeEnum(self._mode_record_info.record.get())
+        curr_mode = TableModeEnum(self.mode_record_info.record.get())
 
         if curr_mode == TableModeEnum.VIEW:
             assert self.field_info.row_words
@@ -399,13 +558,11 @@ class _TableUpdater:
         assert record_info
         waveform_data = record_info.record.get()
 
-        scalar_record = self.table_records[
+        scalar_record = self.table_scalar_records[
             EpicsName(waveform_record_name + ":SCALAR")
         ].record
 
-        index_record_name = waveform_record_name.rsplit(":", maxsplit=1)[0] + ":INDEX"
-        index_record = self.table_records[EpicsName(index_record_name)].record
-        index = index_record.get()
+        index = self.index_record.get()
 
         try:
             scalar_val = waveform_data[index]
@@ -421,7 +578,3 @@ class _TableUpdater:
         # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
         # alarm value to UDF_ALARM, but I'm specifying it for clarity.
         scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
-
-    def set_mode_record_info(self, record_info: _RecordInfo) -> None:
-        """Set the special MODE record that controls the behaviour of this table"""
-        self._mode_record_info = record_info

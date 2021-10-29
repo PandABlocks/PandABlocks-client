@@ -1,5 +1,6 @@
 # Various new or derived types/classes and helper functions for the IOC module
 # Mostly exists to avoid circular dependencies.
+import logging
 from dataclasses import dataclass
 from typing import Callable, List, NewType, Optional, Union
 
@@ -21,6 +22,27 @@ def _epics_to_panda_name(field_name: EpicsName) -> PandAName:
     """Convert EPICS naming convention to PandA convention. This module defaults to
     EPICS names internally, only converting back to PandA names when necessary."""
     return PandAName(field_name.replace(":", "."))
+
+
+def check_num_labels(labels: List[str], record_name: str):
+    """Check that the number of labels can fit into an mbbi/mbbo record"""
+    assert (
+        len(labels) <= 16
+    ), f"Too many labels ({len(labels)}) to create record {record_name}"
+
+
+def trim_description(description: Optional[str], record_name: str) -> Optional[str]:
+    """Record description field is a maximum of 40 characters long. Ensure any string
+    is shorter than that before setting it."""
+    if description and len(description) > 40:
+        # As per Tom Cobb, it's unlikely the descriptions will ever be truncated so
+        # we'll hide this message in low level logging only
+        logging.info(
+            f"Description for {record_name} longer than EPICS limit of "
+            f"40 characters. It will be truncated. Description: {description}"
+        )
+        description = description[:40]
+    return description
 
 
 # Constants used in bool records

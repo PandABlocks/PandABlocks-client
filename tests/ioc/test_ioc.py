@@ -295,7 +295,7 @@ async def test_create_softioc_update_table(
         assert numpy.array_equal(curr_val, table_unpacked_data["TIME1"])
 
         # Wait for the new value to appear
-        curr_val = await asyncio.wait_for(capturing_queue.get(), 1000)
+        curr_val = await asyncio.wait_for(capturing_queue.get(), 10)
         assert numpy.array_equal(
             curr_val,
             [100, 0, 9, 5, 99999],

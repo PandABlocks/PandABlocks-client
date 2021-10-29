@@ -59,6 +59,8 @@ def table_updater(
     table_field_info: TableFieldInfo,
     table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data_dict: Dict[EpicsName, RecordValue],
+    clear_records: None,
+    table_unpacked_data: Dict[EpicsName, ndarray],
 ) -> _TableUpdater:
     """Provides a _TableUpdater with configured records and mocked functionality"""
     client = AsyncioClient("123")
@@ -80,22 +82,27 @@ def table_updater(
         ],
     )
 
-    # The list of other records, i.e. SCALAR and INDEX, for the table
-    other_records: Dict[EpicsName, _RecordInfo] = {
-        EpicsName("SEQ1:TABLE:POSITION:SCALAR"): MagicMock(),
-        EpicsName("SEQ1:TABLE:INDEX"): MagicMock(),
-    }
-
     updater = _TableUpdater(
         client,
         EpicsName(EPICS_FORMAT_TABLE_NAME),
         table_field_info,
-        table_fields_records,
-        other_records,
         table_data_dict,
+        EpicsName(EPICS_FORMAT_TABLE_NAME),
     )
 
-    updater.set_mode_record_info(mode_record_info)
+    # Put mocks into TableUpdater
+    updater.mode_record_info = mode_record_info
+    updater.index_record = MagicMock()
+    updater.table_scalar_records[EpicsName("SEQ1:TABLE:POSITION:SCALAR")] = MagicMock()
+    for field_name, table_record_container in updater.table_fields_records.items():
+        assert table_record_container.record_info
+        table_record_container.record_info.record = MagicMock()
+        type(table_record_container.record_info.record).name = PropertyMock(
+            return_value=EPICS_FORMAT_TABLE_NAME + ":" + field_name
+        )
+        table_record_container.record_info.record.get = MagicMock(
+            return_value=table_unpacked_data[EpicsName(field_name)]
+        )
 
     return updater
 
@@ -199,7 +206,7 @@ def test_table_updater_validate_mode_view(table_updater: _TableUpdater):
 def test_table_updater_validate_mode_edit(table_updater: _TableUpdater):
     """Test the validate method when mode is Edit"""
 
-    table_updater._mode_record_info.record.get = MagicMock(
+    table_updater.mode_record_info.record.get = MagicMock(
         return_value=TableModeEnum.EDIT.value
     )
 
@@ -211,7 +218,7 @@ def test_table_updater_validate_mode_edit(table_updater: _TableUpdater):
 def test_table_updater_validate_mode_submit(table_updater: _TableUpdater):
     """Test the validate method when mode is Submit"""
 
-    table_updater._mode_record_info.record.get = MagicMock(
+    table_updater.mode_record_info.record.get = MagicMock(
         return_value=TableModeEnum.SUBMIT.value
     )
 
@@ -223,7 +230,7 @@ def test_table_updater_validate_mode_submit(table_updater: _TableUpdater):
 def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
     """Test the validate method when mode is Discard"""
 
-    table_updater._mode_record_info.record.get = MagicMock(
+    table_updater.mode_record_info.record.get = MagicMock(
         return_value=TableModeEnum.DISCARD.value
     )
 
@@ -235,14 +242,14 @@ def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
 def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
     """Test the validate method when mode is unknown"""
 
-    table_updater._mode_record_info.record.get = MagicMock(return_value="UnknownValue")
-    table_updater._mode_record_info.record.set_alarm = MagicMock()
+    table_updater.mode_record_info.record.get = MagicMock(return_value="UnknownValue")
+    table_updater.mode_record_info.record.set_alarm = MagicMock()
 
     record = MagicMock()
     record.name = MagicMock(return_value="NewRecord")
 
     assert table_updater.validate_waveform(record, "value is irrelevant") is False
-    table_updater._mode_record_info.record.set_alarm.assert_called_once_with(
+    table_updater.mode_record_info.record.set_alarm.assert_called_once_with(
         alarm.INVALID_ALARM, alarm.UDF_ALARM
     )
 
@@ -256,7 +263,7 @@ async def test_table_updater_update_mode_view(table_updater: _TableUpdater):
         not table_updater.client.send.called  # type: ignore
     ), "client send method was unexpectedly called"
     assert (
-        not table_updater._mode_record_info.record.set.called
+        not table_updater.mode_record_info.record.set.called
     ), "record set method was unexpectedly called"
 
 
@@ -272,7 +279,7 @@ async def test_table_updater_update_mode_submit(
         Put(PANDA_FORMAT_TABLE_NAME, table_data)
     )
 
-    table_updater._mode_record_info.record.set.assert_called_once_with(
+    table_updater.mode_record_info.record.set.assert_called_once_with(
         TableModeEnum.VIEW.value, process=False
     )
 
@@ -306,7 +313,7 @@ async def test_table_updater_update_mode_submit_exception(
 
         numpy.testing.assert_array_equal(data, called_args[0][0])
 
-    table_updater._mode_record_info.record.set.assert_called_once_with(
+    table_updater.mode_record_info.record.set.assert_called_once_with(
         TableModeEnum.VIEW.value, process=False
     )
 
@@ -363,7 +370,7 @@ async def test_table_updater_update_mode_discard(
 
         numpy.testing.assert_array_equal(data, called_args[0][0])
 
-    table_updater._mode_record_info.record.set.assert_called_once_with(
+    table_updater.mode_record_info.record.set.assert_called_once_with(
         TableModeEnum.VIEW.value, process=False
     )
 
@@ -391,7 +398,7 @@ async def test_table_updater_update_mode_other(
 
         record_info.record.assert_not_called()
 
-    table_updater._mode_record_info.record.set.assert_not_called()
+    table_updater.mode_record_info.record.set.assert_not_called()
 
 
 def test_table_updater_update_table(
@@ -406,7 +413,7 @@ def test_table_updater_update_table(
 
     table_updater.update_table(table_data)
 
-    table_updater._mode_record_info.record.get.assert_called_once()
+    table_updater.mode_record_info.record.get.assert_called_once()
 
     # Confirm each record received the expected data
     for field_name, data in table_unpacked_data.items():
@@ -432,11 +439,11 @@ def test_table_updater_update_table_not_view(
     # update_scalar is too complex to test as well, so mock it out
     table_updater._update_scalar = MagicMock()  # type: ignore
 
-    table_updater._mode_record_info.record.get.return_value = TableModeEnum.EDIT
+    table_updater.mode_record_info.record.get.return_value = TableModeEnum.EDIT
 
     table_updater.update_table(table_data)
 
-    table_updater._mode_record_info.record.get.assert_called_once()
+    table_updater.mode_record_info.record.get.assert_called_once()
 
     # Confirm the records were not called
     for field_name, data in table_unpacked_data.items():
@@ -471,11 +478,9 @@ def test_table_updater_update_scalar(
 ):
     """Test that update_scalar correctly updates the scalar record for a waveform"""
     scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")
-    scalar_record = table_updater.table_records[scalar_record_name].record
+    scalar_record = table_updater.table_scalar_records[scalar_record_name].record
 
-    index_record_name = EpicsName("SEQ1:TABLE:INDEX")
-    index_record = table_updater.table_records[index_record_name].record
-    index_record.get.return_value = 1
+    table_updater.index_record.get.return_value = 1
 
     table_updater._update_scalar("ABC:SEQ1:TABLE:POSITION")
 
@@ -489,11 +494,9 @@ def test_table_updater_update_scalar_index_out_of_bounds(
 ):
     """Test that update_scalar handles an invalid index"""
     scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")
-    scalar_record = table_updater.table_records[scalar_record_name].record
+    scalar_record = table_updater.table_scalar_records[scalar_record_name].record
 
-    index_record_name = EpicsName("SEQ1:TABLE:INDEX")
-    index_record = table_updater.table_records[index_record_name].record
-    index_record.get.return_value = 99
+    table_updater.index_record.get.return_value = 99
 
     table_updater._update_scalar("ABC:SEQ1:TABLE:POSITION")
 
