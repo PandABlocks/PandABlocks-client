@@ -13,11 +13,11 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.ioc._types import (
     EpicsName,
+    InErrorException,
+    RecordInfo,
     RecordValue,
-    _epics_to_panda_name,
-    _InErrorException,
-    _RecordInfo,
     check_num_labels,
+    epics_to_panda_name,
     trim_description,
 )
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
@@ -29,7 +29,7 @@ class TableRecordWrapper:
     This is only expected to be used for MODE records."""
 
     record: RecordWrapper
-    table_updater: "_TableUpdater"
+    table_updater: "TableUpdater"
 
     def update_table(self, values: List[str]) -> None:
         """Set the given values into the table records"""
@@ -46,7 +46,7 @@ class TableFieldRecordContainer:
     record."""
 
     field: TableFieldDetails
-    record_info: Optional[_RecordInfo]
+    record_info: Optional[RecordInfo]
 
 
 class TablePacking:
@@ -120,7 +120,7 @@ class TablePacking:
         for table writes.
         Args:
             row_words: The number of 32-bit words per row
-            table_fields_records: The list of fields and their associated _RecordInfo
+            table_fields_records: The list of fields and their associated RecordInfo
                 structure, used to access the value of each record. The fields and
                 records must be in bit-ascending order (i.e. lowest bit_low field first)
 
@@ -178,7 +178,7 @@ class TableModeEnum(Enum):
     DISCARD = 3  # Discard all EPICS records, re-fetch from PandA
 
 
-class _TableUpdater:
+class TableUpdater:
     """Class to handle creating and updating tables."""
 
     client: AsyncioClient
@@ -187,7 +187,7 @@ class _TableUpdater:
     # Collection of the records that comprise the table's fields
     table_fields_records: Dict[str, TableFieldRecordContainer]
     # Collection of the records that comprise the SCALAR records for each field
-    table_scalar_records: Dict[EpicsName, _RecordInfo] = {}
+    table_scalar_records: Dict[EpicsName, RecordInfo] = {}
     all_values_dict: Dict[EpicsName, RecordValue]
 
     def __init__(
@@ -269,7 +269,7 @@ class _TableUpdater:
             # This line is part of a workaround for issue #37 in PythonSoftIOC
             field_record.set(data, process=False)
 
-            field_record_container.record_info = _RecordInfo(
+            field_record_container.record_info = RecordInfo(
                 field_record, lambda x: x, None, False
             )
 
@@ -323,7 +323,7 @@ class _TableUpdater:
                     DESC=scalar_record_desc,
                 )
 
-            self.table_scalar_records[scalar_record_name] = _RecordInfo(
+            self.table_scalar_records[scalar_record_name] = RecordInfo(
                 scalar_record, lambda x: x, None, False
             )
 
@@ -345,7 +345,7 @@ class _TableUpdater:
             on_update=self.update_mode,
         )
 
-        self.mode_record_info = _RecordInfo(mode_record, lambda x: x, labels, False)
+        self.mode_record_info = RecordInfo(mode_record, lambda x: x, labels, False)
 
         # Re-wrap the record itself so that GetChanges can access this TableUpdater
         self.mode_record_info.record = TableRecordWrapper(
@@ -435,7 +435,7 @@ class _TableUpdater:
                     self.field_info.row_words, self.table_fields_records
                 )
 
-                panda_field_name = _epics_to_panda_name(self.table_name)
+                panda_field_name = epics_to_panda_name(self.table_name)
                 await self.client.send(Put(panda_field_name, packed_data))
 
             except Exception:
@@ -450,7 +450,7 @@ class _TableUpdater:
                 assert self.table_name in self.all_values_dict
                 old_val = self.all_values_dict[self.table_name]
 
-                if isinstance(old_val, _InErrorException):
+                if isinstance(old_val, InErrorException):
                     # If PythonSoftIOC issue #53 is fixed we could put some error state.
                     logging.error(
                         f"Cannot restore previous value to table {self.table_name}, "
@@ -478,7 +478,7 @@ class _TableUpdater:
         elif new_label == TableModeEnum.DISCARD.name:
             # Recreate EPICS data from PandA data
             logging.info(f"Re-fetching table {self.table_name} data from PandA")
-            panda_field_name = _epics_to_panda_name(self.table_name)
+            panda_field_name = epics_to_panda_name(self.table_name)
             panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
             assert self.field_info.row_words

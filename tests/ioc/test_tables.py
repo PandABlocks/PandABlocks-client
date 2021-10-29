@@ -17,14 +17,9 @@ from pandablocks.ioc._tables import (
     TableFieldRecordContainer,
     TableModeEnum,
     TablePacking,
-    _TableUpdater,
+    TableUpdater,
 )
-from pandablocks.ioc._types import (
-    EpicsName,
-    RecordValue,
-    _InErrorException,
-    _RecordInfo,
-)
+from pandablocks.ioc._types import EpicsName, InErrorException, RecordInfo, RecordValue
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 from tests.conftest import DummyServer
 
@@ -53,7 +48,7 @@ def table_fields_records(
             return_value=EPICS_FORMAT_TABLE_NAME + ":" + field_name
         )
         mocked_record.get = MagicMock(return_value=data_array)
-        record_info = _RecordInfo(mocked_record, lambda x: None)
+        record_info = RecordInfo(mocked_record, lambda x: None)
         data[field_name] = TableFieldRecordContainer(field_info, record_info)
     return data
 
@@ -64,8 +59,8 @@ def table_updater(
     table_data_dict: Dict[EpicsName, RecordValue],
     clear_records: None,
     table_unpacked_data: Dict[EpicsName, ndarray],
-) -> _TableUpdater:
-    """Provides a _TableUpdater with configured records and mocked functionality"""
+) -> TableUpdater:
+    """Provides a TableUpdater with configured records and mocked functionality"""
     client = AsyncioClient("123")
     client.send = AsyncMock()  # type: ignore
     # mypy doesn't play well with mocking so suppress error
@@ -74,7 +69,7 @@ def table_updater(
     # Default mode record to VIEW, as per default construction
     mocked_mode_record.get = MagicMock(return_value=TableModeEnum.VIEW.value)
     mocked_mode_record.set = MagicMock()
-    mode_record_info = _RecordInfo(
+    mode_record_info = RecordInfo(
         mocked_mode_record,
         lambda x: None,
         labels=[
@@ -85,7 +80,7 @@ def table_updater(
         ],
     )
 
-    updater = _TableUpdater(
+    updater = TableUpdater(
         client,
         EpicsName(EPICS_FORMAT_TABLE_NAME),
         table_field_info,
@@ -329,7 +324,7 @@ def test_table_packing_roundtrip(
     for (field_name, field_info), data_array in zip(table_fields.items(), unpacked):
         mocked_record = MagicMock()
         mocked_record.get = MagicMock(return_value=data_array)
-        record_info = _RecordInfo(mocked_record, lambda x: None)
+        record_info = RecordInfo(mocked_record, lambda x: None)
         data[field_name] = TableFieldRecordContainer(field_info, record_info)
 
     packed = TablePacking.pack(table_field_info.row_words, data)
@@ -337,7 +332,7 @@ def test_table_packing_roundtrip(
     assert packed == table_data
 
 
-def test_table_updater_fields_sorted(table_updater: _TableUpdater):
+def test_table_updater_fields_sorted(table_updater: TableUpdater):
     """Test that the field sorting done in post_init has occurred"""
 
     # Bits start at 0
@@ -354,7 +349,7 @@ def test_table_updater_fields_sorted(table_updater: _TableUpdater):
         curr_bit = field_details.bit_high
 
 
-def test_table_updater_validate_mode_view(table_updater: _TableUpdater):
+def test_table_updater_validate_mode_view(table_updater: TableUpdater):
     """Test the validate method when mode is View"""
 
     # View is default in table_updater
@@ -363,7 +358,7 @@ def test_table_updater_validate_mode_view(table_updater: _TableUpdater):
     assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
-def test_table_updater_validate_mode_edit(table_updater: _TableUpdater):
+def test_table_updater_validate_mode_edit(table_updater: TableUpdater):
     """Test the validate method when mode is Edit"""
 
     table_updater.mode_record_info.record.get = MagicMock(
@@ -375,7 +370,7 @@ def test_table_updater_validate_mode_edit(table_updater: _TableUpdater):
     assert table_updater.validate_waveform(record, "value is irrelevant") is True
 
 
-def test_table_updater_validate_mode_submit(table_updater: _TableUpdater):
+def test_table_updater_validate_mode_submit(table_updater: TableUpdater):
     """Test the validate method when mode is Submit"""
 
     table_updater.mode_record_info.record.get = MagicMock(
@@ -387,7 +382,7 @@ def test_table_updater_validate_mode_submit(table_updater: _TableUpdater):
     assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
-def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
+def test_table_updater_validate_mode_discard(table_updater: TableUpdater):
     """Test the validate method when mode is Discard"""
 
     table_updater.mode_record_info.record.get = MagicMock(
@@ -399,7 +394,7 @@ def test_table_updater_validate_mode_discard(table_updater: _TableUpdater):
     assert table_updater.validate_waveform(record, "value is irrelevant") is False
 
 
-def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
+def test_table_updater_validate_mode_unknown(table_updater: TableUpdater):
     """Test the validate method when mode is unknown"""
 
     table_updater.mode_record_info.record.get = MagicMock(return_value="UnknownValue")
@@ -415,7 +410,7 @@ def test_table_updater_validate_mode_unknown(table_updater: _TableUpdater):
 
 
 @pytest.mark.asyncio
-async def test_table_updater_update_mode_view(table_updater: _TableUpdater):
+async def test_table_updater_update_mode_view(table_updater: TableUpdater):
     """Test that update_mode with new value of VIEW takes no action"""
     await table_updater.update_mode(TableModeEnum.VIEW.value)
 
@@ -429,7 +424,7 @@ async def test_table_updater_update_mode_view(table_updater: _TableUpdater):
 
 @pytest.mark.asyncio
 async def test_table_updater_update_mode_submit(
-    table_updater: _TableUpdater, table_data: List[str]
+    table_updater: TableUpdater, table_data: List[str]
 ):
     """Test that update_mode with new value of SUBMIT sends data to PandA"""
     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
@@ -446,7 +441,7 @@ async def test_table_updater_update_mode_submit(
 
 @pytest.mark.asyncio
 async def test_table_updater_update_mode_submit_exception(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
     table_data: List[str],
     table_unpacked_data: Dict[EpicsName, ndarray],
 ):
@@ -480,7 +475,7 @@ async def test_table_updater_update_mode_submit_exception(
 
 @pytest.mark.asyncio
 async def test_table_updater_update_mode_submit_exception_data_error(
-    table_updater: _TableUpdater, table_data: List[str]
+    table_updater: TableUpdater, table_data: List[str]
 ):
     """Test that update_mode with an exception from Put and an InErrorException behaves
     as expected"""
@@ -489,7 +484,7 @@ async def test_table_updater_update_mode_submit_exception_data_error(
 
     table_updater.all_values_dict[
         EpicsName(EPICS_FORMAT_TABLE_NAME)
-    ] = _InErrorException("Mocked in error exception")
+    ] = InErrorException("Mocked in error exception")
 
     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
 
@@ -505,7 +500,7 @@ async def test_table_updater_update_mode_submit_exception_data_error(
 
 @pytest.mark.asyncio
 async def test_table_updater_update_mode_discard(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
     table_data: List[str],
     table_unpacked_data: Dict[EpicsName, ndarray],
 ):
@@ -540,7 +535,7 @@ async def test_table_updater_update_mode_discard(
     "enum_val", [TableModeEnum.EDIT.value, TableModeEnum.VIEW.value]
 )
 async def test_table_updater_update_mode_other(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
     table_unpacked_data: Dict[EpicsName, ndarray],
     enum_val: int,
 ):
@@ -562,7 +557,7 @@ async def test_table_updater_update_mode_other(
 
 
 def test_table_updater_update_table(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
     table_data: List[str],
     table_unpacked_data: Dict[EpicsName, ndarray],
 ):
@@ -590,7 +585,7 @@ def test_table_updater_update_table(
 
 
 def test_table_updater_update_table_not_view(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
     table_data: List[str],
     table_unpacked_data: Dict[EpicsName, ndarray],
 ):
@@ -616,7 +611,7 @@ def test_table_updater_update_table_not_view(
 
 @pytest.mark.asyncio
 async def test_table_updater_update_index(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
     table_fields: Dict[str, TableFieldDetails],
 ):
     """Test that update_index passes the full list of records to _update_scalar"""
@@ -634,7 +629,7 @@ async def test_table_updater_update_index(
 
 
 def test_table_updater_update_scalar(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
 ):
     """Test that update_scalar correctly updates the scalar record for a waveform"""
     scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")
@@ -650,7 +645,7 @@ def test_table_updater_update_scalar(
 
 
 def test_table_updater_update_scalar_index_out_of_bounds(
-    table_updater: _TableUpdater,
+    table_updater: TableUpdater,
 ):
     """Test that update_scalar handles an invalid index"""
     scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")

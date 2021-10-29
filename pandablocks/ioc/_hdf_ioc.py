@@ -22,7 +22,7 @@ from pandablocks.ioc._types import ONAM_STR, ZNAM_STR
 from pandablocks.responses import EndReason, ReadyData
 
 
-class _HDF5RecordController:
+class HDF5RecordController:
     """Class to create and control the records that handle HDF5 processing"""
 
     _HDF5_PREFIX = "HDF5"

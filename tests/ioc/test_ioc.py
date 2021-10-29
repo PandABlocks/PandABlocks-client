@@ -17,8 +17,8 @@ from pandablocks.ioc._types import (
     ONAM_STR,
     ZNAM_STR,
     EpicsName,
+    InErrorException,
     ScalarRecordValue,
-    _InErrorException,
 )
 from pandablocks.ioc.ioc import (
     IocRecordFactory,
@@ -802,7 +802,7 @@ def test_create_record_info_value_error(
         None,
         builder.aOut,
         float,
-        initial_value=_InErrorException("Mocked exception"),
+        initial_value=InErrorException("Mocked exception"),
     )
 
     ioc_record_factory._create_record_info(
@@ -810,7 +810,7 @@ def test_create_record_info_value_error(
         None,
         builder.aIn,
         float,
-        initial_value=_InErrorException("Mocked exception"),
+        initial_value=InErrorException("Mocked exception"),
     )
 
     # TODO: Is this a stupid way to check the SEVR and STAT attributes?

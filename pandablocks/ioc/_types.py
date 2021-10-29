@@ -12,13 +12,13 @@ EpicsName = NewType("EpicsName", str)
 PandAName = NewType("PandAName", str)
 
 
-def _panda_to_epics_name(field_name: PandAName) -> EpicsName:
+def panda_to_epics_name(field_name: PandAName) -> EpicsName:
     """Convert PandA naming convention to EPICS convention. This module defaults to
     EPICS names internally, only converting back to PandA names when necessary."""
     return EpicsName(field_name.replace(".", ":"))
 
 
-def _epics_to_panda_name(field_name: EpicsName) -> PandAName:
+def epics_to_panda_name(field_name: EpicsName) -> PandAName:
     """Convert EPICS naming convention to PandA convention. This module defaults to
     EPICS names internally, only converting back to PandA names when necessary."""
     return PandAName(field_name.replace(":", "."))
@@ -50,20 +50,18 @@ ZNAM_STR = "0"
 ONAM_STR = "1"
 
 
-class _InErrorException(Exception):
+class InErrorException(Exception):
     """Placeholder exception to mark a field as being in error as reported by PandA"""
 
 
 # Custom type aliases and new types
-ScalarRecordValue = Union[str, _InErrorException]
+ScalarRecordValue = Union[str, InErrorException]
 TableRecordValue = List[str]
 RecordValue = Union[ScalarRecordValue, TableRecordValue]
 
-# TODO: Rename this, and probably a lot of other things, to remove leading _
-
 
 @dataclass
-class _RecordInfo:
+class RecordInfo:
     """A container for a record and extra information needed to later update
     the record.
 

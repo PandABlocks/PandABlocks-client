@@ -17,7 +17,7 @@ from mock.mock import AsyncMock, MagicMock, patch
 from softioc import asyncio_dispatcher, builder, softioc
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.ioc._hdf_ioc import _HDF5RecordController
+from pandablocks.ioc._hdf_ioc import HDF5RecordController
 from pandablocks.responses import (
     EndData,
     EndReason,
@@ -37,9 +37,7 @@ def hdf5_controller(clear_records: None) -> Generator:
     """Construct an HDF5 controller, ensuring we delete all records before
     and after the test runs."""
 
-    hdf5_controller = _HDF5RecordController(
-        AsyncioClient("localhost"), NAMESPACE_PREFIX
-    )
+    hdf5_controller = HDF5RecordController(AsyncioClient("localhost"), NAMESPACE_PREFIX)
     yield hdf5_controller
 
 
@@ -48,7 +46,7 @@ def subprocess_func() -> None:
 
     async def wrapper(dispatcher):
         builder.SetDeviceName(NAMESPACE_PREFIX)
-        _HDF5RecordController(AsyncioClient("localhost"), NAMESPACE_PREFIX)
+        HDF5RecordController(AsyncioClient("localhost"), NAMESPACE_PREFIX)
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
 
@@ -227,7 +225,7 @@ async def test_hdf5_file_writing(
     assert len(hdf_file["/COUNTER1.OUT.Max"]) == 10000
 
 
-def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordController):
+def test_hdf_parameter_validate_not_capturing(hdf5_controller: HDF5RecordController):
     """Test that parameter_validate allows record updates when capturing is off"""
 
     hdf5_controller._capture_control_record = MagicMock()
@@ -239,7 +237,7 @@ def test_hdf_parameter_validate_not_capturing(hdf5_controller: _HDF5RecordContro
     assert hdf5_controller._parameter_validate(MagicMock(), None) is True
 
 
-def test_hdf_parameter_validate_capturing(hdf5_controller: _HDF5RecordController):
+def test_hdf_parameter_validate_capturing(hdf5_controller: HDF5RecordController):
     """Test that parameter_validate blocks record updates when capturing is on"""
 
     hdf5_controller._capture_control_record = MagicMock()
@@ -257,7 +255,7 @@ def test_hdf_parameter_validate_capturing(hdf5_controller: _HDF5RecordController
 async def test_handle_data(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
     slow_dump_expected,
 ):
     """Test that _handle_hdf5_data can process a normal stream of Data"""
@@ -296,7 +294,7 @@ async def test_handle_data(
 async def test_handle_data_two_start_data(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
     slow_dump_expected,
 ):
     """Test that _handle_hdf5_data works correctly over multiple datasets"""
@@ -338,7 +336,7 @@ async def test_handle_data_two_start_data(
 async def test_handle_data_mismatching_start_data(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test that _handle_hdf5_data stops capturing when different StartData items
     received"""
@@ -410,7 +408,7 @@ async def test_handle_data_mismatching_start_data(
 async def test_handle_data_cancelled_error(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test that _handle_hdf5_data stops capturing when it receives a CancelledError"""
 
@@ -466,7 +464,7 @@ async def test_handle_data_cancelled_error(
 async def test_handle_data_unexpected_exception(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test that _handle_hdf5_data stops capturing when it receives an unexpected
     exception"""
@@ -523,7 +521,7 @@ async def test_handle_data_unexpected_exception(
 
 @pytest.mark.asyncio
 async def test_capture_on_update(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _capture_on_update correctly starts the data capture task"""
     hdf5_controller._handle_hdf5_data = AsyncMock()  # type: ignore
@@ -536,7 +534,7 @@ async def test_capture_on_update(
 
 @pytest.mark.asyncio
 async def test_capture_on_update_cancel_task(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _capture_on_update correctly cancels an already running task
     when Capture=0"""
@@ -551,7 +549,7 @@ async def test_capture_on_update_cancel_task(
 
 @pytest.mark.asyncio
 async def test_capture_on_update_cancel_unexpected_task(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _capture_on_update correctly cancels an already running task
     when Capture=1"""
@@ -566,7 +564,7 @@ async def test_capture_on_update_cancel_unexpected_task(
 
 
 def test_hdf_get_filename(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _get_filename works when all records have valid values"""
 
@@ -579,7 +577,7 @@ def test_hdf_get_filename(
 
 
 def test_hdf_capture_validate_valid_filename(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _capture_validate passes when a valid filename is given"""
     hdf5_controller._get_filename = MagicMock(  # type: ignore
@@ -590,14 +588,14 @@ def test_hdf_capture_validate_valid_filename(
 
 
 def test_hdf_capture_validate_new_value_zero(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _capture_validate passes when new value is zero"""
     assert hdf5_controller._capture_validate(None, 0) is True
 
 
 def test_hdf_capture_validate_invalid_filename(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _capture_validate fails when filename cannot be created"""
     hdf5_controller._get_filename = MagicMock(  # type: ignore
@@ -608,7 +606,7 @@ def test_hdf_capture_validate_invalid_filename(
 
 
 def test_hdf_capture_validate_exception(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _capture_validate fails due to other exceptions"""
     hdf5_controller._get_filename = MagicMock(  # type: ignore
@@ -619,7 +617,7 @@ def test_hdf_capture_validate_exception(
 
 
 def test_hdf_waveform_record_to_string(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _waveform_record_to_string returns string version of array"""
     test_str = "Test String".encode() + b"\0"
@@ -630,7 +628,7 @@ def test_hdf_waveform_record_to_string(
 
 
 def test_hdf_waveform_record_to_string_no_value(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _waveform_record_to_string raises exception when no value"""
 
@@ -641,7 +639,7 @@ def test_hdf_waveform_record_to_string_no_value(
 
 
 def test_hdf_numpy_to_string(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _numpy_to_string returns expected string"""
     test_str = "Test String".encode() + b"\0"
@@ -650,7 +648,7 @@ def test_hdf_numpy_to_string(
 
 
 def test_hdf_numpy_to_string_bad_dtype(
-    hdf5_controller: _HDF5RecordController,
+    hdf5_controller: HDF5RecordController,
 ):
     """Test _numpy_to_string raises exception when dtype is wrong"""
     test_str = "Test String".encode() + b"\0"
