@@ -987,7 +987,6 @@ class IocRecordFactory:
             record_name,
             field_info,
             self._all_values_dict,
-            record_name,
         )
         # Format the mode record name to remove namespace
         mode_record_name: str = table_updater.mode_record_info.record.name

@@ -179,24 +179,14 @@ class TableModeEnum(Enum):
 
 
 class _TableUpdater:
-    """Class to handle creating and updating tables.
-    #TODO: rewrite this
-    Args:
-        client: The client to be used to read/write to the PandA
-        table_name: The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
-        field_info: The TableFieldInfo structure for this table
-        table_fields_records: The dictionary of field definitions and their associated
-            TableFieldRecordContainer structures.
-        table_scalar_records: The list of non-field (i.e. non-Waveform) records that
-            are also part of this table.
-        all_values_dict: The pointer to the global dictionary containing the most recent
-            value of all records as returned from GetChanges. This dict will be
-            dynamically updated by other methods."""
+    """Class to handle creating and updating tables."""
 
     client: AsyncioClient
     table_name: EpicsName
     field_info: TableFieldInfo
+    # Collection of the records that comprise the table's fields
     table_fields_records: Dict[str, TableFieldRecordContainer]
+    # Collection of the records that comprise the SCALAR records for each field
     table_scalar_records: Dict[EpicsName, _RecordInfo] = {}
     all_values_dict: Dict[EpicsName, RecordValue]
 
@@ -206,9 +196,16 @@ class _TableUpdater:
         table_name: EpicsName,
         field_info: TableFieldInfo,
         all_values_dict: Dict[EpicsName, RecordValue],
-        record_name: EpicsName,
     ):
-        """Create all the table records"""
+        """Create all the table records
+
+        Args:
+           client: The client to be used to read/write to the PandA
+           table_name: The name of the table, in EPICS format, e.g. "SEQ1:TABLE"
+           field_info: The TableFieldInfo structure for this table
+           all_values_dict: The pointer to the global dictionary containing the most
+                recent value of all records as returned from GetChanges. This dict will
+                be dynamically updated by other methods."""
         assert field_info.fields
 
         self.client = client
@@ -238,7 +235,7 @@ class _TableUpdater:
         # Note that the table_updater's table_fields are guaranteed sorted in bit order,
         # unlike field_info's fields. This means the record dict inside the table
         # updater are also in the same bit order.
-        value = all_values_dict[record_name]
+        value = all_values_dict[table_name]
         assert isinstance(value, list)
         field_data = TablePacking.unpack(
             self.field_info.row_words,
@@ -251,7 +248,7 @@ class _TableUpdater:
         ):
             field_details = field_record_container.field
 
-            full_name = record_name + ":" + field_name
+            full_name = table_name + ":" + field_name
             full_name = EpicsName(full_name)
             description = trim_description(field_details.description, full_name)
 
@@ -272,7 +269,6 @@ class _TableUpdater:
             # This line is part of a workaround for issue #37 in PythonSoftIOC
             field_record.set(data, process=False)
 
-            # TODO: Do I need this? It doesn't seem to get used!
             field_record_container.record_info = _RecordInfo(
                 field_record, lambda x: x, None, False
             )
@@ -281,7 +277,6 @@ class _TableUpdater:
             # in combination with the INDEX record defined below
             scalar_record_name = EpicsName(full_name + ":SCALAR")
 
-            # This description must be <= 40 charatcers
             scalar_record_desc = "Scalar val (set by INDEX rec) of column"
             # No better default than zero, despite the fact it could be a valid value
             # PythonSoftIOC issue #53 may alleviate this.
@@ -289,7 +284,6 @@ class _TableUpdater:
 
             # Three possible field types, do per-type config
             if field_details.subtype == "int":
-
                 scalar_record: RecordWrapper = builder.longIn(
                     scalar_record_name,
                     initial_value=initial_value,
@@ -321,7 +315,7 @@ class _TableUpdater:
             else:
                 logging.error(
                     f"Unknown table field subtype {field_details.subtype} detected "
-                    f"on table {record_name} field {field_name}. Using defaults."
+                    f"on table {table_name} field {field_name}. Using defaults."
                 )
                 scalar_record = builder.longIn(
                     scalar_record_name,
@@ -340,15 +334,14 @@ class _TableUpdater:
             TableModeEnum.SUBMIT.name,
             TableModeEnum.DISCARD.name,
         ]
-        index_value = 0
 
-        mode_record_name = EpicsName(record_name + ":" + "MODE")
+        mode_record_name = EpicsName(table_name + ":" + "MODE")
 
         mode_record: RecordWrapper = builder.mbbOut(
             mode_record_name,
             *labels,
             DESC="Controls PandA <-> EPICS data interface",
-            initial_value=index_value,
+            initial_value=0,  # Default to VIEW mode
             on_update=self.update_mode,
         )
 
@@ -360,7 +353,7 @@ class _TableUpdater:
         )
 
         # Index record specifies which element the scalar records should access
-        index_record_name = EpicsName(record_name + ":INDEX")
+        index_record_name = EpicsName(table_name + ":INDEX")
         self.index_record = builder.longOut(
             index_record_name,
             DESC="Index for all SCALAR records on table",

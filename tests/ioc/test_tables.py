@@ -90,7 +90,6 @@ def table_updater(
         EpicsName(EPICS_FORMAT_TABLE_NAME),
         table_field_info,
         table_data_dict,
-        EpicsName(EPICS_FORMAT_TABLE_NAME),
     )
 
     # Put mocks into TableUpdater
