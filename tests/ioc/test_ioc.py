@@ -462,6 +462,39 @@ async def test_create_softioc_update_table_index(
 
 
 @pytest.mark.asyncio
+async def test_create_softioc_update_table_scalars_change(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+    table_unpacked_data,
+):
+    """Test that updating the data in a waveform updates the associated SCALAR value"""
+    try:
+        index_val = 0
+        # Set up monitors to wait for the expected changes
+        repeats_queue: asyncio.Queue = asyncio.Queue()
+        repeats_monitor = camonitor(
+            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
+        )
+
+        # Confirm initial values are correct
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
+        assert curr_val == table_unpacked_data["REPEATS"][index_val]
+
+        # Now set a new value
+        await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
+        new_repeats_vals = [9, 99, 999]
+        await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", new_repeats_vals)
+
+        # Wait for the new values to appear
+        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
+        assert curr_val == new_repeats_vals[index_val]
+
+    finally:
+        repeats_monitor.close()
+        purge_channel_caches()
+
+
+@pytest.mark.asyncio
 async def test_create_softioc_arm_disarm(
     # mocked_put: MagicMock,
     dummy_server_system: DummyServer,
