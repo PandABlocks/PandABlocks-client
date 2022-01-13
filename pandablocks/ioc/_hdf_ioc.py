@@ -51,6 +51,10 @@ class HDF5RecordController:
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
 
+        # TODO: Convert FilePath and FileName records to use longStringOut, once
+        # pythonSoftIOC version is upgraded. Must also refactor/delete
+        # self._waveform_record_to_string.
+
         # Create the records, including an uppercase alias for each
         # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
         file_path_record_name = self._HDF5_PREFIX + ":FilePath"

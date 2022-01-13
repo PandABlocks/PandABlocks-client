@@ -54,6 +54,7 @@ from pandablocks.responses import (
     UintFieldInfo,
 )
 
+# TODO: Add builder.longStringOut
 OUT_RECORD_FUNCTIONS = [
     builder.aOut,
     builder.boolOut,
