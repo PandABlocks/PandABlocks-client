@@ -5,7 +5,6 @@ from asyncio import CancelledError
 from importlib.util import find_spec
 from typing import List, Optional
 
-import numpy as np
 from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
@@ -51,14 +50,10 @@ class HDF5RecordController:
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
 
-        # TODO: Convert FilePath and FileName records to use longStringOut, once
-        # pythonSoftIOC version is upgraded. Must also refactor/delete
-        # self._waveform_record_to_string.
-
         # Create the records, including an uppercase alias for each
         # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
         file_path_record_name = self._HDF5_PREFIX + ":FilePath"
-        self._file_path_record = builder.WaveformOut(
+        self._file_path_record = builder.longStringOut(
             file_path_record_name,
             length=path_length,
             FTVL="UCHAR",
@@ -70,7 +65,7 @@ class HDF5RecordController:
         )
 
         file_name_record_name = self._HDF5_PREFIX + ":FileName"
-        self._file_name_record = builder.WaveformOut(
+        self._file_name_record = builder.longStringOut(
             file_name_record_name,
             length=filename_length,
             FTVL="UCHAR",
@@ -259,8 +254,8 @@ class HDF5RecordController:
 
         return "/".join(
             (
-                self._waveform_record_to_string(self._file_path_record),
-                self._waveform_record_to_string(self._file_name_record),
+                self._file_path_record.get(),
+                self._file_name_record.get(),
             )
         )
 
@@ -291,17 +286,3 @@ class HDF5RecordController:
                 return False
 
         return True
-
-    def _waveform_record_to_string(self, record: RecordWrapper) -> str:
-        """Handle converting WaveformOut record data into python string"""
-        val = record.get()
-        if val is None:
-            raise ValueError(f"Record {record.name} had no value when one is required.")
-        return self._numpy_to_string(record.get())
-
-    def _numpy_to_string(self, val: np.ndarray) -> str:
-        """Handle converting a numpy array of dtype=uint8 to a python string"""
-        assert val.dtype == np.uint8
-        # numpy gives byte stream, which we decode, and then remove the trailing \0.
-        # Many tools are C-based and so will add (and expect) a null trailing byte
-        return val.tobytes().decode()[:-1]

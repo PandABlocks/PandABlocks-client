@@ -105,11 +105,13 @@ async def test_hdf5_ioc(hdf5_subprocess_ioc):
     with some default values checked"""
     HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
     val = await caget(HDF5_PREFIX + ":FilePath")
-    assert val.size == 0
+
+    # Default value of longStringOut is an array of a single NULL byte
+    assert val.size == 1
 
     # Mix and match between CamelCase and UPPERCASE to check aliases work
     val = await caget(HDF5_PREFIX + ":FILENAME")
-    assert val.size == 0
+    assert val.size == 1  # As above for longStringOut
 
     val = await caget(HDF5_PREFIX + ":NumCapture")
     assert val == 0
@@ -568,9 +570,14 @@ def test_hdf_get_filename(
 ):
     """Test _get_filename works when all records have valid values"""
 
-    # Mock this method, we test it explicitly later
-    hdf5_controller._waveform_record_to_string = MagicMock(  # type: ignore
-        side_effect=["/some/path", "some_filename"]
+    hdf5_controller._file_path_record = MagicMock()
+    hdf5_controller._file_path_record.get = MagicMock(  # type: ignore
+        return_value="/some/path"
+    )
+
+    hdf5_controller._file_name_record = MagicMock()
+    hdf5_controller._file_name_record.get = MagicMock(  # type: ignore
+        return_value="some_filename"
     )
 
     assert hdf5_controller._get_filename() == "/some/path/some_filename"
@@ -614,45 +621,3 @@ def test_hdf_capture_validate_exception(
     )
 
     assert hdf5_controller._capture_validate(None, 1) is False
-
-
-def test_hdf_waveform_record_to_string(
-    hdf5_controller: HDF5RecordController,
-):
-    """Test _waveform_record_to_string returns string version of array"""
-    test_str = "Test String".encode() + b"\0"
-    array = numpy.frombuffer(test_str, dtype=numpy.uint8)
-    record = MagicMock()
-    record.get = MagicMock(return_value=array)
-    assert hdf5_controller._waveform_record_to_string(record) == test_str[:-1].decode()
-
-
-def test_hdf_waveform_record_to_string_no_value(
-    hdf5_controller: HDF5RecordController,
-):
-    """Test _waveform_record_to_string raises exception when no value"""
-
-    record = MagicMock()
-    record.get = MagicMock(return_value=None)
-    with pytest.raises(ValueError):
-        hdf5_controller._waveform_record_to_string(record)
-
-
-def test_hdf_numpy_to_string(
-    hdf5_controller: HDF5RecordController,
-):
-    """Test _numpy_to_string returns expected string"""
-    test_str = "Test String".encode() + b"\0"
-    array = numpy.frombuffer(test_str, dtype=numpy.uint8)
-    assert hdf5_controller._numpy_to_string(array) == test_str[:-1].decode()
-
-
-def test_hdf_numpy_to_string_bad_dtype(
-    hdf5_controller: HDF5RecordController,
-):
-    """Test _numpy_to_string raises exception when dtype is wrong"""
-    test_str = "Test String".encode() + b"\0"
-    array = numpy.frombuffer(test_str, dtype=numpy.uint8)
-    array = array.astype(numpy.uint32)
-    with pytest.raises(AssertionError):
-        hdf5_controller._numpy_to_string(array)
