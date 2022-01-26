@@ -508,6 +508,7 @@ class IocRecordFactory:
                 )
                 # See PythonSoftIOC issue #57
                 extra_kwargs.update({"STAT": "UDF", "SEVR": "INVALID"})
+                kwargs.pop("initial_value")
             elif isinstance(initial_value, str):
                 kwargs["initial_value"] = data_type_func(initial_value)
 
