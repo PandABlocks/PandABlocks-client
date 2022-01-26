@@ -8,6 +8,7 @@ from typing import Deque, Dict, Iterable, Iterator, List
 
 import numpy as np
 import pytest
+import pytest_asyncio
 
 from pandablocks.connections import Buffer
 from pandablocks.responses import (
@@ -27,21 +28,21 @@ def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
         data = f.read(size)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def slow_dump():
     with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
         # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
         yield chunked_read(f, 44)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def fast_dump():
     with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
         # Simulate larger chunked read
         yield chunked_read(f, 500)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def raw_dump():
     with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
         # Simulate largest chunked read
@@ -124,7 +125,7 @@ class Rows:
         return same
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def slow_dump_expected():
     yield [
         ReadyData(),
@@ -138,7 +139,7 @@ def slow_dump_expected():
     ]
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def fast_dump_expected():
     yield [
         ReadyData(),
@@ -306,7 +307,7 @@ class DummyServer:
         await self._data_server.wait_closed()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def dummy_server_async():
     server = DummyServer()
     await server.open()
@@ -314,7 +315,7 @@ async def dummy_server_async():
     await server.close()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def dummy_server_in_thread():
     loop = asyncio.new_event_loop()
     server = DummyServer()

@@ -11,6 +11,7 @@ from typing import Generator
 import h5py
 import numpy
 import pytest
+import pytest_asyncio
 from aioca import caget, camonitor, caput, purge_channel_caches
 from conftest import custom_logger
 from mock.mock import AsyncMock, MagicMock, patch
@@ -32,7 +33,7 @@ NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
 HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def hdf5_controller(clear_records: None) -> Generator:
     """Construct an HDF5 controller, ensuring we delete all records before
     and after the test runs."""
@@ -58,7 +59,7 @@ def subprocess_func() -> None:
     asyncio.run_coroutine_threadsafe(wrapper(dispatcher), dispatcher.loop).result()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def hdf5_subprocess_ioc_no_logging_check(
     enable_codecov_multiprocess, caplog, caplog_workaround
 ) -> Generator:
@@ -75,7 +76,7 @@ def hdf5_subprocess_ioc_no_logging_check(
     # to ensure the test doesn't hang indefinitely during cleanup
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def hdf5_subprocess_ioc(
     enable_codecov_multiprocess, caplog, caplog_workaround
 ) -> Generator:

@@ -1,10 +1,10 @@
-import pytest
+import pytest_asyncio
 
 from pandablocks._control import BlockCompleter
 from pandablocks.blocking import BlockingClient
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def dummy_server_with_blocks(dummy_server_in_thread):
     dummy_server_in_thread.send += [
         "!PCAP 1\n!LUT 8\n!SRGATE 2\n.",

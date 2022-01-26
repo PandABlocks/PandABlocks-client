@@ -8,6 +8,7 @@ from multiprocessing import Process, Queue
 from typing import Dict, Generator, List
 
 import pytest
+import pytest_asyncio
 from epicsdbbuilder import ResetRecords
 from mock import MagicMock, patch
 from numpy import array, int32, ndarray, uint8, uint16, uint32
@@ -70,7 +71,7 @@ def _clear_records():
     RecordLookup._RecordDirectory.clear()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def clear_records():
     """Fixture to delete all records before and after a test."""
     _clear_records()
@@ -286,7 +287,7 @@ def table_unpacked_data(
     return data
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def dummy_server_introspect_panda(
     dummy_server_in_thread: DummyServer, table_data: List[str]
 ):
@@ -366,7 +367,7 @@ def dummy_server_introspect_panda(
     yield dummy_server_in_thread
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def dummy_server_system(dummy_server_introspect_panda: DummyServer):
     """A server for a full system test"""
 
@@ -401,7 +402,7 @@ def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMoc
     asyncio.run_coroutine_threadsafe(inner_wrapper(), dispatcher.loop).result()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Generator:
     """Run the IOC in its own subprocess. When finished check logging logged no
     messages of WARNING or higher level."""
