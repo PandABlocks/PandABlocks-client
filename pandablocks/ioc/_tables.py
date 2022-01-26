@@ -341,7 +341,7 @@ class TableUpdater:
             mode_record_name,
             *labels,
             DESC="Controls PandA <-> EPICS data interface",
-            initial_value=0,  # Default to VIEW mode
+            initial_value=TableModeEnum.VIEW.value,
             on_update=self.update_mode,
         )
 
