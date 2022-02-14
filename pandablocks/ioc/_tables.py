@@ -118,6 +118,7 @@ class TablePacking:
     ) -> List[str]:
         """Pack the records based on the field definitions into the format PandA expects
         for table writes.
+
         Args:
             row_words: The number of 32-bit words per row
             table_fields_records: The list of fields and their associated RecordInfo
@@ -257,17 +258,9 @@ class TableUpdater:
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                # FTVL keyword is inferred from dtype of the data array by pythonSoftIOC
-                # Lines below work around issue #37 in PythonSoftIOC.
-                # Commented out lined should be reinstated, and length + datatype lines
-                # deleted, when that issue is fixed
-                # NELM=field_info.max_length,
-                # initial_value=data,
+                initial_value=data,
                 length=field_info.max_length,
-                datatype=data.dtype,
             )
-            # This line is part of a workaround for issue #37 in PythonSoftIOC
-            field_record.set(data, process=False)
 
             field_record_container.record_info = RecordInfo(
                 field_record, lambda x: x, None, False
@@ -299,7 +292,6 @@ class TableUpdater:
                     scalar_record_name,
                     initial_value=initial_value,
                     DESC=scalar_record_desc,
-                    LOPR=0,  # Clamp record to positive values only
                 )
 
             elif field_details.subtype == "enum":
@@ -359,9 +351,9 @@ class TableUpdater:
             DESC="Index for all SCALAR records on table",
             initial_value=DEFAULT_INDEX,
             on_update=self.update_index,
-            LOPR=0,
-            HOPR=self.field_info.max_length - 1,
-            # Can't dynamically set HOPR to current length of table,
+            DRVL=0,
+            DRVH=self.field_info.max_length - 1,
+            # Can't dynamically set DRVH to current length of table,
             # best we can do is max possible length.
         )
 
@@ -430,7 +422,6 @@ class TableUpdater:
                 # Send all EPICS data to PandA
                 logging.info(f"Sending table data for {self.table_name} to PandA")
                 assert self.field_info.row_words
-                packed_data = []
                 packed_data = TablePacking.pack(
                     self.field_info.row_words, self.table_fields_records
                 )

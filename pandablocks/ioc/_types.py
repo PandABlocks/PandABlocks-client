@@ -6,6 +6,15 @@ from typing import Callable, List, NewType, Optional, Union
 
 from softioc.pythonSoftIoc import RecordWrapper
 
+
+class InErrorException(Exception):
+    """Placeholder exception to mark a field as being in error as reported by PandA"""
+
+
+# Custom type aliases and new types
+ScalarRecordValue = Union[str, InErrorException]
+TableRecordValue = List[str]
+RecordValue = Union[ScalarRecordValue, TableRecordValue]
 # EPICS format, i.e. ":" dividers
 EpicsName = NewType("EpicsName", str)
 # PandA format, i.e. "." dividers
@@ -48,16 +57,6 @@ def trim_description(description: Optional[str], record_name: str) -> Optional[s
 # Constants used in bool records
 ZNAM_STR = "0"
 ONAM_STR = "1"
-
-
-class InErrorException(Exception):
-    """Placeholder exception to mark a field as being in error as reported by PandA"""
-
-
-# Custom type aliases and new types
-ScalarRecordValue = Union[str, InErrorException]
-TableRecordValue = List[str]
-RecordValue = Union[ScalarRecordValue, TableRecordValue]
 
 
 @dataclass

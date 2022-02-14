@@ -57,6 +57,7 @@ from pandablocks.responses import (
 OUT_RECORD_FUNCTIONS = [
     builder.aOut,
     builder.boolOut,
+    builder.Action,
     builder.mbbOut,
     builder.longOut,
     builder.longStringOut,
@@ -158,7 +159,6 @@ async def introspect_panda(
                 GetChanges for both scalar and multivalue fields
     """
 
-    # Get the list of all blocks in the PandA
     block_dict = await client.send(GetBlockInfo())
 
     # Concurrently request info for all fields of all blocks
@@ -187,7 +187,6 @@ def _create_dicts_from_changes(
     changes: Changes,
 ) -> Tuple[Dict[str, Dict[EpicsName, RecordValue]], Dict[EpicsName, RecordValue]]:
     """Take the `Changes` object and convert it into two dictionaries.
-
 
     Args:
         changes: The `Changes` object as returned by `GetChanges`
@@ -352,7 +351,6 @@ class _WriteRecordUpdater(_RecordUpdater):
     async def update(self, new_val: Any):
         if self.data_type_func(new_val):
             await super().update(None)
-
         return
 
 
@@ -526,9 +524,9 @@ class IocRecordFactory:
                 self._all_values_dict,
                 labels if labels else None,
             )
-            extra_kwargs.update({"on_update": record_updater.update})
+            extra_kwargs["on_update"] = record_updater.update
 
-        extra_kwargs.update({"DESC": trim_description(description, record_name)})
+        extra_kwargs["DESC"] = trim_description(description, record_name)
 
         record = record_creation_func(
             record_name, *labels, *args, **extra_kwargs, **kwargs
@@ -983,13 +981,13 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         assert isinstance(field_info, TableFieldInfo)
 
-        # Create the updater
         table_updater = TableUpdater(
             self._client,
             record_name,
             field_info,
             self._all_values_dict,
         )
+
         # Format the mode record name to remove namespace
         mode_record_name: str = table_updater.mode_record_info.record.name
         mode_record_name = EpicsName(
@@ -1013,9 +1011,13 @@ class IocRecordFactory:
             field_info.description,
             record_creation_func,
             int,
-            LOPR=0,  # Uint cannot be below 0
             **kwargs,
         )
+
+        if record_creation_func in OUT_RECORD_FUNCTIONS:
+            # Ensure VAL is clamped to valid range of values
+            record_dict[record_name].record.DRVL = 0
+            record_dict[record_name].record.DRVH = field_info.max
 
         max_record_name = EpicsName(record_name + ":MAX")
         record_dict[max_record_name] = self._create_record_info(
@@ -1024,7 +1026,6 @@ class IocRecordFactory:
             builder.longIn,
             type(field_info.max),
             initial_value=field_info.max,
-            LOPR=0,  # Uint cannot be below 0
         )
 
         return record_dict
@@ -1289,13 +1290,10 @@ class IocRecordFactory:
         record = self._create_record_info(
             record_name,
             field_info.description,
-            builder.boolOut,
+            builder.Action,
             int,  # not bool, as that'll treat string "0" as true
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
-            always_update=True,  # Note this is a little redundant - the
-            # _WriteRecordUpdater will always set the record back to 0 whenever
-            # it is set to 1, and there's no action to take for 0 value
             on_update=updater.update,
         )
 
@@ -1462,7 +1460,7 @@ class IocRecordFactory:
             # Unrecognised type-subtype key, ignore this item. This allows the server
             # to define new types without breaking the client.
             logging.exception(
-                f"Unrecognised type {key} while processing record {record_name}, "
+                f"Unrecognised type {key} while processing record {record_name}"
             )
             return {}
 
@@ -1547,13 +1545,10 @@ class IocRecordFactory:
             )
 
         if block == "PCAP":
-            builder.boolOut(
+            builder.Action(
                 "PCAP:ARM",
                 ZNAM=ZNAM_STR,
                 ONAM=ONAM_STR,
-                initial_value=0,  # PythonSoftIOC issue #43
-                always_update=True,  # No way to synchronize Armed status
-                # with the PandA, so just let the user always rewrite it
                 on_update=self._arm_on_update,
                 DESC="Arm/Disarm the PandA",
             )

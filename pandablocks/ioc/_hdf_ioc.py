@@ -56,7 +56,6 @@ class HDF5RecordController:
         self._file_path_record = builder.longStringOut(
             file_path_record_name,
             length=path_length,
-            FTVL="UCHAR",
             DESC="File path for HDF5 files",
             validate=self._parameter_validate,
         )
@@ -68,7 +67,6 @@ class HDF5RecordController:
         self._file_name_record = builder.longStringOut(
             file_name_record_name,
             length=filename_length,
-            FTVL="UCHAR",
             DESC="File name prefix for HDF5 files",
             validate=self._parameter_validate,
         )
@@ -103,7 +101,6 @@ class HDF5RecordController:
             capture_control_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
-            initial_value=0,  # PythonSoftIOC issue #43
             on_update=self._capture_on_update,
             validate=self._capture_validate,
             DESC="Start/stop HDF5 capture",
@@ -127,7 +124,6 @@ class HDF5RecordController:
             currently_capturing_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
-            initial_value=0,  # PythonSoftIOC issue #43
             DESC="If HDF5 file is currently being written",
         )
         self._currently_capturing_record.add_alias(
@@ -232,7 +228,7 @@ class HDF5RecordController:
         except Exception:
             logging.exception("HDF5 data capture terminated due to unexpected error")
             self._status_message_record.set(
-                "Capturing disabled, unexpected exception",
+                "Capture disabled, unexpected exception",
                 severity=alarm.MAJOR_ALARM,
                 alarm=alarm.STATE_ALARM,
             )
@@ -251,7 +247,6 @@ class HDF5RecordController:
 
     def _get_filename(self) -> str:
         """Create the file path for the HDF5 file from the relevant records"""
-
         return "/".join(
             (
                 self._file_path_record.get(),
