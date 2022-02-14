@@ -511,7 +511,7 @@ async def test_handle_data_unexpected_exception(
     assert hdf5_controller._capture_control_record.get() == 0
     assert (
         hdf5_controller._status_message_record.get()
-        == "Capturing disabled, unexpected exception"
+        == "Capture disabled, unexpected exception"
     )
     # len 2 - one StartData, one EndData
     assert pipeline_mock[0].queue.put_nowait.call_count == 2
