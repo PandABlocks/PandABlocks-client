@@ -35,6 +35,7 @@ from pandablocks.ioc._types import (
     epics_to_panda_name,
     panda_to_epics_name,
     trim_description,
+    trim_string_value,
 )
 from pandablocks.responses import (
     BitMuxFieldInfo,
@@ -494,7 +495,7 @@ class IocRecordFactory:
             check_num_labels(labels, record_name)
 
         # Check the initial value is valid. If it is, apply data type conversion
-        # otherwise mark the record as in error
+        # otherwise mark the record as in error.
         # Note that many already have correct type, this mostly applies to values
         # that are being sent as strings to analog or long records as the values are
         # returned as strings from Changes command.
@@ -507,6 +508,8 @@ class IocRecordFactory:
                 # See PythonSoftIOC issue #57
                 extra_kwargs.update({"STAT": "UDF", "SEVR": "INVALID"})
                 kwargs.pop("initial_value")
+            elif record_creation_func in [builder.stringIn, builder.stringOut]:
+                kwargs["initial_value"] = trim_string_value(initial_value, record_name)
             elif isinstance(initial_value, str):
                 kwargs["initial_value"] = data_type_func(initial_value)
 
@@ -1015,9 +1018,12 @@ class IocRecordFactory:
         )
 
         if record_creation_func in OUT_RECORD_FUNCTIONS:
-            # Ensure VAL is clamped to valid range of values
+            # Ensure VAL is clamped to valid range of values.
+            # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
+            # which can overflow it.
+            assert field_info.max
             record_dict[record_name].record.DRVL = 0
-            record_dict[record_name].record.DRVH = field_info.max
+            record_dict[record_name].record.DRVH = min(field_info.max, 2147483647)
 
         max_record_name = EpicsName(record_name + ":MAX")
         record_dict[max_record_name] = self._create_record_info(

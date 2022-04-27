@@ -40,17 +40,29 @@ def check_num_labels(labels: List[str], record_name: str):
     ), f"Too many labels ({len(labels)}) to create record {record_name}"
 
 
+def trim_string_value(value: str, record_name: str) -> str:
+    """Record value for string records is a maximum of 40 characters long. Ensure any
+    string is shorter than that before setting it."""
+    if len(value) > 39:
+        logging.error(
+            f"Value for {record_name} longer than EPICS limit of 40 characters."
+            f"It will be truncated. Value: {value}"
+        )
+        value = value[:39]
+    return value
+
+
 def trim_description(description: Optional[str], record_name: str) -> Optional[str]:
     """Record description field is a maximum of 40 characters long. Ensure any string
     is shorter than that before setting it."""
-    if description and len(description) > 40:
-        # As per Tom Cobb, it's unlikely the descriptions will ever be truncated so
-        # we'll hide this message in low level logging only
+    if description and len(description) > 39:
+        # As per Tom Cobb, it's unlikely we'll ever re-write descriptions to be shorter,
+        # so we'll hide this message in low level logging only
         logging.info(
             f"Description for {record_name} longer than EPICS limit of "
             f"40 characters. It will be truncated. Description: {description}"
         )
-        description = description[:40]
+        description = description[:39]
     return description
 
 
