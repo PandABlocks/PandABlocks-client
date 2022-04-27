@@ -80,7 +80,12 @@ async def test_create_softioc_system(
     assert await caget(TEST_PREFIX + ":PCAP1:GATE") == "CLOCK1.OUT"
     assert await caget(TEST_PREFIX + ":PCAP1:GATE:DELAY") == 1
     assert await caget(TEST_PREFIX + ":PCAP1:GATE:MAX_DELAY") == 100
-    assert await caget(TEST_PREFIX + ":PCAP1:LABEL") == "PcapMetadataLabel"
+
+    pcap1_label = await caget(TEST_PREFIX + ":PCAP1:LABEL")
+    assert numpy.array_equal(
+        pcap1_label,
+        numpy.array(list("PcapMetadataLabel".encode() + b"\0"), dtype=numpy.uint8),
+    )
 
     # Check table fields
     for field_name, expected_array in table_unpacked_data.items():

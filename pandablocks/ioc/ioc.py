@@ -1547,7 +1547,7 @@ class IocRecordFactory:
                 value = block_info.description
 
             record_dict[key] = self._create_record_info(
-                key, None, builder.stringIn, str, initial_value=value
+                key, None, builder.longStringIn, str, initial_value=value
             )
 
         if block == "PCAP":
