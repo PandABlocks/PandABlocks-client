@@ -91,7 +91,6 @@ async def _create_softioc(
     asyncio.create_task(update(client, all_records, 1, all_values_dict))
 
 
-# TODO: Update softioc version once issue #43 (and hopefully others) have been fixed
 def create_softioc(host: str, record_prefix: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
@@ -405,6 +404,9 @@ class IocRecordFactory:
 
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
+
+        # All records should be blocking
+        builder.SetBlocking(True)
 
     def _process_labels(
         self, labels: Optional[List[str]], record_value: ScalarRecordValue

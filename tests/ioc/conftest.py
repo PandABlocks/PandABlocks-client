@@ -12,7 +12,6 @@ import pytest_asyncio
 from epicsdbbuilder import ResetRecords
 from mock import MagicMock, patch
 from numpy import array, int32, ndarray, uint8, uint16, uint32
-from softioc import asyncio_dispatcher
 from softioc.device_core import RecordLookup
 
 from pandablocks.ioc import create_softioc
@@ -22,6 +21,9 @@ from tests.conftest import DummyServer
 
 # Record prefix used in many tests
 TEST_PREFIX = "TEST-PREFIX"
+
+# Timeout value (in seconds)
+TIMEOUT = 10
 
 
 @pytest.fixture
@@ -373,12 +375,7 @@ def dummy_server_system(dummy_server_introspect_panda: DummyServer):
 
     # Add data for GetChanges to consume. Number of items should be bigger than
     # the sleep time given during IOC startup
-    dummy_server_introspect_panda.send += [
-        ".",
-        ".",
-        ".",
-        ".",
-    ]
+    dummy_server_introspect_panda.send += ["."] * 4
 
     yield dummy_server_introspect_panda
 
@@ -398,8 +395,7 @@ def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMoc
         await asyncio.Event().wait()
 
     custom_logger()
-    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
-    asyncio.run_coroutine_threadsafe(inner_wrapper(), dispatcher.loop).result()
+    asyncio.run(inner_wrapper())
 
 
 @pytest_asyncio.fixture

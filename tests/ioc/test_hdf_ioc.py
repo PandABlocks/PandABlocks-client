@@ -13,7 +13,7 @@ import numpy
 import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput, purge_channel_caches
-from conftest import custom_logger
+from conftest import TIMEOUT, custom_logger
 from mock.mock import AsyncMock, MagicMock, patch
 from softioc import asyncio_dispatcher, builder, softioc
 
@@ -45,9 +45,10 @@ def hdf5_controller(clear_records: None) -> Generator:
 def subprocess_func() -> None:
     """Function to start the HDF5 IOC"""
 
-    async def wrapper(dispatcher):
+    async def wrapper():
         builder.SetDeviceName(NAMESPACE_PREFIX)
         HDF5RecordController(AsyncioClient("localhost"), NAMESPACE_PREFIX)
+        dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
 
@@ -55,8 +56,7 @@ def subprocess_func() -> None:
         await asyncio.Event().wait()
 
     custom_logger()
-    dispatcher = asyncio_dispatcher.AsyncioDispatcher()
-    asyncio.run_coroutine_threadsafe(wrapper(dispatcher), dispatcher.loop).result()
+    asyncio.run(wrapper())
 
 
 @pytest_asyncio.fixture
@@ -139,7 +139,7 @@ def _string_to_buffer(string: str):
 @pytest.mark.asyncio
 async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_check):
     """Run the HDF5 module as its own IOC and check the _parameter_validate method
-    does not block updates, then blocks when capture record is changed"""
+    does not stop updates, then stops when capture record is changed"""
 
     # EPICS bug means caputs always appear to succeed, so do a caget to prove it worked
 
@@ -156,7 +156,7 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
 
     await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/second/path"), wait=True)
     val = await caget(HDF5_PREFIX + ":FilePath")
-    assert val.tobytes().decode() == "/new/path"  # put should have been blocked
+    assert val.tobytes().decode() == "/new/path"  # put should have been stopped
 
 
 @pytest.mark.asyncio
@@ -175,16 +175,26 @@ async def test_hdf5_file_writing(
     test_dir = str(tmp_path) + "\0"
     test_filename = "test.h5\0"
 
-    await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer(str(test_dir)), wait=True)
+    await caput(
+        HDF5_PREFIX + ":FilePath",
+        _string_to_buffer(str(test_dir)),
+        wait=True,
+        timeout=TIMEOUT,
+    )
     val = await caget(HDF5_PREFIX + ":FilePath")
     assert val.tobytes().decode() == test_dir
 
-    await caput(HDF5_PREFIX + ":FileName", _string_to_buffer(test_filename), wait=True)
+    await caput(
+        HDF5_PREFIX + ":FileName",
+        _string_to_buffer(test_filename),
+        wait=True,
+        timeout=TIMEOUT,
+    )
     val = await caget(HDF5_PREFIX + ":FileName")
     assert val.tobytes().decode() == test_filename
 
     # Only a single FrameData in the example data
-    await caput(HDF5_PREFIX + ":NumCapture", 1, wait=True)
+    await caput(HDF5_PREFIX + ":NumCapture", 1, wait=True, timeout=TIMEOUT)
     assert await caget(HDF5_PREFIX + ":NumCapture") == 1
 
     # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
@@ -241,7 +251,7 @@ def test_hdf_parameter_validate_not_capturing(hdf5_controller: HDF5RecordControl
 
 
 def test_hdf_parameter_validate_capturing(hdf5_controller: HDF5RecordController):
-    """Test that parameter_validate blocks record updates when capturing is on"""
+    """Test that parameter_validate stops record updates when capturing is on"""
 
     hdf5_controller._capture_control_record = MagicMock()
     # Default return value for capturing off, allowing validation method to pass

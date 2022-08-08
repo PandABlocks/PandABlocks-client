@@ -5,7 +5,7 @@ from typing import Dict, List
 import numpy
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
-from conftest import TEST_PREFIX
+from conftest import TEST_PREFIX, TIMEOUT
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from numpy import ndarray
@@ -175,20 +175,7 @@ async def test_create_softioc_record_update_send_to_panda(
         {"PCAP1.TRIG_EDGE=Either": "OK"}
     )
 
-    # Few more responses to GetChanges to suppress error messages
-    dummy_server_system.send += [
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-        ".",
-    ]
-    await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Either")
-
-    # Give time for the on_update processing to occur
-    await asyncio.sleep(5)
+    await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Either", wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected string
     assert (
@@ -209,16 +196,9 @@ async def test_create_softioc_arm_disarm(
         {"*PCAP.ARM=": "OK", "*PCAP.DISARM=": "OK"}
     )
 
-    # Few more responses to GetChanges to suppress error messages
-    dummy_server_system.send += [".", ".", ".", "."]
+    await caput(TEST_PREFIX + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
 
-    await caput(TEST_PREFIX + ":PCAP:ARM", 1)
-    # Give time for the on_update processing to occur
-    await asyncio.sleep(1)
-
-    await caput(TEST_PREFIX + ":PCAP:ARM", 0)
-    # Give time for the on_update processing to occur
-    await asyncio.sleep(1)
+    await caput(TEST_PREFIX + ":PCAP:ARM", 0, wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected strings
     assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses
@@ -833,3 +813,22 @@ def test_create_record_info_value_error(
     assert (
         num_stat == 2
     ), f"STAT not found twice in record file contents: {file_contents}"
+
+
+@pytest.mark.asyncio
+async def test_softioc_records_block(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+):
+    """Test that the records created are blocking, and wait until they finish their
+    on_update processing.
+
+    Note that a lot of other tests implicitly test this feature too - any test that
+    uses caput with wait=True is effectively testing this."""
+    # Set the special response for the server
+    dummy_server_system.expected_message_responses.update({"*PCAP.ARM=": "OK"})
+
+    await caput(TEST_PREFIX + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
+
+    # Confirm the server received the expected string
+    assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses

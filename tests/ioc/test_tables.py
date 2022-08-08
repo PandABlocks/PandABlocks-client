@@ -5,7 +5,7 @@ import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
-from conftest import TEST_PREFIX
+from conftest import TEST_PREFIX, TIMEOUT
 from mock import AsyncMock
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, ndarray
@@ -174,10 +174,7 @@ async def test_create_softioc_table_update_send_to_panda(
 
     await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", [1, 1, 1])
 
-    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT")
-
-    # Give time for the on_update processing to occur
-    await asyncio.sleep(2)
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected string
     assert "" not in dummy_server_system.expected_message_responses
