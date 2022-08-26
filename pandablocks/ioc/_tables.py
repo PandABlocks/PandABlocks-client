@@ -3,9 +3,10 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
+import numpy.typing as npt
 from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
@@ -21,6 +22,10 @@ from pandablocks.ioc._types import (
     trim_description,
 )
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
+
+UnpackedArray = Union[
+    npt.NDArray[np.int32], npt.NDArray[np.uint8], npt.NDArray[np.uint16]
+]
 
 
 @dataclass
@@ -57,7 +62,7 @@ class TablePacking:
         row_words: int,
         table_fields_records: Dict[str, TableFieldRecordContainer],
         table_data: List[str],
-    ) -> List[np.ndarray]:
+    ) -> List[UnpackedArray]:
         """Unpacks the given `packed` data based on the fields provided.
         Returns the unpacked data in column-indexed format
 
@@ -69,8 +74,8 @@ class TablePacking:
                 expected to be the string representation of a uint32.
 
         Returns:
-            numpy array: A list of 1-D numpy arrays, one item per field. Each item
-            will have length equal to the PandA table's number of rows.
+            List of numpy arrays: A list of 1-D numpy arrays, one item per field.
+            Each item will have length equal to the PandA table's number of rows.
         """
 
         data = np.array(table_data, dtype=np.uint32)
@@ -94,19 +99,20 @@ class TablePacking:
             # Mask to remove every bit that isn't in the range we want
             mask = (1 << bit_len) - 1
 
-            # Can't use proper numpy types, that's only available in 1.21+
-            val: Any = (packed[word_offset] >> bit_offset) & mask
+            val: UnpackedArray
+            val = (packed[word_offset] >> bit_offset) & mask
 
             if field_details.subtype == "int":
                 # First convert from 2's complement to offset, then add in offset.
                 # TODO: Test this with extreme values - int_max, int_min, etc.
-                val = np.int32((val ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1)))
+                val = (val ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1))
+                val = val.astype(np.int32)
             else:
                 # Use shorter types, as these are used in waveform creation
                 if bit_len <= 8:
-                    val = np.uint8(val)
+                    val = val.astype(np.uint8)
                 elif bit_len <= 16:
-                    val = np.uint16(val)
+                    val = val.astype(np.uint16)
 
             unpacked.append(val)
 
