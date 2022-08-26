@@ -394,125 +394,135 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     block: str
     extended_metadata: bool = True
 
+    def _get_desc(self, field_name: str) -> GetLine:
+        """Create the Command to retrieve the description"""
+        return GetLine(f"*DESC.{self.block}.{field_name}")
+
     def _uint(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = UintFieldInfo(field_type, field_subtype)
 
-        max = yield from GetLine(f"{self.block}1.{field_name}.MAX").execute()
+        desc, maximum = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetLine(f"{self.block}1.{field_name}.MAX"),
+        )
 
-        field_info.max = int(max)
+        field_info = UintFieldInfo(field_type, field_subtype, desc, int(maximum))
         return field_name, field_info
 
     def _scalar(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = ScalarFieldInfo(field_type, field_subtype)
 
-        units, scale, offset = yield from _execute_commands(
+        desc, units, scale, offset = yield from _execute_commands(
+            self._get_desc(field_name),
             GetLine(f"{self.block}.{field_name}.UNITS"),
             GetLine(f"{self.block}.{field_name}.SCALE"),
             GetLine(f"{self.block}.{field_name}.OFFSET"),
         )
 
-        field_info.units = units
-        field_info.scale = float(scale)
-        field_info.offset = int(offset)
+        field_info = ScalarFieldInfo(
+            field_type, field_subtype, desc, units, float(scale), int(offset)
+        )
 
         return field_name, field_info
 
     def _subtype_time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = SubtypeTimeFieldInfo(field_type, field_subtype)
 
-        field_info.units_labels = yield from GetMultiline(
-            f"*ENUMS.{self.block}.{field_name}.UNITS"
-        ).execute()
+        desc, units_labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+        )
+
+        field_info = SubtypeTimeFieldInfo(field_type, field_subtype, desc, units_labels)
 
         return field_name, field_info
 
     def _enum(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = EnumFieldInfo(field_type, field_subtype)
 
-        field_info.labels = yield from GetMultiline(
-            f"*ENUMS.{self.block}.{field_name}"
-        ).execute()
+        desc, labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
+        )
+
+        field_info = EnumFieldInfo(field_type, field_subtype, desc, labels)
 
         return field_name, field_info
 
     def _time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = TimeFieldInfo(field_type, field_subtype)
 
-        units, min = yield from _execute_commands(
+        desc, units, min = yield from _execute_commands(
+            self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
             GetLine(f"{self.block}1.{field_name}.MIN"),
         )
 
-        field_info.units_labels = list(units)
-        field_info.min = float(min)
+        field_info = TimeFieldInfo(field_type, field_subtype, desc, units, float(min))
 
         return field_name, field_info
 
     def _bit_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = BitOutFieldInfo(field_type, field_subtype)
 
-        capture_word, offset = yield from _execute_commands(
+        desc, capture_word, offset = yield from _execute_commands(
+            self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.CAPTURE_WORD"),
             GetLine(f"{self.block}1.{field_name}.OFFSET"),
         )
 
-        field_info.capture_word = str(capture_word)
-        field_info.offset = int(offset)
+        field_info = BitOutFieldInfo(
+            field_type, field_subtype, desc, capture_word, int(offset)
+        )
 
         return field_name, field_info
 
     def _bit_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = BitMuxFieldInfo(field_type, field_subtype)
 
-        max_delay, labels = yield from _execute_commands(
+        desc, max_delay, labels = yield from _execute_commands(
+            self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.MAX_DELAY"),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
         )
 
-        field_info.max_delay = int(max_delay)
-        field_info.labels = list(labels)
+        field_info = BitMuxFieldInfo(
+            field_type, field_subtype, desc, int(max_delay), labels
+        )
 
         return field_name, field_info
 
     def _pos_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = PosMuxFieldInfo(field_type, field_subtype)
 
-        field_info.labels = yield from GetMultiline(
-            f"*ENUMS.{self.block}.{field_name}"
-        ).execute()
+        desc, labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
+        )
+        field_info = PosMuxFieldInfo(field_type, field_subtype, desc, labels)
 
         return field_name, field_info
 
     def _table(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = TableFieldInfo(field_type, field_subtype)
 
         # Ignore the ROW_WORDS attribute as it's new and won't be present on all PandAs,
         # and there's no easy way to try it and catch an error while also running other
         # Get commands at the same time
-        max_length, fields = yield from _execute_commands(
+        table_desc, max_length, fields = yield from _execute_commands(
+            self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.MAX_LENGTH"),
             GetMultiline(f"{self.block}1.{field_name}.FIELDS"),
         )
-
-        field_info.max_length = int(max_length)
 
         # Keep track of highest bit index
         max_bit_offset: int = 0
@@ -520,6 +530,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         desc_gets: List[GetLine] = []
         enum_field_gets: List[GetMultiline] = []
         enum_field_names: List[str] = []
+        fields_dict: Dict[str, TableFieldDetails] = {}
         for field in fields:
             # Fields are of the form <bit_high>:<bit_low> <name> <subtype>
             bit_range, name, subtype = field.split()
@@ -536,17 +547,12 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 )
                 enum_field_names.append(name)
 
-            info = TableFieldDetails(subtype, bit_low, bit_high)
-
-            if field_info.fields is None:
-                field_info.fields = {}
-
-            field_info.fields[name] = info
+            fields_dict[name] = TableFieldDetails(subtype, bit_low, bit_high)
 
             desc_gets.append(GetLine(f"*DESC.{self.block}1.{field_name}[].{name}"))
 
         # Calculate the number of 32 bit words that comprises one table row
-        field_info.row_words = max_bit_offset // 32 + 1
+        row_words = max_bit_offset // 32 + 1
 
         # The first len(enum_field_gets) items are enum labels, type List[str]
         # The second part of the list are descriptions, type str
@@ -554,77 +560,84 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             *enum_field_gets, *desc_gets
         )
 
-        assert field_info.fields
-
         for name, labels in zip(
             enum_field_names, labels_and_descriptions[: len(enum_field_gets)]
         ):
-            field_info.fields[name].labels = labels
+            fields_dict[name].labels = labels
 
         for name, desc in zip(
-            field_info.fields.keys(), labels_and_descriptions[len(enum_field_gets) :]
+            fields_dict.keys(), labels_and_descriptions[len(enum_field_gets) :]
         ):
-            field_info.fields[name].description = desc
+            fields_dict[name].description = desc
+
+        field_info = TableFieldInfo(
+            field_type,
+            field_subtype,
+            table_desc,
+            int(max_length),
+            fields_dict,
+            row_words,
+        )
 
         return field_name, field_info
 
     def _pos_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = PosOutFieldInfo(field_type, field_subtype)
 
-        field_info.capture_labels = yield from GetMultiline(
-            f"*ENUMS.{self.block}.{field_name}.CAPTURE"
-        ).execute()
+        desc, capture_labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+        )
 
+        field_info = PosOutFieldInfo(field_type, field_subtype, desc, capture_labels)
         return field_name, field_info
 
     def _ext_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = ExtOutFieldInfo(field_type, field_subtype)
 
-        field_info.capture_labels = yield from GetMultiline(
-            f"*ENUMS.{self.block}.{field_name}.CAPTURE"
-        ).execute()
-
-        return (
-            field_name,
-            field_info,
+        desc, capture_labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
         )
+
+        field_info = ExtOutFieldInfo(field_type, field_subtype, desc, capture_labels)
+        return field_name, field_info
 
     def _ext_out_bits(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        field_info = ExtOutBitsFieldInfo(field_type, field_subtype)
-        bits, capture_labels = yield from _execute_commands(
+        desc, bits, capture_labels = yield from _execute_commands(
+            self._get_desc(field_name),
             GetMultiline(f"{self.block}.{field_name}.BITS"),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
         )
-        field_info.bits = list(bits)
-        field_info.capture_labels = list(capture_labels)
+        field_info = ExtOutBitsFieldInfo(
+            field_type, field_subtype, desc, capture_labels, bits
+        )
         return field_name, field_info
-
-    class NoAttributesException(Exception):
-        """Exception to indicate this type-subtype pair has no defined attributes"""
 
     def _no_attributes(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         """Calling this method indicates type-subtype pair is known and
-        has no attributes"""
-        raise self.NoAttributesException
+        has no attributes, so only a description needs to be retrieved"""
+        desc = yield from self._get_desc(field_name).execute()
+
+        return field_name, FieldInfo(field_type, field_subtype, desc)
 
     def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
         field_generators: List[ExchangeGenerator] = []
-        desc_generators: List[ExchangeGenerator] = []
 
         for line in ex.multiline:
             field_name, index, type_subtype = line.split(maxsplit=2)
 
+            field_type: str
+            subtype: Optional[str]
             # Append "None" to list below so there are always at least 2 elements
             # so we can always unpack into subtype, even if no split occurs.
             field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
@@ -679,7 +692,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
 
             # Always create default FieldInfo. If necessary we will replace it later
             # with a more type-specific version.
-            field_info = FieldInfo(field_type, subtype)
+            field_info = FieldInfo(field_type, subtype, None)
 
             if self.extended_metadata:
                 try:
@@ -690,25 +703,16 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                         )
                     )
 
-                except self.NoAttributesException:
-                    logging.debug(
-                        f"No attributes defined for field {field_name}, "
-                        f"type {(field_type, subtype)}"
-                    )
-
                 except KeyError:
                     # This exception will be hit if PandA ever defines new types
                     logging.exception(
                         f"Unknown type {(field_type, subtype)} detected for "
-                        f"{field_name}, cannot retrieve information for it."
+                        f"{field_name}, cannot retrieve extended information for it."
                     )
-
-                # Description is common to all fields
-                # Note that we don't get the description for any attributes - these are
-                # fixed strings and so not worth retrieving dynamically.
-                desc_generators.append(
-                    GetLine(f"*DESC.{self.block}.{field_name}").execute()
-                )
+                    # We can assume the new field will have a description though
+                    field_generators.append(
+                        self._no_attributes(field_name, field_type, subtype)
+                    )
 
             # Keep track of order of fields as returned by PandA. Important for later
             # matching descriptions back to their field.
@@ -721,24 +725,10 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             # Asked to not perform the requests for extra metadata.
             return fields
 
-        # The first <len(fields)> elements are type Tuple[str, FieldInfo]
-        # The second section of the elements are type str (field descriptions)
-        infos_and_descriptions = yield from _zip_with_return(
-            field_generators + desc_generators
-        )
-
-        field_name_info: Tuple[Tuple[str, FieldInfo], ...] = infos_and_descriptions[
-            : len(field_generators)
-        ]
+        field_name_info: Tuple[Tuple[str, FieldInfo], ...]
+        field_name_info = yield from _zip_with_return(field_generators)
 
         fields.update(field_name_info)
-
-        desc: str
-        for field_name, desc in zip(
-            [item[0] for item in unsorted.values()],
-            infos_and_descriptions[len(field_generators) :],
-        ):
-            fields[field_name].description = desc
 
         return fields
 

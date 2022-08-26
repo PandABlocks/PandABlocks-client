@@ -331,8 +331,10 @@ def idfn(val):
         (
             TimeFieldInfo(
                 "time",
+                None,
+                None,
                 units_labels=["s", "ms", "min"],
-                min=8e-09,
+                min_val=8e-09,
             ),
             {
                 f"{TEST_RECORD}": "0.1",
@@ -344,6 +346,7 @@ def idfn(val):
             SubtypeTimeFieldInfo(
                 "param",
                 "time",
+                None,
                 units_labels=["s", "ms", "min"],
             ),
             {
@@ -356,6 +359,7 @@ def idfn(val):
             SubtypeTimeFieldInfo(
                 "read",
                 "time",
+                None,
                 units_labels=["s", "ms", "min"],
             ),
             {
@@ -368,6 +372,7 @@ def idfn(val):
             SubtypeTimeFieldInfo(
                 "write",
                 "time",
+                None,
                 units_labels=["s", "ms", "min"],
             ),
             {
@@ -378,6 +383,8 @@ def idfn(val):
         (
             BitOutFieldInfo(
                 "bit_out",
+                None,
+                None,
                 capture_word="ABC.DEF",
                 offset=10,
             ),
@@ -387,7 +394,7 @@ def idfn(val):
             [f"{TEST_RECORD}", f"{TEST_RECORD}:CAPTURE_WORD", f"{TEST_RECORD}:OFFSET"],
         ),
         (
-            PosOutFieldInfo("pos_out", capture_labels=["No", "Diff"]),
+            PosOutFieldInfo("pos_out", None, None, capture_labels=["No", "Diff"]),
             {
                 f"{TEST_RECORD}": "0",
                 f"{TEST_RECORD}:CAPTURE": "Diff",
@@ -404,7 +411,9 @@ def idfn(val):
             ],
         ),
         (
-            ExtOutFieldInfo("ext_out", "timestamp", capture_labels=["No", "Diff"]),
+            ExtOutFieldInfo(
+                "ext_out", "timestamp", None, capture_labels=["No", "Diff"]
+            ),
             {
                 f"{TEST_RECORD}:CAPTURE": "Diff",
             },
@@ -413,7 +422,7 @@ def idfn(val):
             ],
         ),
         (
-            ExtOutFieldInfo("ext_out", "samples", capture_labels=["No", "Diff"]),
+            ExtOutFieldInfo("ext_out", "samples", None, capture_labels=["No", "Diff"]),
             {
                 f"{TEST_RECORD}:CAPTURE": "Diff",
             },
@@ -424,6 +433,8 @@ def idfn(val):
         (
             BitMuxFieldInfo(
                 "bit_mux",
+                None,
+                None,
                 max_delay=5,
                 labels=["TTLIN1.VAL", "TTLIN2.VAL", "TTLIN3.VAL"],
             ),
@@ -441,6 +452,8 @@ def idfn(val):
         (
             PosMuxFieldInfo(
                 "pos_mux",
+                None,
+                None,
                 labels=["INENC1.VAL", "INENC2.VAL", "INENC3.VAL"],
             ),
             {
@@ -454,7 +467,8 @@ def idfn(val):
             UintFieldInfo(
                 "param",
                 "uint",
-                max=63,
+                None,
+                max_val=63,
             ),
             {
                 f"{TEST_RECORD}": "0",
@@ -468,7 +482,8 @@ def idfn(val):
             UintFieldInfo(
                 "read",
                 "uint",
-                max=63,
+                None,
+                max_val=63,
             ),
             {
                 f"{TEST_RECORD}": "0",
@@ -482,7 +497,8 @@ def idfn(val):
             UintFieldInfo(
                 "write",
                 "uint",
-                max=63,
+                None,
+                max_val=63,
             ),
             {},
             [
@@ -494,6 +510,7 @@ def idfn(val):
             FieldInfo(
                 "param",
                 "int",
+                None,
             ),
             {
                 f"{TEST_RECORD}": "0",
@@ -506,6 +523,7 @@ def idfn(val):
             FieldInfo(
                 "read",
                 "int",
+                None,
             ),
             {
                 f"{TEST_RECORD}": "0",
@@ -518,6 +536,7 @@ def idfn(val):
             FieldInfo(
                 "write",
                 "int",
+                None,
             ),
             {},
             [
@@ -525,7 +544,9 @@ def idfn(val):
             ],
         ),
         (
-            ScalarFieldInfo("param", "scalar", offset=0, scale=0.001, units="deg"),
+            ScalarFieldInfo(
+                "param", "scalar", None, offset=0, scale=0.001, units="deg"
+            ),
             {
                 f"{TEST_RECORD}": "48.48",
             },
@@ -537,7 +558,7 @@ def idfn(val):
             ],
         ),
         (
-            ScalarFieldInfo("read", "scalar", offset=0, scale=0.001, units="deg"),
+            ScalarFieldInfo("read", "scalar", None, offset=0, scale=0.001, units="deg"),
             {
                 f"{TEST_RECORD}": "48.48",
             },
@@ -549,7 +570,9 @@ def idfn(val):
             ],
         ),
         (
-            ScalarFieldInfo("write", "scalar", offset=0, scale=0.001, units="deg"),
+            ScalarFieldInfo(
+                "write", "scalar", None, offset=0, scale=0.001, units="deg"
+            ),
             {},
             [
                 f"{TEST_RECORD}",
@@ -562,6 +585,7 @@ def idfn(val):
             FieldInfo(
                 "param",
                 "bit",
+                None,
             ),
             {
                 f"{TEST_RECORD}": "0",
@@ -574,6 +598,7 @@ def idfn(val):
             FieldInfo(
                 "read",
                 "bit",
+                None,
             ),
             {
                 f"{TEST_RECORD}": "0",
@@ -586,6 +611,7 @@ def idfn(val):
             FieldInfo(
                 "write",
                 "bit",
+                None,
             ),
             {},
             [
@@ -596,6 +622,7 @@ def idfn(val):
             FieldInfo(
                 "write",
                 "action",
+                None,
             ),
             {
                 f"{TEST_RECORD}": "0",
@@ -608,6 +635,7 @@ def idfn(val):
             FieldInfo(
                 "param",
                 "lut",
+                None,
             ),
             {
                 f"{TEST_RECORD}": "0x00000000",
@@ -620,6 +648,7 @@ def idfn(val):
             FieldInfo(
                 "read",
                 "lut",
+                None,
             ),
             {
                 f"{TEST_RECORD}": "0x00000000",
@@ -632,6 +661,7 @@ def idfn(val):
             FieldInfo(
                 "write",
                 "lut",
+                None,
             ),
             {},
             [
@@ -639,7 +669,7 @@ def idfn(val):
             ],
         ),
         (
-            EnumFieldInfo("param", "enum", labels=["Value", "-Value"]),
+            EnumFieldInfo("param", "enum", None, labels=["Value", "-Value"]),
             {
                 f"{TEST_RECORD}": "-Value",
             },
@@ -648,7 +678,7 @@ def idfn(val):
             ],
         ),
         (
-            EnumFieldInfo("read", "enum", labels=["Value", "-Value"]),
+            EnumFieldInfo("read", "enum", None, labels=["Value", "-Value"]),
             {
                 f"{TEST_RECORD}": "-Value",
             },
@@ -657,7 +687,7 @@ def idfn(val):
             ],
         ),
         (
-            EnumFieldInfo("write", "enum", labels=["Value", "-Value"]),
+            EnumFieldInfo("write", "enum", None, labels=["Value", "-Value"]),
             {},
             [
                 f"{TEST_RECORD}",
@@ -771,7 +801,7 @@ def test_make_ext_out_bits(
 def test_create_record_action(ioc_record_factory: IocRecordFactory, type: str):
     """Test the param-action and read-action types do not create records"""
     assert (
-        ioc_record_factory.create_record(TEST_RECORD, FieldInfo(type, "action"), {})
+        ioc_record_factory.create_record(TEST_RECORD, FieldInfo(type, "action", ""), {})
         == {}
     )
 

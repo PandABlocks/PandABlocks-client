@@ -200,7 +200,10 @@ async def test_hdf5_file_writing(
     # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
     # and subsequently finishes
     capturing_queue: asyncio.Queue = asyncio.Queue()
-    m = camonitor(HDF5_PREFIX + ":Capturing", capturing_queue.put)
+    m = camonitor(
+        HDF5_PREFIX + ":Capturing",
+        capturing_queue.put,
+    )
 
     # Initially Capturing should be 0
     assert await capturing_queue.get() == 0

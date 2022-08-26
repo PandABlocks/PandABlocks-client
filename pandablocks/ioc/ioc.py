@@ -615,8 +615,8 @@ class IocRecordFactory:
             min_record_name,
             "Minimum programmable time",
             builder.aIn,
-            type(field_info.min),
-            initial_value=field_info.min,
+            type(field_info.min_val),
+            initial_value=field_info.min_val,
         )
 
         return record_dict
@@ -1023,17 +1023,17 @@ class IocRecordFactory:
             # Ensure VAL is clamped to valid range of values.
             # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
             # which can overflow it.
-            assert field_info.max
+            assert field_info.max_val
             record_dict[record_name].record.DRVL = 0
-            record_dict[record_name].record.DRVH = min(field_info.max, 2147483647)
+            record_dict[record_name].record.DRVH = min(field_info.max_val, 2147483647)
 
         max_record_name = EpicsName(record_name + ":MAX")
         record_dict[max_record_name] = self._create_record_info(
             max_record_name,
             "Maximum valid value for this field",
             builder.longIn,
-            type(field_info.max),
-            initial_value=field_info.max,
+            type(field_info.max_val),
+            initial_value=field_info.max_val,
         )
 
         return record_dict

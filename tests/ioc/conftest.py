@@ -335,14 +335,14 @@ def dummy_server_introspect_panda(
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
         "!TABLE 7 table\n.",  # SEQ field
         get_changes_scalar_data,
+        "OK =Trig Edge Desc",
         "!Rising\n!Falling\n!Either\n.",  # TRIG_EDGE enum labels
+        "OK =Gate Desc",
         "OK =100",  # GATE MAX_DELAY
         "!TTLIN1.VAL\n!INENC1.A\n!CLOCK1.OUT\n.",  # GATE labels
-        "OK =Trig Edge Desc",
-        "OK =Gate Desc",
+        "OK =Sequencer table of lines",  # TABLE Desc
         "OK =16384",  # TABLE MAX_LENGTH
         table_fields_data,
-        "OK =Sequencer table of lines",  # TABLE Desc
         get_changes_multiline_data,
         trigger_field_labels,
         "OK =Number of times the line will repeat",  # Repeats field desc
@@ -365,6 +365,7 @@ def dummy_server_introspect_panda(
     ]
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
+    # os.remove(dummy_server_in_thread._debug_file)
     # dummy_server_in_thread.debug = True
     yield dummy_server_in_thread
 

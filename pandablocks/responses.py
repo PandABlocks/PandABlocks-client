@@ -50,14 +50,8 @@ class FieldInfo:
     """
 
     type: str
-    subtype: Optional[str] = None
-    description: Optional[str] = None
-
-    # TODO: All the subclasses implement all their fields as Optional. This is because
-    # you can't have non-optional fields after optional ones, as both subtype and
-    # description in this class are definitely optional. The way around it is
-    # to have a base dataclass for the mandatory types, then extra intermediate classes
-    # to arrange all the mandatory fields in the right order
+    subtype: Optional[str]
+    description: Optional[str]
 
 
 @dataclass
@@ -65,7 +59,7 @@ class UintFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
     `uint`"""
 
-    max: Optional[int] = None
+    max_val: int
 
 
 @dataclass
@@ -73,17 +67,17 @@ class ScalarFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
     `scalar`"""
 
-    units: Optional[str] = None
-    scale: Optional[float] = None
-    offset: Optional[float] = None
+    units: str
+    scale: float
+    offset: float
 
 
 @dataclass
 class TimeFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `time`"""
 
-    units_labels: Optional[List[str]] = None
-    min: Optional[float] = None
+    units_labels: List[str]
+    min_val: float
 
 
 @dataclass
@@ -91,7 +85,7 @@ class SubtypeTimeFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
     `time`"""
 
-    units_labels: Optional[List[str]] = None
+    units_labels: List[str]
 
 
 @dataclass
@@ -99,30 +93,30 @@ class EnumFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
     `enum`"""
 
-    labels: Optional[List[str]] = None
+    labels: List[str]
 
 
 @dataclass
 class BitOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `bit_out`"""
 
-    capture_word: Optional[str] = None
-    offset: Optional[int] = None
+    capture_word: str
+    offset: int
 
 
 @dataclass
 class BitMuxFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `bit_mux`"""
 
-    max_delay: Optional[int] = None
-    labels: Optional[List[str]] = None
+    max_delay: int
+    labels: List[str]
 
 
 @dataclass
 class PosMuxFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `pos_mux`"""
 
-    labels: Optional[List[str]] = None
+    labels: List[str]
 
 
 @dataclass
@@ -140,16 +134,16 @@ class TableFieldDetails:
 class TableFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `table`"""
 
-    max_length: Optional[int] = None
-    fields: Optional[Dict[str, TableFieldDetails]] = None
-    row_words: Optional[int] = None
+    max_length: int
+    fields: Dict[str, TableFieldDetails]
+    row_words: int
 
 
 @dataclass
 class PosOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `pos_out`"""
 
-    capture_labels: Optional[List[str]] = None
+    capture_labels: List[str]
 
 
 @dataclass
@@ -157,14 +151,14 @@ class ExtOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type `ext_out` and subtypes `timestamp`
     or `samples`"""
 
-    capture_labels: Optional[List[str]] = None
+    capture_labels: List[str]
 
 
 @dataclass
 class ExtOutBitsFieldInfo(ExtOutFieldInfo):
     """Extended `ExtOutFieldInfo` for fields with type `ext_out` and subtype `bits`"""
 
-    bits: Optional[List[str]] = None
+    bits: List[str]
 
 
 @dataclass
