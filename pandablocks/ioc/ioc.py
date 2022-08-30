@@ -1071,8 +1071,15 @@ class IocRecordFactory:
             # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
             # which can overflow it.
             assert field_info.max_val
+            if field_info.max_val > np.iinfo(np.int32).max:
+                logging.warning(
+                    "Configured max was larger than int32 max. Restricting."
+                )
+                max_val = np.iinfo(np.int32).max
+            else:
+                max_val = field_info.max_val
             record_dict[record_name].record.DRVL = 0
-            record_dict[record_name].record.DRVH = min(field_info.max_val, 2147483647)
+            record_dict[record_name].record.DRVH = max_val
 
         max_record_name = EpicsName(record_name + ":MAX")
         record_dict[max_record_name] = self._create_record_info(
