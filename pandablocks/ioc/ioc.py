@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from softioc import alarm, asyncio_dispatcher, builder, softioc
+import numpy as np
+from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
+from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
@@ -373,6 +375,24 @@ class _WriteRecordUpdater(_RecordUpdater):
 
 
 @dataclass
+class _EGUUpdate:
+    """Set the EGU attribute of a record during another record's on_update processing"""
+
+    # TODO: Set EGU on parent record during init
+    record: RecordWrapper
+    labels: List[str]
+
+    async def update(self, new_val: Any):
+        array = np.require(self.labels[new_val], dtype=np.dtype("S40"))
+        db_put_field(
+            f"{self.record.name}.EGU",
+            fields.DBR_STRING,
+            array.ctypes.data,
+            1,
+        )
+
+
+@dataclass
 class StringRecordLabelValidator:
     """Validate that a given string is a valid label for a PandA enum field.
     This is necessary for several fields which have too many labels to fit in
@@ -585,7 +605,7 @@ class IocRecordFactory:
 
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
-        record_dict[record_name] = self._create_record_info(
+        time_record_info = self._create_record_info(
             record_name,
             field_info.description,
             record_creation_func,
@@ -593,17 +613,26 @@ class IocRecordFactory:
             **kwargs,
         )
 
+        record_dict[record_name] = time_record_info
+
         units_record_name = EpicsName(record_name + ":UNITS")
         labels, initial_index = self._process_labels(
             field_info.units_labels, values[units_record_name]
         )
+
+        # Ensure initial EGU matches that of the :UNITS record
+        time_record_info.record.EGU = labels[initial_index]
+
+        updater = _EGUUpdate(time_record_info.record, labels)
+
         record_dict[units_record_name] = self._create_record_info(
             units_record_name,
             "Units of time setting",
-            builder.mbbIn,
+            builder.mbbOut,
             type(initial_index),
             labels=labels,
             initial_value=initial_index,
+            on_update=updater.update,
         )
 
         return record_dict
