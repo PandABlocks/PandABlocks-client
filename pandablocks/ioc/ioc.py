@@ -77,6 +77,16 @@ class _BlockAndFieldInfo:
     values: Dict[EpicsName, RecordValue]
 
 
+# Keep a reference to the task, as specified in documentation:
+# https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+create_softioc_task: Optional[asyncio.Task] = None
+
+
+def _when_finished(task):
+    global create_softioc_task
+    create_softioc_task = None
+
+
 async def _create_softioc(
     client: AsyncioClient,
     record_prefix: str,
@@ -88,7 +98,15 @@ async def _create_softioc(
         client, dispatcher, record_prefix
     )
 
-    asyncio.create_task(update(client, all_records, 1, all_values_dict))
+    global create_softioc_task
+    if create_softioc_task:
+        raise RuntimeError("Unexpected state - softioc task already exists")
+
+    create_softioc_task = asyncio.create_task(
+        update(client, all_records, 1, all_values_dict)
+    )
+
+    create_softioc_task.add_done_callback(_when_finished)
 
 
 def create_softioc(host: str, record_prefix: str) -> None:
