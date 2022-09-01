@@ -213,7 +213,6 @@ class TableUpdater:
            all_values_dict: The pointer to the global dictionary containing the most
                 recent value of all records as returned from GetChanges. This dict will
                 be dynamically updated by other methods."""
-        assert field_info.fields
 
         self.client = client
         self.table_name = table_name
@@ -231,10 +230,6 @@ class TableUpdater:
                 key=lambda item: item[1].field.bit_low,
             )
         )
-
-        assert self.field_info.fields
-        assert self.field_info.row_words
-        assert self.field_info.max_length
 
         # The INDEX record's starting value
         DEFAULT_INDEX = 0
@@ -427,7 +422,6 @@ class TableUpdater:
             try:
                 # Send all EPICS data to PandA
                 logging.info(f"Sending table data for {self.table_name} to PandA")
-                assert self.field_info.row_words
                 packed_data = TablePacking.pack(
                     self.field_info.row_words, self.table_fields_records
                 )
@@ -443,7 +437,6 @@ class TableUpdater:
 
                 # Reset value of all table records to last values returned from
                 # GetChanges
-                assert self.field_info.row_words
                 assert self.table_name in self.all_values_dict
                 old_val = self.all_values_dict[self.table_name]
 
@@ -478,7 +471,6 @@ class TableUpdater:
             panda_field_name = epics_to_panda_name(self.table_name)
             panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
-            assert self.field_info.row_words
             field_data = TablePacking.unpack(
                 self.field_info.row_words, self.table_fields_records, panda_vals
             )
@@ -505,7 +497,6 @@ class TableUpdater:
         curr_mode = TableModeEnum(self.mode_record_info.record.get())
 
         if curr_mode == TableModeEnum.VIEW:
-            assert self.field_info.row_words
             field_data = TablePacking.unpack(
                 self.field_info.row_words, self.table_fields_records, list(new_values)
             )

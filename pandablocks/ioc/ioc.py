@@ -493,7 +493,7 @@ class IocRecordFactory:
         builder.SetBlocking(True)
 
     def _process_labels(
-        self, labels: Optional[List[str]], record_value: ScalarRecordValue
+        self, labels: List[str], record_value: ScalarRecordValue
     ) -> Tuple[List[str], int]:
         """Find the index of `record_value` in the `labels` list, suitable for
         use in an `initial_value=` argument during record creation.
@@ -501,7 +501,6 @@ class IocRecordFactory:
         enough to fit within EPICS 25 character label limit.
 
         Raises ValueError if `record_value` not found in `labels`."""
-        assert labels
         assert len(labels) > 0
 
         if not all(len(label) < 25 for label in labels):
@@ -647,7 +646,6 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         """Make one record for the timer itself, and a sub-record for its units"""
         assert isinstance(field_info, (TimeFieldInfo, SubtypeTimeFieldInfo))
-        assert field_info.units_labels
 
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
@@ -805,7 +803,6 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 5)
         assert isinstance(field_info, PosOutFieldInfo)
-        assert field_info.capture_labels
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
@@ -922,7 +919,6 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutFieldInfo)
-        assert field_info.capture_labels
         record_dict = {}
 
         # There is no record for the ext_out field itself - the only thing
@@ -952,7 +948,6 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutBitsFieldInfo)
-        assert field_info.bits
 
         record_dict = self._make_ext_out(record_name, field_info, values)
 
@@ -1005,7 +1000,6 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 2)
         assert isinstance(field_info, BitMuxFieldInfo)
-        assert field_info.labels
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
         # This should be an mbbOut record, but there are too many posssible labels
@@ -1053,7 +1047,6 @@ class IocRecordFactory:
 
         self._check_num_values(values, 1)
         assert isinstance(field_info, PosMuxFieldInfo)
-        assert field_info.labels
 
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
@@ -1120,7 +1113,6 @@ class IocRecordFactory:
             # Ensure VAL is clamped to valid range of values.
             # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
             # which can overflow it.
-            assert field_info.max_val
             if field_info.max_val > np.iinfo(np.int32).max:
                 logging.warning(
                     f"Configured maximum value for {record_name} was too large."
@@ -1244,7 +1236,6 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
         assert isinstance(field_info, ScalarFieldInfo)
-        assert field_info.offset is not None  # offset may be 0
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
@@ -1517,7 +1508,6 @@ class IocRecordFactory:
         values: Dict[EpicsName, ScalarRecordValue],
     ) -> Dict[EpicsName, RecordInfo]:
         assert isinstance(field_info, EnumFieldInfo)
-        assert field_info.labels
         assert record_name not in values
         # Values are not returned for write fields. Create data for label parsing.
         values = {record_name: field_info.labels[0]}
