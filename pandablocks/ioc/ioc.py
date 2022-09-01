@@ -1109,29 +1109,23 @@ class IocRecordFactory:
             **kwargs,
         )
 
+        # Ensure VAL is clamped to valid range of values.
+        # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
+        # which can overflow it.
+        if field_info.max_val > np.iinfo(np.int32).max:
+            logging.warning(
+                f"Configured maximum value for {record_name} was too large."
+                f"Restricting to int32 maximum value."
+            )
+            max_val = np.iinfo(np.int32).max
+        else:
+            max_val = field_info.max_val
+
         if record_creation_func in OUT_RECORD_FUNCTIONS:
-            # Ensure VAL is clamped to valid range of values.
-            # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
-            # which can overflow it.
-            if field_info.max_val > np.iinfo(np.int32).max:
-                logging.warning(
-                    f"Configured maximum value for {record_name} was too large."
-                    f"Restricting to int32 maximum value."
-                )
-                max_val = np.iinfo(np.int32).max
-            else:
-                max_val = field_info.max_val
             record_dict[record_name].record.DRVL = 0
             record_dict[record_name].record.DRVH = max_val
 
-        max_record_name = EpicsName(record_name + ":MAX")
-        record_dict[max_record_name] = self._create_record_info(
-            max_record_name,
-            "Maximum valid value for this field",
-            builder.longIn,
-            type(field_info.max_val),
-            initial_value=field_info.max_val,
-        )
+        record_dict[record_name].record.HOPR = max_val
 
         return record_dict
 
