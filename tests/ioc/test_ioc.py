@@ -9,10 +9,10 @@ from conftest import TEST_PREFIX, TIMEOUT
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from numpy import ndarray
-from softioc import builder
+from softioc import builder, fields
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import Put
+from pandablocks.commands import GetLine, Put
 from pandablocks.ioc._types import (
     ONAM_STR,
     ZNAM_STR,
@@ -25,6 +25,7 @@ from pandablocks.ioc.ioc import (
     _BlockAndFieldInfo,
     _ensure_block_number_present,
     _RecordUpdater,
+    _TimeRecordUpdater,
     introspect_panda,
 )
 from pandablocks.responses import (
@@ -51,7 +52,7 @@ def record_updater() -> _RecordUpdater:
     """Create a near-empty _RecordUpdater with a mocked client"""
     client = AsyncioClient("123")
     client.send = AsyncMock()  # type: ignore
-    return _RecordUpdater(EpicsName("ABC:DEF"), client, float, {})
+    return _RecordUpdater(EpicsName("ABC:DEF"), client, float, {}, None)
 
 
 @pytest.fixture
@@ -185,7 +186,6 @@ async def test_create_softioc_record_update_send_to_panda(
 
 @pytest.mark.asyncio
 async def test_create_softioc_arm_disarm(
-    # mocked_put: MagicMock,
     dummy_server_system: DummyServer,
     subprocess_ioc,
 ):
@@ -208,6 +208,109 @@ async def test_create_softioc_arm_disarm(
 def test_ensure_block_number_present():
     assert _ensure_block_number_present("ABC.DEF.GHI") == "ABC1.DEF.GHI"
     assert _ensure_block_number_present("JKL1.MNOP") == "JKL1.MNOP"
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_time_panda_changes(
+    dummy_server_time: DummyServer,
+    subprocess_ioc,
+):
+    """Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
+    records when the value changes on the PandA"""
+    # Check that the server has started, and has drained all messages
+    assert not dummy_server_time.expected_message_responses
+
+    # Set up monitors for expected changes when the UNITS are changed,
+    # and check the initial values are correct
+    egu_queue: asyncio.Queue = asyncio.Queue()
+    m1 = camonitor(
+        TEST_PREFIX + ":PULSE1:DELAY.EGU",
+        egu_queue.put,
+    )
+    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
+
+    units_queue: asyncio.Queue = asyncio.Queue()
+    m2 = camonitor(TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str)
+    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
+
+    drvl_queue: asyncio.Queue = asyncio.Queue()
+    m3 = camonitor(
+        TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+        drvl_queue.put,
+    )
+    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
+
+    # These will be responses to repeated *CHANGES? requests made, once per second
+    dummy_server_time.send += ["!PULSE.DELAY=0.1\n!PULSE1.DELAY.UNITS=s\n."]
+    dummy_server_time.send += ["."] * 5
+
+    # Changing the UNITS should trigger a request for the MIN
+    dummy_server_time.expected_message_responses.update(
+        {"PULSE1.DELAY.MIN?": "OK =8e-09"}
+    )
+
+    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "s"
+    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "s"
+    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-09
+
+    m1.close()
+    m2.close()
+    m3.close()
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_time_epics_changes(
+    dummy_server_time: DummyServer,
+    subprocess_ioc,
+):
+    """Test that the UNITS and MIN values of a TIME field correctly sent to the PandA
+    when an EPICS record is updated"""
+    # Check that the server has started, and has drained all messages
+    assert not dummy_server_time.expected_message_responses
+
+    # Set up monitors for expected changes when the UNITS are changed,
+    # and check the initial values are correct
+    egu_queue: asyncio.Queue = asyncio.Queue()
+    m1 = camonitor(
+        TEST_PREFIX + ":PULSE1:DELAY.EGU",
+        egu_queue.put,
+    )
+    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
+
+    units_queue: asyncio.Queue = asyncio.Queue()
+    m2 = camonitor(TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str)
+    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
+
+    drvl_queue: asyncio.Queue = asyncio.Queue()
+    m3 = camonitor(
+        TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+        drvl_queue.put,
+    )
+    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
+
+    # We should send one message to set the UNITS, and a second to query the new MIN
+    dummy_server_time.expected_message_responses.update(
+        [
+            ("PULSE1.DELAY.UNITS=min", "OK"),
+            ("PULSE1.DELAY.MIN?", "OK =1.333333333e-10"),
+        ]
+    )
+
+    # Change the UNITS
+    assert await caput(
+        TEST_PREFIX + ":PULSE1:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
+    )
+
+    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
+    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "min"
+    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 1.333333333e-10
+
+    # Confirm the second round of expected messages were found
+    assert not dummy_server_time.expected_message_responses
+
+    m1.close()
+    m2.close()
+    m3.close()
 
 
 @pytest.mark.asyncio
@@ -340,7 +443,7 @@ def idfn(val):
                 f"{TEST_RECORD}": "0.1",
                 f"{TEST_RECORD}:UNITS": "s",
             },
-            [f"{TEST_RECORD}", f"{TEST_RECORD}:UNITS", f"{TEST_RECORD}:MIN"],
+            [f"{TEST_RECORD}", f"{TEST_RECORD}:UNITS"],
         ),
         (
             SubtypeTimeFieldInfo(
@@ -862,3 +965,50 @@ async def test_softioc_records_block(
 
     # Confirm the server received the expected string
     assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses
+
+
+@pytest.mark.asyncio
+@patch("pandablocks.ioc.ioc.db_put_field")
+@pytest.mark.parametrize("new_val", ["TEST2", 2])
+async def test_time_record_updater_update_egu(
+    db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater, new_val
+):
+    """Test that _TimeRecordUpdater.update_egu works correctly with any valid input"""
+
+    mocked_time_record_updater.update_egu(new_val)
+
+    db_put_field.assert_called_once()
+
+    # Check the expected arguments are passed to db_put_field.
+    # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
+    # to a memory address so will always vary
+    put_field_args = db_put_field.call_args.args
+    expected_args = ["BASE:RECORD.EGU", fields.DBF_STRING, 1]
+    for arg in expected_args:
+        assert arg in put_field_args
+    assert type(put_field_args[2]) == int
+
+
+@pytest.mark.asyncio
+@patch("pandablocks.ioc.ioc.db_put_field")
+async def test_time_record_updater_update_drvl(
+    db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater
+):
+    """Test that _TimeRecordUpdater.update_drvl works correctly"""
+
+    await mocked_time_record_updater.update_drvl()
+
+    # ...Just to make mypy happy...
+    assert isinstance(mocked_time_record_updater.client, MagicMock)
+    mocked_time_record_updater.client.send.assert_called_once_with(GetLine("TEST.MIN"))
+
+    db_put_field.assert_called_once()
+
+    # Check the expected arguments are passed to db_put_field.
+    # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
+    # to a memory address so will always vary
+    put_field_args = db_put_field.call_args.args
+    expected_args = ["BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
+    for arg in expected_args:
+        assert arg in put_field_args
+    assert type(put_field_args[2]) == int

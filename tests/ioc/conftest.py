@@ -16,6 +16,7 @@ from softioc.device_core import RecordLookup
 
 from pandablocks.ioc import create_softioc
 from pandablocks.ioc._types import EpicsName
+from pandablocks.ioc.ioc import _TimeRecordUpdater
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 from tests.conftest import DummyServer
 
@@ -365,6 +366,8 @@ def dummy_server_introspect_panda(
     ]
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
+    # import os
+
     # os.remove(dummy_server_in_thread._debug_file)
     # dummy_server_in_thread.debug = True
     yield dummy_server_in_thread
@@ -379,6 +382,38 @@ def dummy_server_system(dummy_server_introspect_panda: DummyServer):
     dummy_server_introspect_panda.send += ["."] * 4
 
     yield dummy_server_introspect_panda
+
+
+@pytest_asyncio.fixture
+def dummy_server_time(dummy_server_in_thread: DummyServer):
+    """Dummy server just for the Time field"""
+    dummy_server_in_thread.expected_message_responses.update(
+        [
+            ("*BLOCKS?", "!PULSE 1\n."),
+            ("*DESC.PULSE?", "OK =One-shot pulse delay and stretch"),
+            ("PULSE.*?", "!DELAY 1 time\n."),  # PULSE fields
+            ("*DESC.PULSE.DELAY?", "OK =Output pulse delay (0 for no delay)"),
+            ("*ENUMS.PULSE.DELAY.UNITS?", "!min\n!s\n!ms\n!us\n."),
+            ("PULSE1.DELAY.MIN?", "OK =8e-06"),
+            (
+                "*CHANGES?",
+                "!PULSE.DELAY=100\n!PULSE1.DELAY.UNITS=ms\n!PULSE1.DELAY.MIN=8e-06\n.",
+            ),
+        ]
+    )
+
+    # Add data for GetChanges to consume. Number of items should be bigger than
+    # the sleep time given during IOC startup
+    dummy_server_in_thread.send += ["."] * 10
+
+    # If you need to change the above responses,
+    # it'll probably help to enable debugging on the server
+    # import os
+
+    # os.remove(dummy_server_in_thread._debug_file)
+    # dummy_server_in_thread.debug = True
+
+    yield dummy_server_in_thread
 
 
 @patch("pandablocks.ioc.ioc.AsyncioClient.close")
@@ -421,3 +456,26 @@ def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Ge
         assert (
             False
         ), f"At least one warning/error/exception logged during test: {caplog.records}"
+
+
+@pytest_asyncio.fixture
+def mocked_time_record_updater():
+    """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
+    base_record = MagicMock()
+    base_record.name = "BASE:RECORD"
+
+    # We don't have AsyncMock in Python3.7, so do it ourselves
+    client = MagicMock()
+    f = asyncio.Future()
+    f.set_result("8e-09")
+    client.send.return_value = f
+
+    return _TimeRecordUpdater(
+        EpicsName("TEST:STR"),
+        client,
+        None,
+        {},
+        ["TEST1", "TEST2", "TEST3"],
+        base_record,
+        True,
+    )

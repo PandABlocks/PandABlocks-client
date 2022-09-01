@@ -20,6 +20,7 @@ from pandablocks.commands import (
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
+    GetLine,
     Put,
 )
 from pandablocks.ioc._hdf_ioc import HDF5RecordController
@@ -296,18 +297,19 @@ class _RecordUpdater:
     client: AsyncioClient
     data_type_func: Callable
     all_values_dict: Dict[EpicsName, RecordValue]
-    labels: Optional[List[str]] = None
+    labels: Optional[List[str]]
 
     # The incoming value's type depends on the record. Ensure you always cast it.
     async def update(self, new_val: Any):
         logging.debug(f"Updating record {self.record_name} with value {new_val}")
         try:
             # If this is an enum record, retrieve the string value
+            val: Optional[str]
             if self.labels:
                 assert int(new_val) < len(
                     self.labels
                 ), f"Invalid label index {new_val}, only {len(self.labels)} labels"
-                val: Optional[str] = self.labels[int(new_val)]
+                val = self.labels[int(new_val)]
             elif new_val is not None:
                 # Necessary to wrap the data_type_func call in str() as we must
                 # differentiate between ints and floats - some PandA fields will not
@@ -375,19 +377,63 @@ class _WriteRecordUpdater(_RecordUpdater):
 
 
 @dataclass
-class _EGUUpdate:
-    """Set the EGU attribute of a record during another record's on_update processing"""
+class _TimeRecordUpdater(_RecordUpdater):
+    """Set the EGU and DRVL values on a record when the UNITS sub-record is updated.
 
-    # TODO: Set EGU on parent record during init
-    record: RecordWrapper
-    labels: List[str]
+    DRVL will only be updated if the `is_type_time` flag is True - fields with a subtype
+    of `time` do not have a `MIN` attribute."""
+
+    base_record: RecordWrapper
+    is_type_time: bool
 
     async def update(self, new_val: Any):
-        array = np.require(self.labels[new_val], dtype=np.dtype("S40"))
+
+        # Must allow UNITS value change to be pushed to the PandA
+        await super().update(new_val)
+
+        await self.update_parent_record(new_val)
+
+    async def update_parent_record(self, new_val):
+
+        self.update_egu(new_val)
+
+        if self.is_type_time:
+            await self.update_drvl()
+
+    def update_egu(self, new_val):
+        assert self.labels
+
+        # This method gets called in two contexts: One is directly from an EPICS
+        # on_update and the other is from *CHANGES?.
+        # In the EPICS context, the value is an integer (from an mbbi/o record)
+        # In the *CHANGES? context the value is a string
+        if type(new_val) is str:
+            assert new_val in self.labels
+            new_egu = new_val
+        else:
+            new_egu = self.labels[new_val]
+        array = np.require(new_egu, dtype=np.dtype("S40"))
         db_put_field(
-            f"{self.record.name}.EGU",
-            fields.DBR_STRING,
+            f"{self.base_record.name}.EGU",
+            fields.DBF_STRING,
             array.ctypes.data,
+            1,
+        )
+
+    async def update_drvl(self):
+        # The MIN attribute of a TIME type is automatically updated when the
+        # UNITS record is updated. Retrieve the new value and set it into DRVL.
+        base_record_name = epics_to_panda_name(self.record_name).rsplit(
+            ".", maxsplit=1
+        )[0]
+        new_min = await self.client.send(GetLine(f"{base_record_name}.MIN"))
+
+        new_min_float = np.require(new_min, dtype=np.float64)
+
+        db_put_field(
+            f"{self.base_record.name}.DRVL",
+            fields.DBF_DOUBLE,
+            new_min_float.ctypes.data,
             1,
         )
 
@@ -623,7 +669,15 @@ class IocRecordFactory:
         # Ensure initial EGU matches that of the :UNITS record
         time_record_info.record.EGU = labels[initial_index]
 
-        updater = _EGUUpdate(time_record_info.record, labels)
+        updater = _TimeRecordUpdater(
+            units_record_name,
+            self._client,
+            str,
+            self._all_values_dict,
+            labels,
+            time_record_info.record,
+            isinstance(field_info, TimeFieldInfo),
+        )
 
         record_dict[units_record_name] = self._create_record_info(
             units_record_name,
@@ -634,6 +688,8 @@ class IocRecordFactory:
             initial_value=initial_index,
             on_update=updater.update,
         )
+
+        record_dict[units_record_name].on_changes_func = updater.update_parent_record
 
         return record_dict
 
@@ -657,14 +713,8 @@ class IocRecordFactory:
             initial_value=values[record_name],
         )
 
-        min_record_name = EpicsName(record_name + ":MIN")
-        record_dict[min_record_name] = self._create_record_info(
-            min_record_name,
-            "Minimum programmable time",
-            builder.aIn,
-            type(field_info.min_val),
-            initial_value=field_info.min_val,
-        )
+        # MIN attribute is the DRVL field in EPICS
+        record_dict[record_name].record.DRVL = field_info.min_val
 
         return record_dict
 
@@ -1073,7 +1123,8 @@ class IocRecordFactory:
             assert field_info.max_val
             if field_info.max_val > np.iinfo(np.int32).max:
                 logging.warning(
-                    "Configured max was larger than int32 max. Restricting."
+                    f"Configured maximum value for {record_name} was too large."
+                    f"Restricting to int32 maximum value."
                 )
                 max_val = np.iinfo(np.int32).max
             else:
@@ -1347,7 +1398,7 @@ class IocRecordFactory:
 
         self._check_num_values(values, 0)
         updater = _WriteRecordUpdater(
-            record_name, self._client, int, self._all_values_dict
+            record_name, self._client, int, self._all_values_dict, None
         )
         record = self._create_record_info(
             record_name,
@@ -1767,7 +1818,10 @@ async def update(
                 record_info = all_records[field]
                 record = record_info.record
 
-                # Only Out records need process=False set.
+                if record_info.on_changes_func:
+                    await record_info.on_changes_func(value)
+
+                # Do not process, as the on_update methods push data back to PandA.
                 extra_kwargs = {}
                 if not record_info.is_in_record:
                     extra_kwargs.update({"process": False})

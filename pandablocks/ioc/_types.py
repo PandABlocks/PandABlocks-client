@@ -2,7 +2,7 @@
 # Mostly exists to avoid circular dependencies.
 import logging
 from dataclasses import dataclass
-from typing import Callable, List, NewType, Optional, Union
+from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
 
 from softioc.pythonSoftIoc import RecordWrapper
 
@@ -80,10 +80,12 @@ class RecordInfo:
     `data_type_func`: Function to convert string data to form appropriate for the record
     `labels`: List of valid labels for the record. By setting this field to non-None,
         the `record` is assumed to be mbbi/mbbo type.
-    `is_in_record`: Flag for whether the `record` is an "In" record type."""
+    `is_in_record`: Flag for whether the `record` is an "In" record type.
+    `on_changes_func`: Function called during processing of *CHANGES? for this record"""
 
     record: RecordWrapper
     data_type_func: Callable
     labels: Optional[List[str]] = None
     # PythonSoftIOC issues #52 or #54 may remove need for is_in_record
     is_in_record: bool = True
+    on_changes_func: Optional[Callable[[Any], Awaitable[None]]] = None
