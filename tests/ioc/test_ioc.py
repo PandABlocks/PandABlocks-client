@@ -18,6 +18,7 @@ from pandablocks.ioc._types import (
     ZNAM_STR,
     EpicsName,
     InErrorException,
+    RecordInfo,
     ScalarRecordValue,
 )
 from pandablocks.ioc.ioc import (
@@ -52,7 +53,12 @@ def record_updater() -> _RecordUpdater:
     """Create a near-empty _RecordUpdater with a mocked client"""
     client = AsyncioClient("123")
     client.send = AsyncMock()  # type: ignore
-    return _RecordUpdater(EpicsName("ABC:DEF"), client, float, {}, None)
+    record_info = RecordInfo(float)
+    mocked_record = MagicMock()
+    mocked_record.name = "PREFIX:ABC:DEF"
+    record_info.add_record(mocked_record)
+
+    return _RecordUpdater(record_info, client, {}, None)
 
 
 @pytest.fixture
@@ -400,10 +406,6 @@ async def test_record_updater_restore_previous_value(record_updater: _RecordUpda
     """Test that the record updater rolls back records to previous value on
     Put failure"""
 
-    # Configure the updater with mocked record and value
-    mocked_record = MagicMock()
-    record_updater.add_record(mocked_record)
-
     record_updater.all_values_dict = {EpicsName("ABC:DEF"): "999"}
 
     mocked_send: AsyncMock = record_updater.client.send  # type: ignore
@@ -411,7 +413,7 @@ async def test_record_updater_restore_previous_value(record_updater: _RecordUpda
 
     await record_updater.update("1.0")
 
-    mocked_record.set.assert_called_once_with("999", process=False)
+    record_updater.record_info.record.set.assert_called_once_with("999", process=False)
 
 
 def idfn(val):
@@ -980,7 +982,7 @@ async def test_time_record_updater_update_egu(
     # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
     # to a memory address so will always vary
     put_field_args = db_put_field.call_args.args
-    expected_args = ["BASE:RECORD.EGU", fields.DBF_STRING, 1]
+    expected_args = ["PREFIX:BASE:RECORD.EGU", fields.DBF_STRING, 1]
     for arg in expected_args:
         assert arg in put_field_args
     assert type(put_field_args[2]) == int
@@ -1005,7 +1007,7 @@ async def test_time_record_updater_update_drvl(
     # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
     # to a memory address so will always vary
     put_field_args = db_put_field.call_args.args
-    expected_args = ["BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
+    expected_args = ["PREFIX:BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
     for arg in expected_args:
         assert arg in put_field_args
     assert type(put_field_args[2]) == int
@@ -1027,3 +1029,36 @@ def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
     record_dict = ioc_record_factory._make_uint(name, uint_field_info, builder.longIn)
     longin_rec = record_dict[name].record
     assert longin_rec.HOPR.Value() == max_val
+
+
+@pytest.mark.asyncio
+async def test_pending_changes_blocks_record_set(
+    dummy_server_system: DummyServer, subprocess_ioc
+):
+    """Test that when a value is Put to PandA and subsequently reported via *CHANGES?
+    does not do another .set() on the record"""
+
+    # Trigger a _RecordUpdater.update(), to do a Put command
+
+    dummy_server_system.expected_message_responses.update(
+        {"PCAP1.TRIG_EDGE=Either": "OK"}
+    )
+
+    await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Either", wait=True, timeout=TIMEOUT)
+
+    # Confirm the server received the expected string
+    assert not dummy_server_system.expected_message_responses
+
+    # PandA reports Put data back via the next *CHANGES? call
+    # dummy_server_system.expected_message_responses.update(
+    #     {"*CHANGES?": "PCAP1.TRIG_EDGE=Either\n."}
+    # )
+
+    dummy_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n.", ".", "."]
+
+    async def expected_messages_received():
+        """Wait until the expected messages have all been received by the server"""
+        while len(dummy_server_system.send) > 2:
+            asyncio.sleep(0.5)
+
+    await asyncio.wait_for(expected_messages_received(), timeout=TIMEOUT)

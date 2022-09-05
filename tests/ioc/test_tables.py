@@ -48,7 +48,8 @@ def table_fields_records(
             return_value=EPICS_FORMAT_TABLE_NAME + ":" + field_name
         )
         mocked_record.get = MagicMock(return_value=data_array)
-        record_info = RecordInfo(mocked_record, lambda x: None)
+        record_info = RecordInfo(lambda x: None)
+        record_info.add_record(mocked_record)
         data[field_name] = TableFieldRecordContainer(field_info, record_info)
     return data
 
@@ -70,7 +71,6 @@ def table_updater(
     mocked_mode_record.get = MagicMock(return_value=TableModeEnum.VIEW.value)
     mocked_mode_record.set = MagicMock()
     mode_record_info = RecordInfo(
-        mocked_mode_record,
         lambda x: None,
         labels=[
             TableModeEnum.VIEW.name,
@@ -79,6 +79,7 @@ def table_updater(
             TableModeEnum.DISCARD.name,
         ],
     )
+    mode_record_info.add_record(mocked_mode_record)
 
     updater = TableUpdater(
         client,
@@ -321,7 +322,8 @@ def test_table_packing_roundtrip(
     for (field_name, field_info), data_array in zip(table_fields.items(), unpacked):
         mocked_record = MagicMock()
         mocked_record.get = MagicMock(return_value=data_array)
-        record_info = RecordInfo(mocked_record, lambda x: None)
+        record_info = RecordInfo(lambda x: None)
+        record_info.add_record(mocked_record)
         data[field_name] = TableFieldRecordContainer(field_info, record_info)
 
     packed = TablePacking.pack(table_field_info.row_words, data)

@@ -263,9 +263,9 @@ class TableUpdater:
                 length=field_info.max_length,
             )
 
-            field_record_container.record_info = RecordInfo(
-                field_record, lambda x: x, None, False
-            )
+            field_record_container.record_info = RecordInfo(lambda x: x, None, False)
+
+            field_record_container.record_info.add_record(field_record)
 
             # Scalar record gives access to individual cell in a column,
             # in combination with the INDEX record defined below
@@ -317,8 +317,10 @@ class TableUpdater:
                 )
 
             self.table_scalar_records[scalar_record_name] = RecordInfo(
-                scalar_record, lambda x: x, None, False
+                lambda x: x, None, False
             )
+
+            self.table_scalar_records[scalar_record_name].add_record(scalar_record)
 
         # Create the mode record that controls when to Put back to PandA
         labels = [
@@ -338,7 +340,8 @@ class TableUpdater:
             on_update=self.update_mode,
         )
 
-        self.mode_record_info = RecordInfo(mode_record, lambda x: x, labels, False)
+        self.mode_record_info = RecordInfo(lambda x: x, labels, False)
+        self.mode_record_info.add_record(mode_record)
 
         # Re-wrap the record itself so that GetChanges can access this TableUpdater
         self.mode_record_info.record = TableRecordWrapper(

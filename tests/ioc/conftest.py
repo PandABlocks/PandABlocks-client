@@ -404,13 +404,14 @@ def dummy_server_time(dummy_server_in_thread: DummyServer):
 
     # Add data for GetChanges to consume. Number of items should be bigger than
     # the sleep time given during IOC startup
-    dummy_server_in_thread.send += ["."] * 10
+    dummy_server_in_thread.send += ["."] * 5
 
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
     # import os
 
-    # os.remove(dummy_server_in_thread._debug_file)
+    # if os.path.isfile(dummy_server_in_thread._debug_file):
+    #     os.remove(dummy_server_in_thread._debug_file)
     # dummy_server_in_thread.debug = True
 
     yield dummy_server_in_thread
@@ -451,18 +452,17 @@ def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Ge
                 # Should never take anywhere near 10 seconds to terminate, it's just
                 # there to ensure the test doesn't hang indefinitely during cleanup
 
-    if len(caplog.messages) > 0:
-        # We expect all tests to pass without warnings (or worse) logged.
-        assert (
-            False
-        ), f"At least one warning/error/exception logged during test: {caplog.records}"
+    # We expect all tests to pass without warnings (or worse) logged.
+    assert (
+        len(caplog.messages) == 0
+    ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
 @pytest_asyncio.fixture
 def mocked_time_record_updater():
     """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
     base_record = MagicMock()
-    base_record.name = "BASE:RECORD"
+    base_record.name = "PREFIX:BASE:RECORD"
 
     # We don't have AsyncMock in Python3.7, so do it ourselves
     client = MagicMock()
@@ -470,10 +470,13 @@ def mocked_time_record_updater():
     f.set_result("8e-09")
     client.send.return_value = f
 
+    mocked_record_info = MagicMock()
+    mocked_record_info.record = MagicMock()
+    mocked_record_info.record.name = EpicsName("PREFIX:TEST:STR")
+
     return _TimeRecordUpdater(
-        EpicsName("TEST:STR"),
+        mocked_record_info,
         client,
-        None,
         {},
         ["TEST1", "TEST2", "TEST3"],
         base_record,

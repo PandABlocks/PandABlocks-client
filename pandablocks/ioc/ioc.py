@@ -35,6 +35,7 @@ from pandablocks.ioc._types import (
     RecordValue,
     ScalarRecordValue,
     check_num_labels,
+    device_and_record_to_panda_name,
     epics_to_panda_name,
     panda_to_epics_name,
     trim_description,
@@ -284,24 +285,24 @@ class _RecordUpdater:
     This should only be used to handle Out record types.
 
     Args:
-        record_name: The name of the record, without the namespace
+        record_info: The RecordInfo structure for the record
         client: The client used to send data to PandA
-        data_type_func: Function to convert the new value to the format PandA expects
         all_values_dict: The dictionary containing the most recent value of all records
             as returned from GetChanges. This dict will be dynamically updated by other
             methods.
         labels: If the record is an enum type, provide the list of labels
     """
 
-    record_name: EpicsName
+    record_info: RecordInfo
     client: AsyncioClient
-    data_type_func: Callable
     all_values_dict: Dict[EpicsName, RecordValue]
     labels: Optional[List[str]]
 
     # The incoming value's type depends on the record. Ensure you always cast it.
     async def update(self, new_val: Any):
-        logging.debug(f"Updating record {self.record_name} with value {new_val}")
+        logging.debug(
+            f"Updating record {self.record_info.record.name} with value {new_val}"
+        )
         try:
             # If this is an enum record, retrieve the string value
             val: Optional[str]
@@ -314,53 +315,53 @@ class _RecordUpdater:
                 # Necessary to wrap the data_type_func call in str() as we must
                 # differentiate between ints and floats - some PandA fields will not
                 # accept the wrong number format.
-                val = str(self.data_type_func(new_val))
+                val = str(self.record_info.data_type_func(new_val))
             else:
                 # value is None - expected for action-write fields
                 val = new_val
 
-            panda_field = epics_to_panda_name(self.record_name)
+            panda_field = device_and_record_to_panda_name(self.record_info.record.name)
             await self.client.send(Put(panda_field, val))
+
+            self.record_info._pending_change = True
 
             # On success the new value will be polled by GetChanges and stored into
             # the all_values_dict
 
         except Exception:
             logging.exception(
-                f"Unable to Put record {self.record_name}, value {new_val}, to PandA",
+                f"Unable to Put record {self.record_info.record.name}, "
+                f"value {new_val}, to PandA",
             )
             try:
-                if self._record:
-                    assert self.record_name in self.all_values_dict
-                    old_val = self.all_values_dict[self.record_name]
+                if self.record_info.record:
+                    record_name = self.record_info.record.name.split(":", maxsplit=1)[1]
+
+                    assert record_name in self.all_values_dict
+                    old_val = self.all_values_dict[record_name]
                     if isinstance(old_val, InErrorException):
                         # If PythonSoftIOC issue #53 is fixed we could put error state.
                         logging.error(
                             "Cannot restore previous value to record "
-                            f"{self.record_name}, PandA marks this field as in error."
+                            f"{record_name}, PandA field is in error."
                         )
                         return
 
                     logging.warning(
-                        f"Restoring previous value {old_val} to record "
-                        f"{self.record_name}"
+                        f"Restoring previous value {old_val} to record {record_name}"
                     )
                     # Note that only Out records will be present here, due to how
                     # _RecordUpdater instances are created.
-                    self._record.set(old_val, process=False)
+                    self.record_info.record.set(old_val, process=False)
                 else:
                     logging.error(
-                        f"No record found when updating {self.record_name}, "
-                        "unable to roll back value"
+                        f"No record found when updating {record_name},"
+                        " unable to roll back value"
                     )
             except Exception:
                 logging.exception(
-                    f"Unable to roll back record {self.record_name} to previous value.",
+                    f"Unable to roll back record {record_name} to previous value.",
                 )
-
-    def add_record(self, record: RecordWrapper) -> None:
-        """Provide the record, used for rolling back data if a Put fails."""
-        self._record = record
 
 
 @dataclass
@@ -371,7 +372,7 @@ class _WriteRecordUpdater(_RecordUpdater):
     with no explicit value at all."""
 
     async def update(self, new_val: Any):
-        if self.data_type_func(new_val):
+        if self.record_info.data_type_func(new_val):
             await super().update(None)
         return
 
@@ -389,6 +390,7 @@ class _TimeRecordUpdater(_RecordUpdater):
     async def update(self, new_val: Any):
 
         # Must allow UNITS value change to be pushed to the PandA
+        # as this triggers the MIN field to be recalculated
         await super().update(new_val)
 
         await self.update_parent_record(new_val)
@@ -400,7 +402,7 @@ class _TimeRecordUpdater(_RecordUpdater):
         if self.is_type_time:
             await self.update_drvl()
 
-    def update_egu(self, new_val):
+    def update_egu(self, new_val) -> None:
         assert self.labels
 
         # This method gets called in two contexts: One is directly from an EPICS
@@ -420,13 +422,21 @@ class _TimeRecordUpdater(_RecordUpdater):
             1,
         )
 
-    async def update_drvl(self):
+    async def update_drvl(self) -> None:
         # The MIN attribute of a TIME type is automatically updated when the
         # UNITS record is updated. Retrieve the new value and set it into DRVL.
-        base_record_name = epics_to_panda_name(self.record_name).rsplit(
-            ".", maxsplit=1
-        )[0]
-        new_min = await self.client.send(GetLine(f"{base_record_name}.MIN"))
+
+        # Remove the EPICS name prefix
+        # TODO: This is rather Diamond-specific... Should really get the record prefix
+        # that we already have somewhere and trim it off here...
+        record_name = self.record_info.record.name.split(":", maxsplit=1)[1]
+
+        # Trim off the last component to find the base record
+        base_record_name = record_name.rsplit(":", maxsplit=1)[0]
+
+        panda_field_name = epics_to_panda_name(base_record_name)
+
+        new_min = await self.client.send(GetLine(f"{panda_field_name}.MIN"))
 
         new_min_float = np.require(new_min, dtype=np.float64)
 
@@ -598,6 +608,12 @@ class IocRecordFactory:
             elif isinstance(initial_value, str):
                 kwargs["initial_value"] = data_type_func(initial_value)
 
+        record_info = RecordInfo(
+            data_type_func=data_type_func,
+            labels=labels if labels else None,
+            is_in_record=record_creation_func not in OUT_RECORD_FUNCTIONS,
+        )
+
         # If there is no on_update, and the record type allows one, create it
         record_updater = None
         if (
@@ -606,9 +622,8 @@ class IocRecordFactory:
             and record_creation_func in OUT_RECORD_FUNCTIONS
         ):
             record_updater = _RecordUpdater(
-                record_name,
+                record_info,
                 self._client,
-                data_type_func,
                 self._all_values_dict,
                 labels if labels else None,
             )
@@ -620,19 +635,9 @@ class IocRecordFactory:
             record_name, *labels, *args, **extra_kwargs, **kwargs
         )
 
-        if record_updater is not None:
-            record_updater.add_record(record)
-
-        is_in_record = True
-        if record_creation_func in OUT_RECORD_FUNCTIONS:
-            is_in_record = False
-
-        record_info = RecordInfo(
-            record,
-            data_type_func=data_type_func,
-            labels=labels if labels else None,
-            is_in_record=is_in_record,
-        )
+        # Annoyingly we have a circular dependency: The on_update kwarg must be provided
+        # in order to create the record
+        record_info.add_record(record)
 
         return record_info
 
@@ -667,15 +672,7 @@ class IocRecordFactory:
         # Ensure initial EGU matches that of the :UNITS record
         time_record_info.record.EGU = labels[initial_index]
 
-        updater = _TimeRecordUpdater(
-            units_record_name,
-            self._client,
-            str,
-            self._all_values_dict,
-            labels,
-            time_record_info.record,
-            isinstance(field_info, TimeFieldInfo),
-        )
+        updater: _TimeRecordUpdater
 
         record_dict[units_record_name] = self._create_record_info(
             units_record_name,
@@ -684,7 +681,15 @@ class IocRecordFactory:
             type(initial_index),
             labels=labels,
             initial_value=initial_index,
-            on_update=updater.update,
+            on_update=lambda v: updater.update(v),
+        )
+        updater = _TimeRecordUpdater(
+            record_dict[units_record_name],
+            self._client,
+            self._all_values_dict,
+            labels,
+            time_record_info.record,
+            isinstance(field_info, TimeFieldInfo),
         )
 
         record_dict[units_record_name].on_changes_func = updater.update_parent_record
@@ -1382,22 +1387,26 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
 
         self._check_num_values(values, 0)
-        updater = _WriteRecordUpdater(
-            record_name, self._client, int, self._all_values_dict, None
-        )
-        record = self._create_record_info(
+
+        updater: _WriteRecordUpdater
+
+        record_info = self._create_record_info(
             record_name,
             field_info.description,
             builder.Action,
             int,  # not bool, as that'll treat string "0" as true
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
-            on_update=updater.update,
+            on_update=lambda v: updater.update(v),
         )
 
-        updater.add_record(record)
+        updater = _WriteRecordUpdater(
+            record_info, self._client, self._all_values_dict, None
+        )
 
-        return {record_name: record}
+        record_info.add_record(record_info.record)
+
+        return {record_name: record_info}
 
     def _make_lut(
         self,
@@ -1802,24 +1811,33 @@ async def update(
                 record_info = all_records[field]
                 record = record_info.record
 
-                if record_info.on_changes_func:
-                    await record_info.on_changes_func(value)
-
-                # Do not process, as the on_update methods push data back to PandA.
-                extra_kwargs = {}
-                if not record_info.is_in_record:
-                    extra_kwargs.update({"process": False})
+                # Note bit_mux/pos_mux fields probably should have labels in their
+                # RecordInfo, but that would break this code. This is only designed
+                # for mbbi/mbbo records.
+                converted_value = (
+                    record_info.labels.index(value)
+                    if record_info.labels
+                    else record_info.data_type_func(value)
+                )
 
                 try:
-                    # Note bit_mux/pos_mux fields probably should have labels in their
-                    # RecordInfo, but that would break this code. This is only designed
-                    # for mbbi/mbbo records.
-                    if record_info.labels:
-                        # Record is enum, convert string the PandA returns into
-                        # an int index
-                        record.set(record_info.labels.index(value), **extra_kwargs)
-                    else:
-                        record.set(record_info.data_type_func(value), **extra_kwargs)
+                    if record_info._pending_change:
+                        record_info._pending_change = False  # type: ignore
+                        if converted_value == record_info.record.get():
+                            # This is most likely PandA reporting a value we just Put
+                            continue
+
+                    # Do not process, as the on_update methods push data back to PandA.
+                    # Any processing that must be done at value update must be handled
+                    # through record_info.on_changes_func()
+                    if record_info.on_changes_func:
+                        await record_info.on_changes_func(value)
+
+                    extra_kwargs = {}
+                    if not record_info.is_in_record:
+                        extra_kwargs.update({"process": False})
+
+                    record.set(converted_value, **extra_kwargs)
                 except Exception:
                     logging.exception(
                         f"Exception setting record {record.name} to new value {value}"
