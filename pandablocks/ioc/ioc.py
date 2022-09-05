@@ -1502,7 +1502,15 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, ScalarRecordValue],
     ) -> Dict[EpicsName, RecordInfo]:
-        return self._make_enum(record_name, field_info, values, builder.mbbIn)
+        return {
+            record_name: self._create_record_info(
+                record_name,
+                field_info.description,
+                builder.stringIn,
+                str,
+                initial_value=values[record_name],
+            )
+        }
 
     def _make_enum_write(
         self,
