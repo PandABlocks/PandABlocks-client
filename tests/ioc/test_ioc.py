@@ -1,8 +1,10 @@
 import asyncio
+import logging
 from pathlib import Path
 from typing import Dict, List
 
 import numpy
+import numpy as np
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
 from conftest import TEST_PREFIX, TIMEOUT
@@ -23,6 +25,7 @@ from pandablocks.ioc._types import (
 )
 from pandablocks.ioc.ioc import (
     IocRecordFactory,
+    StringRecordLabelValidator,
     _BlockAndFieldInfo,
     _ensure_block_number_present,
     _RecordUpdater,
@@ -1031,6 +1034,25 @@ def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
     assert longin_rec.HOPR.Value() == max_val
 
 
+def test_uint_truncates_max_value(ioc_record_factory: IocRecordFactory, caplog):
+    """Test that we correctly truncate a too large maximum value and emit a warning"""
+    name = EpicsName("TEST1")
+    max_val = 99999999999999999999
+    uint_field_info = UintFieldInfo("param", "uint", None, max_val)
+
+    with caplog.at_level(logging.WARNING):
+        record_dict = ioc_record_factory._make_uint(
+            name, uint_field_info, builder.longOut
+        )
+
+    longout_rec = record_dict[name].record
+    assert longout_rec.DRVH.Value() == np.iinfo(np.int32).max
+    assert longout_rec.HOPR.Value() == np.iinfo(np.int32).max
+
+    assert len(caplog.messages) == 1
+    assert "Restricting to int32 maximum value." in caplog.text
+
+
 @pytest.mark.asyncio
 async def test_pending_changes_blocks_record_set(
     dummy_server_system: DummyServer, subprocess_ioc
@@ -1062,3 +1084,53 @@ async def test_pending_changes_blocks_record_set(
             asyncio.sleep(0.5)
 
     await asyncio.wait_for(expected_messages_received(), timeout=TIMEOUT)
+
+
+def test_string_record_label_validator_valid_label():
+    """Test that StringRecordLabelValidator works with a valid label"""
+    labels = ["ABC", "DEF", "GHI"]
+    validator = StringRecordLabelValidator(labels)
+    assert validator.validate(MagicMock(), "DEF")
+
+
+def test_string_record_label_validator_invalid_label(caplog):
+    """Test that StringRecordLabelValidator fails with an invalid label
+    and emits a warning"""
+    labels = ["ABC", "DEF", "GHI"]
+    record = MagicMock()
+    record.name = "TEST:NAME"
+    validator = StringRecordLabelValidator(labels)
+    assert validator.validate(record, "JKL") is False
+
+    assert "Value JKL not valid for record TEST:NAME" in caplog.text
+
+
+def test_process_labels_warns_long_label(ioc_record_factory: IocRecordFactory, caplog):
+    """Test that _process_labels will automatically truncate long labels and
+    emit a warning"""
+    labels, index = ioc_record_factory._process_labels(
+        ["ABC", "DEF", "AVeryLongLabelThatDoesNotFit"], "AVeryLongLabelThatDoesNotFit"
+    )
+
+    assert labels[index] == "AVeryLongLabelThatDoesNot"
+
+    assert "One or more labels do not fit EPICS maximum length" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "type, subtype",
+    [
+        ("UnknownType", "UnknownSubtype"),
+        ("time", "UnknownSubtype"),
+        ("UnknownType", "bits"),
+    ],
+)
+def test_unknown_type_subtype(
+    ioc_record_factory: IocRecordFactory, caplog, type: str, subtype: str
+):
+    """Test that an unknown field type logs the expected errors"""
+
+    field_info = FieldInfo(type, subtype, None)
+    ioc_record_factory.create_record(EpicsName("TEST:NAME"), field_info, {})
+
+    assert f"Unrecognised type {(type, subtype)} while processing record" in caplog.text

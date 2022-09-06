@@ -459,7 +459,7 @@ class StringRecordLabelValidator:
     def validate(self, record: RecordWrapper, new_val: str):
         if new_val in self.labels:
             return True
-        logging.warning(f"Value {new_val} not valid for record {record.name}")
+        logging.error(f"Value {new_val} not valid for record {record.name}")
         return False
 
 
@@ -1502,6 +1502,9 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, ScalarRecordValue],
     ) -> Dict[EpicsName, RecordInfo]:
+        # Don't use an mbbIn record, as many labels are too long to fit into EPICS
+        # restricted-length labels. As you cannot write to this record, it's fine to
+        # just have a string
         return {
             record_name: self._create_record_info(
                 record_name,

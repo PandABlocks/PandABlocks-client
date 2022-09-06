@@ -93,11 +93,10 @@ def hdf5_subprocess_ioc(
             # Should never take anywhere near 10 seconds to terminate, it's just there
             # to ensure the test doesn't hang indefinitely during cleanup
 
-    if len(caplog.messages) > 0:
-        # We expect all tests to pass without warnings (or worse) logged.
-        assert (
-            False
-        ), f"At least one warning/error/exception logged during test: {caplog.records}"
+    # We expect all tests to pass without warnings (or worse) logged.
+    assert (
+        len(caplog.messages) == 0
+    ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
 @pytest.mark.asyncio
