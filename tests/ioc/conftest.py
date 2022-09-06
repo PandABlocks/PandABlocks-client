@@ -462,7 +462,7 @@ def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Ge
 def mocked_time_record_updater():
     """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
     base_record = MagicMock()
-    base_record.name = "PREFIX:BASE:RECORD"
+    base_record.name = TEST_PREFIX + ":BASE:RECORD"
 
     # We don't have AsyncMock in Python3.7, so do it ourselves
     client = MagicMock()
@@ -472,7 +472,7 @@ def mocked_time_record_updater():
 
     mocked_record_info = MagicMock()
     mocked_record_info.record = MagicMock()
-    mocked_record_info.record.name = EpicsName("PREFIX:TEST:STR")
+    mocked_record_info.record.name = EpicsName(TEST_PREFIX + ":TEST:STR")
 
     return _TimeRecordUpdater(
         mocked_record_info,
@@ -480,5 +480,6 @@ def mocked_time_record_updater():
         {},
         ["TEST1", "TEST2", "TEST3"],
         base_record,
+        TEST_PREFIX,
         True,
     )

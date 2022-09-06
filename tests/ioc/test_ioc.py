@@ -662,7 +662,7 @@ async def test_time_record_updater_update_egu(
     # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
     # to a memory address so will always vary
     put_field_args = db_put_field.call_args.args
-    expected_args = ["PREFIX:BASE:RECORD.EGU", fields.DBF_STRING, 1]
+    expected_args = [TEST_PREFIX + ":BASE:RECORD.EGU", fields.DBF_STRING, 1]
     for arg in expected_args:
         assert arg in put_field_args
     assert type(put_field_args[2]) == int
@@ -687,7 +687,7 @@ async def test_time_record_updater_update_drvl(
     # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
     # to a memory address so will always vary
     put_field_args = db_put_field.call_args.args
-    expected_args = ["PREFIX:BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
+    expected_args = [TEST_PREFIX + ":BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
     for arg in expected_args:
         assert arg in put_field_args
     assert type(put_field_args[2]) == int

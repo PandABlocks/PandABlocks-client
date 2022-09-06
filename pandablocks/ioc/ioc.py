@@ -385,6 +385,7 @@ class _TimeRecordUpdater(_RecordUpdater):
     of `time` do not have a `MIN` attribute."""
 
     base_record: RecordWrapper
+    record_prefix: str
     is_type_time: bool
 
     async def update(self, new_val: Any):
@@ -427,9 +428,9 @@ class _TimeRecordUpdater(_RecordUpdater):
         # UNITS record is updated. Retrieve the new value and set it into DRVL.
 
         # Remove the EPICS name prefix
-        # TODO: This is rather Diamond-specific... Should really get the record prefix
-        # that we already have somewhere and trim it off here...
-        record_name = self.record_info.record.name.split(":", maxsplit=1)[1]
+        record_name = self.record_info.record.name.replace(
+            self.record_prefix + ":", "", 1
+        )
 
         # Trim off the last component to find the base record
         base_record_name = record_name.rsplit(":", maxsplit=1)[0]
@@ -689,6 +690,7 @@ class IocRecordFactory:
             self._all_values_dict,
             labels,
             time_record_info.record,
+            self._record_prefix,
             isinstance(field_info, TimeFieldInfo),
         )
 
