@@ -1872,6 +1872,9 @@ async def update(
                 mode_record.update_table(value_list)
 
             await asyncio.sleep(poll_period)
+        # Only here for testing purposes
+        except asyncio.CancelledError:
+            break
         except Exception:
             logging.exception("Exception while processing updates from PandA")
             continue
