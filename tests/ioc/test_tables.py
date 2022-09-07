@@ -6,10 +6,10 @@ import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput, purge_channel_caches
 from conftest import TEST_PREFIX, TIMEOUT
-from mock import AsyncMock
+from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, ndarray
-from softioc import alarm
+from softioc import alarm, fields
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
@@ -155,7 +155,49 @@ async def test_create_softioc_update_table(
 
     finally:
         monitor.close()
-        purge_channel_caches()
+
+
+@pytest.mark.asyncio
+async def test_create_softioc_update_index_drvh(
+    dummy_server_system: DummyServer,
+    subprocess_ioc,
+    table_unpacked_data,
+):
+    """Test that changing the size of the table changes the DRVH value of
+    the :INDEX record"""
+
+    # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
+    # to all zero values. Include some trailing empty changesets to ensure test code has
+    # time to run.
+    dummy_server_system.send += [
+        "!SEQ1.TABLE<\n.",
+        # Deliberate concatenation here
+        "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
+        "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
+        "!2222\n.",
+        ".",
+        ".",
+    ]
+
+    # All elements in the table_unpacked_data are the same length, so just take the
+    # length of the first one
+    table_length = len(next(iter(table_unpacked_data.values())))
+
+    try:
+        # Set up a monitor to wait for the expected change
+        drvh_queue: asyncio.Queue = asyncio.Queue()
+        monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:INDEX.DRVH", drvh_queue.put)
+
+        curr_val: int = await asyncio.wait_for(drvh_queue.get(), 2)
+        # First response is the current value (0-indexed hence -1 )
+        assert curr_val == table_length - 1
+
+        # Wait for the new value to appear
+        curr_val = await asyncio.wait_for(drvh_queue.get(), 10)
+        assert curr_val == table_length + 2 - 1
+
+    finally:
+        monitor.close()
 
 
 @pytest.mark.asyncio
@@ -555,7 +597,9 @@ async def test_table_updater_update_mode_other(
     table_updater.mode_record_info.record.set.assert_not_called()
 
 
+@patch("pandablocks.ioc._tables.db_put_field")
 def test_table_updater_update_table(
+    db_put_field: MagicMock,
     table_updater: TableUpdater,
     table_data: List[str],
     table_unpacked_data: Dict[EpicsName, ndarray],
@@ -581,6 +625,17 @@ def test_table_updater_update_table(
         numpy.testing.assert_array_equal(data, called_args[0][0])
 
     table_updater._update_scalar.assert_called()
+
+    db_put_field.assert_called_once()
+
+    # Check the expected arguments are passed to db_put_field.
+    # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
+    # to a memory address so will always vary
+    put_field_args = db_put_field.call_args.args
+    expected_args = ["SEQ1:TABLE:INDEX.DRVH", fields.DBF_LONG, 1]
+    for arg in expected_args:
+        assert arg in put_field_args
+    assert type(put_field_args[2]) == int
 
 
 def test_table_updater_update_table_not_view(

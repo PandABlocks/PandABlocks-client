@@ -7,7 +7,8 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
-from softioc import alarm, builder
+from softioc import alarm, builder, fields
+from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
@@ -356,9 +357,7 @@ class TableUpdater:
             initial_value=DEFAULT_INDEX,
             on_update=self.update_index,
             DRVL=0,
-            DRVH=self.field_info.max_length - 1,
-            # Can't dynamically set DRVH to current length of table,
-            # best we can do is max possible length.
+            DRVH=data.size - 1,
         )
 
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
@@ -511,6 +510,9 @@ class TableUpdater:
                 # Must skip processing as the validate method would reject the update
                 field_record.record_info.record.set(data, process=False)
                 self._update_scalar(field_record.record_info.record.name)
+
+            # All items in field_data have the same length, so just use 0th.
+            self._update_index_drvh(field_data[0])
         else:
             # No other mode allows PandA updates to EPICS records
             logging.warning(
@@ -562,3 +564,14 @@ class TableUpdater:
         # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
         # alarm value to UDF_ALARM, but I'm specifying it for clarity.
         scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
+
+    def _update_index_drvh(self, data: UnpackedArray):
+        """Set the DRVH value of the index record based on the newly set data length"""
+        # Note the -1 to account for zero indexing
+        c_data = np.require(data.size - 1, dtype=np.int32)
+        db_put_field(
+            f"{self.index_record.name}.DRVH",
+            fields.DBF_LONG,
+            c_data.ctypes.data,
+            1,
+        )
