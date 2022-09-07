@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import numpy
 import pytest
-from aioca import caget, camonitor, caput, purge_channel_caches
+from aioca import caget, camonitor, caput
 from conftest import TEST_PREFIX, TIMEOUT
 from numpy import ndarray
 
@@ -132,7 +132,6 @@ async def test_create_softioc_update(
 
     finally:
         monitor.close()
-        purge_channel_caches()
 
 
 # TODO: Enable this test once PythonSoftIOC issue #53 is resolved
@@ -231,42 +230,45 @@ async def test_create_softioc_time_panda_changes(
     # Check that the server has started, and has drained all messages
     assert not dummy_server_time.expected_message_responses
 
-    # Set up monitors for expected changes when the UNITS are changed,
-    # and check the initial values are correct
-    egu_queue: asyncio.Queue = asyncio.Queue()
-    m1 = camonitor(
-        TEST_PREFIX + ":PULSE1:DELAY.EGU",
-        egu_queue.put,
-    )
-    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
+    try:
+        # Set up monitors for expected changes when the UNITS are changed,
+        # and check the initial values are correct
+        egu_queue: asyncio.Queue = asyncio.Queue()
+        m1 = camonitor(
+            TEST_PREFIX + ":PULSE1:DELAY.EGU",
+            egu_queue.put,
+        )
+        assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
-    units_queue: asyncio.Queue = asyncio.Queue()
-    m2 = camonitor(TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str)
-    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
+        units_queue: asyncio.Queue = asyncio.Queue()
+        m2 = camonitor(
+            TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
+        )
+        assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
-    drvl_queue: asyncio.Queue = asyncio.Queue()
-    m3 = camonitor(
-        TEST_PREFIX + ":PULSE1:DELAY.DRVL",
-        drvl_queue.put,
-    )
-    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
+        drvl_queue: asyncio.Queue = asyncio.Queue()
+        m3 = camonitor(
+            TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+            drvl_queue.put,
+        )
+        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
 
-    # These will be responses to repeated *CHANGES? requests made, once per second
-    dummy_server_time.send += ["!PULSE.DELAY=0.1\n!PULSE1.DELAY.UNITS=s\n."]
-    dummy_server_time.send += ["."] * 5
+        # These will be responses to repeated *CHANGES? requests made, once per second
+        dummy_server_time.send += ["!PULSE.DELAY=0.1\n!PULSE1.DELAY.UNITS=s\n."]
+        dummy_server_time.send += ["."] * 5
 
-    # Changing the UNITS should trigger a request for the MIN
-    dummy_server_time.expected_message_responses.update(
-        {"PULSE1.DELAY.MIN?": "OK =8e-09"}
-    )
+        # Changing the UNITS should trigger a request for the MIN
+        dummy_server_time.expected_message_responses.update(
+            {"PULSE1.DELAY.MIN?": "OK =8e-09"}
+        )
 
-    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "s"
-    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "s"
-    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-09
-
-    m1.close()
-    m2.close()
-    m3.close()
+        assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "s"
+        assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "s"
+        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-09
+    finally:
+        m1.close()
+        m2.close()
+        m3.close()
 
 
 @pytest.mark.asyncio
@@ -279,49 +281,52 @@ async def test_create_softioc_time_epics_changes(
     # Check that the server has started, and has drained all messages
     assert not dummy_server_time.expected_message_responses
 
-    # Set up monitors for expected changes when the UNITS are changed,
-    # and check the initial values are correct
-    egu_queue: asyncio.Queue = asyncio.Queue()
-    m1 = camonitor(
-        TEST_PREFIX + ":PULSE1:DELAY.EGU",
-        egu_queue.put,
-    )
-    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
+    try:
+        # Set up monitors for expected changes when the UNITS are changed,
+        # and check the initial values are correct
+        egu_queue: asyncio.Queue = asyncio.Queue()
+        m1 = camonitor(
+            TEST_PREFIX + ":PULSE1:DELAY.EGU",
+            egu_queue.put,
+        )
+        assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
-    units_queue: asyncio.Queue = asyncio.Queue()
-    m2 = camonitor(TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str)
-    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
+        units_queue: asyncio.Queue = asyncio.Queue()
+        m2 = camonitor(
+            TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
+        )
+        assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
-    drvl_queue: asyncio.Queue = asyncio.Queue()
-    m3 = camonitor(
-        TEST_PREFIX + ":PULSE1:DELAY.DRVL",
-        drvl_queue.put,
-    )
-    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
+        drvl_queue: asyncio.Queue = asyncio.Queue()
+        m3 = camonitor(
+            TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+            drvl_queue.put,
+        )
+        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
 
-    # We should send one message to set the UNITS, and a second to query the new MIN
-    dummy_server_time.expected_message_responses.update(
-        [
-            ("PULSE1.DELAY.UNITS=min", "OK"),
-            ("PULSE1.DELAY.MIN?", "OK =1.333333333e-10"),
-        ]
-    )
+        # We should send one message to set the UNITS, and a second to query the new MIN
+        dummy_server_time.expected_message_responses.update(
+            [
+                ("PULSE1.DELAY.UNITS=min", "OK"),
+                ("PULSE1.DELAY.MIN?", "OK =1.333333333e-10"),
+            ]
+        )
 
-    # Change the UNITS
-    assert await caput(
-        TEST_PREFIX + ":PULSE1:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
-    )
+        # Change the UNITS
+        assert await caput(
+            TEST_PREFIX + ":PULSE1:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
+        )
 
-    assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
-    assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "min"
-    assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 1.333333333e-10
+        assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
+        assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "min"
+        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 1.333333333e-10
 
-    # Confirm the second round of expected messages were found
-    assert not dummy_server_time.expected_message_responses
-
-    m1.close()
-    m2.close()
-    m3.close()
+        # Confirm the second round of expected messages were found
+        assert not dummy_server_time.expected_message_responses
+    finally:
+        m1.close()
+        m2.close()
+        m3.close()
 
 
 @pytest.mark.asyncio

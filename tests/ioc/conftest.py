@@ -9,6 +9,7 @@ from typing import Dict, Generator, List
 
 import pytest
 import pytest_asyncio
+from aioca import purge_channel_caches
 from epicsdbbuilder import ResetRecords
 from mock import MagicMock, patch
 from numpy import array, int32, ndarray, uint8, uint16, uint32
@@ -40,7 +41,7 @@ def enable_codecov_multiprocess():
     return
 
 
-@pytest.fixture()
+@pytest.fixture
 def caplog_workaround():
     """Create a logger handler to capture all log messages done in child process,
     then print them to the main thread's stdout/stderr so pytest's caplog fixture
@@ -88,6 +89,14 @@ def custom_logger():
     sh = logging.StreamHandler(sys.stderr)
     sh.setLevel(logging.WARNING)
     logging.getLogger("").addHandler(sh)
+
+
+@pytest.fixture(autouse=True)
+def aioca_cleanup():
+    """Purge the aioca channel cache as the test terminates.
+    This suppresses spurious "IOC disconnected" error messages"""
+    yield
+    purge_channel_caches()
 
 
 @pytest.fixture

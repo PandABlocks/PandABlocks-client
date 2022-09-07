@@ -12,7 +12,7 @@ import h5py
 import numpy
 import pytest
 import pytest_asyncio
-from aioca import caget, camonitor, caput, purge_channel_caches
+from aioca import caget, camonitor, caput
 from conftest import TIMEOUT, custom_logger
 from mock.mock import AsyncMock, MagicMock, patch
 from softioc import asyncio_dispatcher, builder, softioc
@@ -217,8 +217,6 @@ async def test_hdf5_file_writing(
     assert await asyncio.wait_for(capturing_queue.get(), timeout=10) == 0
 
     m.close()
-    # Necessary aioca teardown code, to purge the channels before the event loop goes
-    purge_channel_caches()
 
     # Close capture, thus closing hdf5 file
     await caput(HDF5_PREFIX + ":Capture", 0, wait=True)

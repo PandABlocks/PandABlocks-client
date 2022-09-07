@@ -4,7 +4,7 @@ from typing import Dict, List
 import numpy
 import numpy.testing
 import pytest
-from aioca import caget, camonitor, caput, purge_channel_caches
+from aioca import caget, camonitor, caput
 from conftest import TEST_PREFIX, TIMEOUT
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
@@ -91,6 +91,7 @@ def table_updater(
     # Put mocks into TableUpdater
     updater.mode_record_info = mode_record_info
     updater.index_record = MagicMock()
+    updater.index_record.name = "SEQ1:TABLE:INDEX"
     updater.table_scalar_records[EpicsName("SEQ1:TABLE:POSITION:SCALAR")] = MagicMock()
     for field_name, table_record_container in updater.table_fields_records.items():
         assert table_record_container.record_info
@@ -266,7 +267,6 @@ async def test_create_softioc_update_table_index(
     finally:
         repeats_monitor.close()
         trigger_monitor.close()
-        purge_channel_caches()
 
 
 @pytest.mark.asyncio
@@ -299,7 +299,6 @@ async def test_create_softioc_update_table_scalars_change(
 
     finally:
         repeats_monitor.close()
-        purge_channel_caches()
 
 
 def test_table_packing_unpack(
