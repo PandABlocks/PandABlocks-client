@@ -1,6 +1,6 @@
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import (
     Any,
@@ -394,6 +394,56 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     block: str
     extended_metadata: bool = True
 
+    _commands_map: Dict[
+        Tuple[str, Optional[str]],
+        Callable[
+            [str, str, Optional[str]],
+            _FieldGeneratorType,
+        ],
+    ] = field(init=False, repr=False, default_factory=dict)
+
+    def __post_init__(self):
+
+        # Map a (type, subtype) to a method that returns the appropriate
+        # subclasss of FieldInfo, and a list of all the Commands to request.
+        # Note that fields that do not have additional attributes are not listed.
+        self._commands_map = {
+            # Order matches that of PandA server's Field Types docs
+            ("time", None): self._time,
+            ("bit_out", None): self._bit_out,
+            ("pos_out", None): self._pos_out,
+            ("ext_out", "timestamp"): self._ext_out,
+            ("ext_out", "samples"): self._ext_out,
+            ("ext_out", "bits"): self._ext_out_bits,
+            ("bit_mux", None): self._bit_mux,
+            ("pos_mux", None): self._pos_mux,
+            ("table", None): self._table,
+            ("param", "uint"): self._uint,
+            ("read", "uint"): self._uint,
+            ("write", "uint"): self._uint,
+            ("param", "int"): self._no_attributes,
+            ("read", "int"): self._no_attributes,
+            ("write", "int"): self._no_attributes,
+            ("param", "scalar"): self._scalar,
+            ("read", "scalar"): self._scalar,
+            ("write", "scalar"): self._scalar,
+            ("param", "bit"): self._no_attributes,
+            ("read", "bit"): self._no_attributes,
+            ("write", "bit"): self._no_attributes,
+            ("param", "action"): self._no_attributes,
+            ("read", "action"): self._no_attributes,
+            ("write", "action"): self._no_attributes,
+            ("param", "lut"): self._no_attributes,
+            ("read", "lut"): self._no_attributes,
+            ("write", "lut"): self._no_attributes,
+            ("param", "enum"): self._enum,
+            ("read", "enum"): self._enum,
+            ("write", "enum"): self._enum,
+            ("param", "time"): self._subtype_time,
+            ("read", "time"): self._subtype_time,
+            ("write", "time"): self._subtype_time,
+        }
+
     def _get_desc(self, field_name: str) -> GetLine:
         """Create the Command to retrieve the description"""
         return GetLine(f"*DESC.{self.block}.{field_name}")
@@ -531,9 +581,9 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
         enum_field_gets: List[GetMultiline] = []
         enum_field_names: List[str] = []
         fields_dict: Dict[str, TableFieldDetails] = {}
-        for field in fields:
+        for field_details in fields:
             # Fields are of the form <bit_high>:<bit_low> <name> <subtype>
-            bit_range, name, subtype = field.split()
+            bit_range, name, subtype = field_details.split()
             bit_high_str, bit_low_str = bit_range.split(":")
             bit_high = int(bit_high_str)
             bit_low = int(bit_low_str)
@@ -642,54 +692,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
             # so we can always unpack into subtype, even if no split occurs.
             field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
 
-            # Map a (type, subtype) to a method that returns the appropriate
-            # subclasss of FieldInfo, and a list of all the Commands to request.
-            # Note that fields that do not have additional attributes are not listed.
-            # TODO: This is static so should live somewhere not inline - but it can't
-            # live on the Dataclass itself due to Python restrictions...
-            _commands_map: Dict[
-                Tuple[str, Optional[str]],
-                Callable[
-                    [str, str, Optional[str]],
-                    _FieldGeneratorType,
-                ],
-            ] = {
-                # Order matches that of PandA server's Field Types docs
-                ("time", None): self._time,
-                ("bit_out", None): self._bit_out,
-                ("pos_out", None): self._pos_out,
-                ("ext_out", "timestamp"): self._ext_out,
-                ("ext_out", "samples"): self._ext_out,
-                ("ext_out", "bits"): self._ext_out_bits,
-                ("bit_mux", None): self._bit_mux,
-                ("pos_mux", None): self._pos_mux,
-                ("table", None): self._table,
-                ("param", "uint"): self._uint,
-                ("read", "uint"): self._uint,
-                ("write", "uint"): self._uint,
-                ("param", "int"): self._no_attributes,
-                ("read", "int"): self._no_attributes,
-                ("write", "int"): self._no_attributes,
-                ("param", "scalar"): self._scalar,
-                ("read", "scalar"): self._scalar,
-                ("write", "scalar"): self._scalar,
-                ("param", "bit"): self._no_attributes,
-                ("read", "bit"): self._no_attributes,
-                ("write", "bit"): self._no_attributes,
-                ("param", "action"): self._no_attributes,
-                ("read", "action"): self._no_attributes,
-                ("write", "action"): self._no_attributes,
-                ("param", "lut"): self._no_attributes,
-                ("read", "lut"): self._no_attributes,
-                ("write", "lut"): self._no_attributes,
-                ("param", "enum"): self._enum,
-                ("read", "enum"): self._enum,
-                ("write", "enum"): self._enum,
-                ("param", "time"): self._subtype_time,
-                ("read", "time"): self._subtype_time,
-                ("write", "time"): self._subtype_time,
-            }
-
             # Always create default FieldInfo. If necessary we will replace it later
             # with a more type-specific version.
             field_info = FieldInfo(field_type, subtype, None)
@@ -698,7 +700,7 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
                 try:
                     # Construct the list of type-specific generators
                     field_generators.append(
-                        _commands_map[(field_type, subtype)](
+                        self._commands_map[(field_type, subtype)](
                             field_name, field_type, subtype
                         )
                     )
@@ -882,14 +884,14 @@ class GetState(Command[List[str]]):
         state = [f"{k}={v}" for k, v in line_values.items()]
         # Get the multiline values
         multiline_keys, commands = [], []
-        for field in table.no_value:
+        for field_name in table.no_value:
             # Get tables as base64
-            multiline_keys.append(f"{field}<B")
-            commands.append(GetMultiline(f"{field}.B"))
-        for field in metadata.no_value:
+            multiline_keys.append(f"{field_name}<B")
+            commands.append(GetMultiline(f"{field_name}.B"))
+        for field_name in metadata.no_value:
             # Get metadata as string list
-            multiline_keys.append(f"{field}<")
-            commands.append(GetMultiline(f"{field}"))
+            multiline_keys.append(f"{field_name}<")
+            commands.append(GetMultiline(f"{field_name}"))
         multiline_values = yield from _execute_commands(*commands)
         for k, v in zip(multiline_keys, multiline_values):
             state += [k] + v + [""]

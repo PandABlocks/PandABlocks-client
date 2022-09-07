@@ -433,7 +433,7 @@ def test_get_fields_unknown_fields():
 
     assert get_responses(conn) == [
         (
-            GetFieldInfo(block="PCAP", extended_metadata=True),
+            cmd,
             {
                 "TEST1": FieldInfo(type="foo", subtype=None, description="TEST1 Desc"),
                 "TEST2": FieldInfo(

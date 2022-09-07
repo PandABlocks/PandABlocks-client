@@ -373,7 +373,7 @@ def test_table_packing_roundtrip(
 
 
 def test_table_updater_fields_sorted(table_updater: TableUpdater):
-    """Test that the field sorting done in post_init has occurred"""
+    """Test that the field sorting done in init has occurred"""
 
     # Bits start at 0
     curr_bit = -1
