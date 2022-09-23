@@ -69,16 +69,16 @@ class FieldInfo:
 
 @dataclass
 class UintFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
-    `uint`"""
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "uint"""
 
     max_val: int
 
 
 @dataclass
 class ScalarFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
-    `scalar`"""
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "scalar"""
 
     units: str
     scale: float
@@ -87,7 +87,7 @@ class ScalarFieldInfo(FieldInfo):
 
 @dataclass
 class TimeFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `time`"""
+    """Extended `FieldInfo` for fields with type "time"""
 
     units_labels: List[str]
     min_val: float
@@ -95,23 +95,23 @@ class TimeFieldInfo(FieldInfo):
 
 @dataclass
 class SubtypeTimeFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
-    `time`"""
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "time"""
 
     units_labels: List[str]
 
 
 @dataclass
 class EnumFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `param`,`read`, or `write` and subtype
-    `enum`"""
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "enum"""
 
     labels: List[str]
 
 
 @dataclass
 class BitOutFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `bit_out`"""
+    """Extended `FieldInfo` for fields with type "bit_out"""
 
     capture_word: str
     offset: int
@@ -119,7 +119,7 @@ class BitOutFieldInfo(FieldInfo):
 
 @dataclass
 class BitMuxFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `bit_mux`"""
+    """Extended `FieldInfo` for fields with type "bit_mux"""
 
     max_delay: int
     labels: List[str]
@@ -127,7 +127,7 @@ class BitMuxFieldInfo(FieldInfo):
 
 @dataclass
 class PosMuxFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `pos_mux`"""
+    """Extended `FieldInfo` for fields with type "pos_mux"""
 
     labels: List[str]
 
@@ -145,7 +145,7 @@ class TableFieldDetails:
 
 @dataclass
 class TableFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `table`"""
+    """Extended `FieldInfo` for fields with type "table"""
 
     max_length: int
     fields: Dict[str, TableFieldDetails]
@@ -154,22 +154,22 @@ class TableFieldInfo(FieldInfo):
 
 @dataclass
 class PosOutFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `pos_out`"""
+    """Extended `FieldInfo` for fields with type "pos_out"""
 
     capture_labels: List[str]
 
 
 @dataclass
 class ExtOutFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type `ext_out` and subtypes `timestamp`
-    or `samples`"""
+    """Extended `FieldInfo` for fields with type "ext_out" and subtypes "timestamp"
+    or "samples"""
 
     capture_labels: List[str]
 
 
 @dataclass
 class ExtOutBitsFieldInfo(ExtOutFieldInfo):
-    """Extended `ExtOutFieldInfo` for fields with type `ext_out` and subtype `bits`"""
+    """Extended `ExtOutFieldInfo` for fields with type "ext_out" and subtype "bits"""
 
     bits: List[str]
 
