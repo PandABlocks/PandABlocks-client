@@ -371,10 +371,8 @@ class _WriteRecordUpdater(_RecordUpdater):
     This is necessary as some PandA fields are written using e.g. \"FOO1.BAR=\"
     with no explicit value at all."""
 
-    async def update(self, new_val: Any):
-        if self.record_info.data_type_func(new_val):
-            await super().update(None)
-        return
+    async def update(self, new_val):
+        await super().update(None)
 
 
 @dataclass
