@@ -1751,6 +1751,9 @@ async def create_records(
                     if new_record in all_records:
                         raise Exception(f"Duplicate record name {new_record} detected.")
 
+                for record_info in records.values():
+                    record_info._field_info = field_info
+
                 all_records.update(records)
 
     record_factory.initialise(dispatcher)
@@ -1775,8 +1778,16 @@ async def update(
         all_values_dict: The dictionary containing the most recent value of all records
             as returned from GetChanges. This method will update values in the dict,
             which will be read and used in other places"""
+
+    fields_to_reset: List[Tuple[RecordWrapper, Any]] = []
+
     while True:
+
         try:
+            for record, value in fields_to_reset:
+                record.set(value)
+                fields_to_reset.remove((record, value))
+
             changes = await client.send(GetChanges(ChangeGroup.ALL, True))
 
             _, new_all_values_dict = _create_dicts_from_changes(changes)
@@ -1833,10 +1844,23 @@ async def update(
 
                 try:
                     if record_info._pending_change:
-                        record_info._pending_change = False  # type: ignore
+                        record_info._pending_change = False
                         if converted_value == record_info.record.get():
                             # This is most likely PandA reporting a value we just Put
                             continue
+
+                    if (
+                        record_info._field_info
+                        and record_info._field_info.type == "bit_out"
+                    ):
+                        # Its possible a bit_out field will be on for pulses shorter
+                        # than our polling time. To represent this we will invert the
+                        # value now, then set it back on the next update
+                        if converted_value == record_info.record.get():
+                            fields_to_reset.append(
+                                (record_info.record, converted_value)
+                            )
+                            converted_value = not converted_value
 
                     # Do not process, as the on_update methods push data back to PandA.
                     # Any processing that must be done at value update must be handled

@@ -6,6 +6,8 @@ from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
 
 from softioc.pythonSoftIoc import RecordWrapper
 
+from pandablocks.responses import FieldInfo
+
 
 class InErrorException(Exception):
     """Placeholder exception to mark a field as being in error as reported by PandA"""
@@ -92,7 +94,9 @@ class RecordInfo:
     `is_in_record`: Flag for whether the `record` is an "In" record type.
     `on_changes_func`: Function called during processing of *CHANGES? for this record
     `_pending_change`: Marks whether this record was just Put data to PandA, and so is
-        expecting to see the same value come back from a *CHANGES? request."""
+        expecting to see the same value come back from a *CHANGES? request.
+    '_field_info`: The FieldInfo structure associated with this record. May be a
+        subclass of FieldInfo."""
 
     record: RecordWrapper = field(init=False)
     data_type_func: Callable
@@ -101,6 +105,7 @@ class RecordInfo:
     is_in_record: bool = True
     on_changes_func: Optional[Callable[[Any], Awaitable[None]]] = None
     _pending_change: bool = field(default=False, init=False)
+    _field_info: Optional[FieldInfo] = field(default=None, init=False)
 
     def add_record(self, record: RecordWrapper) -> None:
         self.record = record

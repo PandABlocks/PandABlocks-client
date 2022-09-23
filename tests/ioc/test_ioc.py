@@ -781,7 +781,7 @@ def test_unknown_type_subtype(
 
 
 @pytest.mark.asyncio
-async def test_changes_update_on_error(caplog):
+async def test_update_on_error_marks_record(caplog):
     """Test that errors reported from *CHANGES? are correctly marked in EPICS records"""
     caplog.set_level(logging.INFO)
 
@@ -810,3 +810,39 @@ async def test_changes_update_on_error(caplog):
     record_info.record.set_alarm.assert_called_with(3, 17)
     assert "PandA reports field in error" in caplog.text
     assert "Setting record ABC1:DEF to invalid value error state." in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_update_toggles_bit_field():
+    """Test that a bit field whose value changed too fast for a *CHANGES poll
+    to detect still toggles the value of the EPICS record"""
+    client = AsyncioClient("123")
+    client.send = AsyncMock()  # type: ignore
+
+    # Pretend that ABC.DEF is a bit_out field that already has the value of 0,
+    # and then report the same value of 0 again. This represents the value
+    # changing on the PandA at a rate faster than our polling period.
+    returned_changes = Changes({"ABC.DEF": "0"}, [], [], {})
+
+    client.send.return_value = returned_changes
+
+    record_info = RecordInfo(int, is_in_record=True)
+    record_info.record = MagicMock()
+    record_info.record.get.return_value = 0
+    record_info._field_info = FieldInfo("bit_out", None, None)
+
+    all_records = {EpicsName("ABC1:DEF"): record_info}
+    poll_period = 0.1
+    all_values_dict = {}
+
+    try:
+        await asyncio.wait_for(
+            update(client, all_records, poll_period, all_values_dict), timeout=0.5
+        )
+    except asyncio.TimeoutError:
+        pass
+
+    # Note that the update() method may run more than once, so we'll get an
+    # unreliable number of calls to the set method.
+    record_info.record.set.assert_any_call(True)
+    record_info.record.set.assert_any_call(0)
