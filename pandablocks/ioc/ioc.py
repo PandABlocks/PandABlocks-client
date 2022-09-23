@@ -107,7 +107,7 @@ async def _create_softioc(
         raise RuntimeError("Unexpected state - softioc task already exists")
 
     create_softioc_task = asyncio.create_task(
-        update(client, all_records, 1, all_values_dict)
+        update(client, all_records, 0.1, all_values_dict)
     )
 
     create_softioc_task.add_done_callback(_when_finished)

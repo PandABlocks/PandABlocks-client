@@ -115,19 +115,20 @@ async def test_create_softioc_update(
 
     # Add more GetChanges data. Include some trailing empty changesets to allow test
     # code to run.
-    dummy_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n.", ".", "."]
+    dummy_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n."]
+    dummy_server_system.send += ["."] * 100
 
     try:
         # Set up a monitor to wait for the expected change
         capturing_queue: asyncio.Queue = asyncio.Queue()
         monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
 
-        curr_val = await asyncio.wait_for(capturing_queue.get(), 2)
+        curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
         assert curr_val == 1
 
         # Wait for the new value to appear
-        curr_val = await asyncio.wait_for(capturing_queue.get(), 10)
+        curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         assert curr_val == 2
 
     finally:
@@ -253,9 +254,9 @@ async def test_create_softioc_time_panda_changes(
         )
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
 
-        # These will be responses to repeated *CHANGES? requests made, once per second
+        # These will be responses to repeated *CHANGES? requests made
         dummy_server_time.send += ["!PULSE.DELAY=0.1\n!PULSE1.DELAY.UNITS=s\n."]
-        dummy_server_time.send += ["."] * 5
+        dummy_server_time.send += ["."] * 100
 
         # Changing the UNITS should trigger a request for the MIN
         dummy_server_time.expected_message_responses.update(
@@ -371,6 +372,6 @@ async def test_pending_changes_blocks_record_set(
     async def expected_messages_received():
         """Wait until the expected messages have all been received by the server"""
         while len(dummy_server_system.send) > 2:
-            asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
 
     await asyncio.wait_for(expected_messages_received(), timeout=TIMEOUT)

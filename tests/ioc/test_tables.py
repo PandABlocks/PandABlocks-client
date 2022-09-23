@@ -124,9 +124,8 @@ async def test_create_softioc_update_table(
         "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
         "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
         "!2222\n.",
-        ".",
-        ".",
     ]
+    dummy_server_system.send += ["."] * 100
 
     try:
         # Set up a monitor to wait for the expected change
@@ -176,9 +175,8 @@ async def test_create_softioc_update_index_drvh(
         "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
         "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
         "!2222\n.",
-        ".",
-        ".",
     ]
+    dummy_server_system.send += ["."] * 100
 
     # All elements in the table_unpacked_data are the same length, so just take the
     # length of the first one

@@ -388,7 +388,7 @@ def dummy_server_system(dummy_server_introspect_panda: DummyServer):
 
     # Add data for GetChanges to consume. Number of items should be bigger than
     # the sleep time given during IOC startup
-    dummy_server_introspect_panda.send += ["."] * 4
+    dummy_server_introspect_panda.send += ["."] * 50
 
     yield dummy_server_introspect_panda
 
@@ -413,7 +413,7 @@ def dummy_server_time(dummy_server_in_thread: DummyServer):
 
     # Add data for GetChanges to consume. Number of items should be bigger than
     # the sleep time given during IOC startup
-    dummy_server_in_thread.send += ["."] * 5
+    dummy_server_in_thread.send += ["."] * 50
 
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
