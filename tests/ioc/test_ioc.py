@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 from typing import Dict
 
-import numpy as np
 import pytest
 from conftest import TEST_PREFIX
 from mock import AsyncMock, patch
@@ -711,23 +710,19 @@ def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
     assert longin_rec.HOPR.Value() == max_val
 
 
-def test_uint_truncates_max_value(ioc_record_factory: IocRecordFactory, caplog):
-    """Test that we correctly truncate a too large maximum value and emit a warning"""
+def test_uint_allows_large_value(ioc_record_factory: IocRecordFactory, caplog):
+    """Test that we allow large max_values for uint fields"""
     name = EpicsName("TEST1")
     max_val = 99999999999999999999
     uint_field_info = UintFieldInfo("param", "uint", None, max_val)
 
     with caplog.at_level(logging.WARNING):
-        record_dict = ioc_record_factory._make_uint(
-            name, uint_field_info, builder.longOut
-        )
+        record_dict = ioc_record_factory._make_uint(name, uint_field_info, builder.aOut)
 
     longout_rec = record_dict[name].record
-    assert longout_rec.DRVH.Value() == np.iinfo(np.int32).max
-    assert longout_rec.HOPR.Value() == np.iinfo(np.int32).max
-
-    assert len(caplog.messages) == 1
-    assert "Restricting to int32 maximum value." in caplog.text
+    assert longout_rec.DRVH.Value() == max_val
+    assert longout_rec.HOPR.Value() == max_val
+    assert len(caplog.messages) == 0
 
 
 def test_string_record_label_validator_valid_label():

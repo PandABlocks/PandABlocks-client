@@ -1117,12 +1117,12 @@ class IocRecordFactory:
         # Ensure VAL is clamped to valid range of values.
         # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
         # which can overflow it.
-        if field_info.max_val > np.iinfo(np.int32).max:
+        if field_info.max_val > np.finfo(np.float64).max:
             logging.warning(
                 f"Configured maximum value for {record_name} was too large."
                 f"Restricting to int32 maximum value."
             )
-            max_val = np.iinfo(np.int32).max
+            max_val = np.finfo(np.float64).max
         else:
             max_val = field_info.max_val
 
@@ -1144,8 +1144,9 @@ class IocRecordFactory:
         return self._make_uint(
             record_name,
             field_info,
-            builder.longOut,
+            builder.aOut,
             initial_value=values[record_name],
+            PREC=0,
         )
 
     def _make_uint_read(
@@ -1158,8 +1159,9 @@ class IocRecordFactory:
         return self._make_uint(
             record_name,
             field_info,
-            builder.longIn,
+            builder.aIn,
             initial_value=values[record_name],
+            PREC=0,
         )
 
     def _make_uint_write(
@@ -1170,7 +1172,11 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_uint(
-            record_name, field_info, builder.longOut, always_update=True
+            record_name,
+            field_info,
+            builder.aOut,
+            always_update=True,
+            PREC=0,
         )
 
     def _make_int_param(
