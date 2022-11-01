@@ -146,7 +146,10 @@ try:
 
 
 except ImportError:
-    pass
+
+    @cli.command(hidden=True)
+    def hdf():
+        click.echo("ERROR: hdf subcommand unavailable - install 'hdf5' extras.")
 
 
 try:
@@ -165,4 +168,7 @@ try:
 
 
 except ImportError:
-    pass
+
+    @cli.command(hidden=True)
+    def softioc():
+        click.echo("ERROR: softioc subcommand unavailable - install 'softioc' extras.")
