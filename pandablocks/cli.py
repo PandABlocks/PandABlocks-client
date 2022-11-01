@@ -10,7 +10,6 @@ from click.exceptions import ClickException
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetState, SetState, T
-from pandablocks.ioc import create_softioc
 
 # Default prompt
 PROMPT = "< "
@@ -49,48 +48,53 @@ def cli(ctx, log_level: str):
         click.echo(cli.get_help(ctx))
 
 
-@cli.command()
-@click.option(
-    "--num",
-    help="Number of collections to capture",
-    default=1,
-    show_default=True,
-)
-@click.option(
-    "--arm",
-    help="Arm PCAP at the start, and after each successful acquisition",
-    is_flag=True,
-)
-@click.argument("host")
-@click.argument("scheme")
-def hdf(host: str, scheme: str, num: int, arm: bool):
-    """
-    Write an HDF file for each PCAP acquisition for HOST
+try:
+    # Local import as we might not have h5py installed and want other commands
+    # to work.
+    from pandablocks.hdf import write_hdf_files
 
-    Uses the filename pattern specified by SCHEME, including %d for scan number
-    starting from 1
-    """
+    @cli.command()
+    @click.option(
+        "--num",
+        help="Number of collections to capture",
+        default=1,
+        show_default=True,
+    )
+    @click.option(
+        "--arm",
+        help="Arm PCAP at the start, and after each successful acquisition",
+        is_flag=True,
+    )
+    @click.argument("host")
+    @click.argument("scheme")
+    def hdf(host: str, scheme: str, num: int, arm: bool):
+        """
+        Write an HDF file for each PCAP acquisition for HOST
 
-    async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
-        # Local import as we might not have h5py installed and want other commands
-        # to work
-        from pandablocks.hdf import write_hdf_files
+        Uses the filename pattern specified by SCHEME, including %d for scan number
+        starting from 1
+        """
 
-        def file_name_generator(scheme: str):
-            """Yield incrementally numbered file names based on provided scheme"""
-            counter = 1
-            while True:
-                yield scheme % counter
-                counter += 1
+        async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
+            def file_name_generator(scheme: str):
+                """Yield incrementally numbered file names based on provided scheme"""
+                counter = 1
+                while True:
+                    yield scheme % counter
+                    counter += 1
 
-        async with AsyncioClient(host) as client:
-            await write_hdf_files(
-                client, file_names=file_name_generator(scheme), num=num, arm=arm
-            )
+            async with AsyncioClient(host) as client:
+                await write_hdf_files(
+                    client, file_names=file_name_generator(scheme), num=num, arm=arm
+                )
 
-    # Don't use asyncio.run to workaround Python3.7 bug
-    # https://bugs.python.org/issue38013
-    asyncio_run(_write_hdf_files(host, scheme, num, arm))
+        # Don't use asyncio.run to workaround Python3.7 bug
+        # https://bugs.python.org/issue38013
+        asyncio_run(_write_hdf_files(host, scheme, num, arm))
+
+
+except ImportError:
+    pass
 
 
 @cli.command()
@@ -145,11 +149,20 @@ def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
     asyncio_run(_load(host, state))
 
 
-@cli.command()
-@click.argument("host")
-@click.argument("prefix")
-def softioc(host: str, prefix: str):
-    """
-    Create a soft IOC, using "prefix" for the namespace of the records.
-    """
-    create_softioc(host, prefix)
+try:
+    # Local import as we might not have softioc installed and want other commands
+    # to work
+    from pandablocks.ioc import create_softioc
+
+    @cli.command()
+    @click.argument("host")
+    @click.argument("prefix")
+    def softioc(host: str, prefix: str):
+        """
+        Create a soft IOC, using "prefix" for the namespace of the records.
+        """
+        create_softioc(host, prefix)
+
+
+except ImportError:
+    pass
