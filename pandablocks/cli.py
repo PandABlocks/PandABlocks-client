@@ -144,7 +144,6 @@ try:
         # https://bugs.python.org/issue38013
         asyncio_run(_write_hdf_files(host, scheme, num, arm))
 
-
 except ImportError:
 
     @cli.command(hidden=True)
@@ -165,7 +164,6 @@ try:
         Create a soft IOC, using "prefix" for the namespace of the records.
         """
         create_softioc(host, prefix)
-
 
 except ImportError:
 

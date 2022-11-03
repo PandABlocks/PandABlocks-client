@@ -5,7 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 # Pinning black stops us having to allow pre-releases globally
-black = "==21.7b0"
+black = "*"
 # Pins to make lockfile usable on multiple Python versions and platforms
 mypy = "*"
 atomicwrites = "*"
@@ -13,7 +13,7 @@ typed-ast = "*"
 # Test and docs dependencies
 pytest-cov = "*"
 pytest-mypy = "*"
-flake8 = "==3.9.2" # https://github.com/tholo/pytest-flake8/issues/81
+flake8 = "==4.0.1" # https://github.com/tholo/pytest-flake8/issues/87 - will stop being an issue when we move to a new skeleton
 pytest-flake8 = "*"
 pytest-black = "*"
 mock = "*"
@@ -21,6 +21,7 @@ types-mock = "*"
 pytest-asyncio = "*"
 flake8-isort = "*"
 isort = ">5.0"
+sphinx = "==4.3.2"
 sphinx-rtd-theme = "*"
 aioca = "*"
 
@@ -30,7 +31,6 @@ pandablocks = {editable = true, extras = ["hdf5", "softioc"], path = "."}
 # Pins to make lockfile usable on multiple Python versions and platforms
 numpy = "*"
 typing-extensions = "*"
-importlib-metadata = "*"
 
 [scripts]
 tests = "python -m pytest"
