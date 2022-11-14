@@ -1,9 +1,10 @@
 # Various new or derived types/classes and helper functions for the IOC module
-# Mostly exists to avoid circular dependencies.
 import logging
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
 
+from pvi.device import Component, SignalR, SignalRW, TextRead, TextWrite
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.responses import FieldInfo
@@ -80,6 +81,41 @@ ZNAM_STR = "0"
 ONAM_STR = "1"
 
 
+class PviGroup(Enum):
+    """Categories to group record display widgets"""
+
+    NONE = None  # This marks a top-level group
+    INPUTS = "Inputs"
+    PARAMETERS = "Parameters"
+    READBACKS = "Readbacks"
+    OUTPUTS = "Outputs"
+
+
+@dataclass
+class PviInfo:
+    """A container for PVI related information for a record
+
+    `group`: The group that this info is a part of
+    `component`: The PVI Component used for rendering"""
+
+    group: PviGroup
+    component: Component
+
+
+def make_pvi_info(group: PviGroup, record_name: str, writeable: bool) -> PviInfo:
+    """Create the most common forms of the `PviInfo` structure
+    NOTE: The component is sometimes overwritten at a later time, to handle
+    edge cases.
+    TODO: Don't do that."""
+    component: Component
+    if writeable:
+        component = SignalRW(record_name, record_name, TextWrite())
+    else:
+        component = SignalR(record_name, record_name, TextRead())
+
+    return PviInfo(group, component)
+
+
 @dataclass
 class RecordInfo:
     """A container for a record and extra information needed to later update
@@ -95,8 +131,9 @@ class RecordInfo:
     `on_changes_func`: Function called during processing of *CHANGES? for this record
     `_pending_change`: Marks whether this record was just Put data to PandA, and so is
         expecting to see the same value come back from a *CHANGES? request.
-    '_field_info`: The FieldInfo structure associated with this record. May be a
-        subclass of FieldInfo."""
+    `_field_info`: The FieldInfo structure associated with this record. May be a
+        subclass of FieldInfo.
+    `pvi_info`: The PviInfo structure that defines how PVI should render it"""
 
     record: RecordWrapper = field(init=False)
     data_type_func: Callable
@@ -106,6 +143,7 @@ class RecordInfo:
     on_changes_func: Optional[Callable[[Any], Awaitable[None]]] = None
     _pending_change: bool = field(default=False, init=False)
     _field_info: Optional[FieldInfo] = field(default=None, init=False)
+    _pvi_info: Optional[PviInfo] = field(default=None, init=False)
 
     def add_record(self, record: RecordWrapper) -> None:
         self.record = record

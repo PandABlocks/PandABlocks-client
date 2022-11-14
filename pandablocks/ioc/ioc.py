@@ -31,12 +31,15 @@ from pandablocks.ioc._types import (
     EpicsName,
     InErrorException,
     PandAName,
+    PviGroup,
+    PviInfo,
     RecordInfo,
     RecordValue,
     ScalarRecordValue,
     check_num_labels,
     device_and_record_to_panda_name,
     epics_to_panda_name,
+    make_pvi_info,
     panda_to_epics_name,
     trim_description,
     trim_string_value,
@@ -545,6 +548,7 @@ class IocRecordFactory:
         description: Optional[str],
         record_creation_func: Callable,
         data_type_func: Callable,
+        group: PviGroup,
         labels: List[str] = [],
         *args,
         **kwargs,
@@ -564,6 +568,7 @@ class IocRecordFactory:
             data_type_func: The function to use to convert the value returned
                 from GetChanges, which will always be a string, into a type appropriate
                 for the record e.g. int, float.
+            group: The group that this record will be displayed in for PVI.
             labels: If the record type being created is a mbbi or mbbo
                 record, provide the list of valid labels here.
             *args: Additional arguments that will be passed through to the
@@ -638,6 +643,10 @@ class IocRecordFactory:
         # in order to create the record
         record_info.add_record(record)
 
+        record_info._pvi_info = make_pvi_info(
+            group, record_name, record_creation_func in OUT_RECORD_FUNCTIONS
+        )
+
         return record_info
 
     def _make_time(
@@ -658,6 +667,7 @@ class IocRecordFactory:
             field_info.description,
             record_creation_func,
             float,
+            PviGroup.PARAMETERS,
             **kwargs,
         )
 
@@ -678,6 +688,7 @@ class IocRecordFactory:
             "Units of time setting",
             builder.mbbOut,
             type(initial_index),
+            PviGroup.PARAMETERS,
             labels=labels,
             initial_value=initial_index,
             on_update=lambda v: updater.update(v),
@@ -769,12 +780,13 @@ class IocRecordFactory:
         self._check_num_values(values, 1)
         assert isinstance(field_info, BitOutFieldInfo)
 
-        record_dict = {}
+        record_dict: Dict[EpicsName, RecordInfo] = {}
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             builder.boolIn,
             int,
+            PviGroup.OUTPUTS,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             initial_value=values[record_name],
@@ -786,6 +798,7 @@ class IocRecordFactory:
             "Name of field containing this bit",
             builder.stringIn,
             type(field_info.capture_word),
+            PviGroup.OUTPUTS,
             initial_value=field_info.capture_word,
         )
 
@@ -795,8 +808,11 @@ class IocRecordFactory:
             "Position of this bit in captured word",
             builder.longIn,
             type(field_info.offset),
+            PviGroup.OUTPUTS,
             initial_value=field_info.offset,
         )
+
+        # TODO: Is this section supposed to be a table?
 
         return record_dict
 
@@ -810,11 +826,14 @@ class IocRecordFactory:
         assert isinstance(field_info, PosOutFieldInfo)
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
+        # TODO: This should be a table?
+
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
             builder.longIn,
             int,
+            PviGroup.OUTPUTS,
             initial_value=values[record_name],
         )
 
@@ -827,6 +846,7 @@ class IocRecordFactory:
             "Capture options",
             builder.mbbOut,
             int,
+            PviGroup.PARAMETERS,
             labels=labels,
             initial_value=capture_index,
         )
@@ -837,6 +857,7 @@ class IocRecordFactory:
             "Offset",
             builder.aOut,
             float,
+            PviGroup.PARAMETERS,
             initial_value=values[offset_record_name],
         )
 
@@ -846,6 +867,7 @@ class IocRecordFactory:
             "Scale factor",
             builder.aOut,
             float,
+            PviGroup.PARAMETERS,
             initial_value=values[scale_record_name],
         )
 
@@ -855,8 +877,11 @@ class IocRecordFactory:
             "Units string",
             builder.stringOut,
             str,
+            PviGroup.PARAMETERS,
             initial_value=values[units_record_name],
         )
+
+        # TODO: SCALED and POSITIONS table PviInfo
 
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
@@ -924,7 +949,7 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutFieldInfo)
-        record_dict = {}
+        record_dict: Dict[EpicsName, RecordInfo] = {}
 
         # There is no record for the ext_out field itself - the only thing
         # you do with them is to turn their Capture attribute on/off.
@@ -939,6 +964,7 @@ class IocRecordFactory:
             field_info.description,
             builder.mbbOut,
             int,
+            PviGroup.OUTPUTS,
             labels=labels,
             initial_value=capture_index,
         )
@@ -995,6 +1021,8 @@ class IocRecordFactory:
                 DESC="Name of field connected to this BIT",
             )
 
+        # PVI TODO: Not sure how to represent these ones
+
         return record_dict
 
     def _make_bit_mux(
@@ -1019,8 +1047,13 @@ class IocRecordFactory:
             field_info.description,
             builder.stringOut,
             str,
+            PviGroup.INPUTS,
             initial_value=values[record_name],
             validate=validator.validate,
+        )
+
+        record_dict[record_name]._pvi_info = PviInfo(
+            PviGroup.OUTPUTS, SignalR(record_name, record_name, TextRead())
         )
 
         delay_record_name = EpicsName(record_name + ":DELAY")
@@ -1029,7 +1062,12 @@ class IocRecordFactory:
             "Clock delay on input",
             builder.longOut,
             int,
+            PviGroup.INPUTS,
             initial_value=values[delay_record_name],
+        )
+
+        record_dict[delay_record_name]._pvi_info = PviInfo(
+            PviGroup.INPUTS, SignalRW(delay_record_name, delay_record_name, TextWrite())
         )
 
         max_delay_record_name = EpicsName(record_name + ":MAX_DELAY")
@@ -1038,6 +1076,7 @@ class IocRecordFactory:
             "Maximum valid input delay",
             builder.longIn,
             type(field_info.max_delay),
+            PviGroup.INPUTS,
             initial_value=field_info.max_delay,
         )
 
@@ -1067,6 +1106,7 @@ class IocRecordFactory:
             field_info.description,
             builder.stringOut,
             str,
+            PviGroup.INPUTS,
             initial_value=values[record_name],
             validate=validator.validate,
         )
@@ -1101,6 +1141,7 @@ class IocRecordFactory:
         record_name: EpicsName,
         field_info: FieldInfo,
         record_creation_func: Callable,
+        group: PviGroup,
         **kwargs,
     ) -> Dict[EpicsName, RecordInfo]:
         assert isinstance(field_info, UintFieldInfo)
@@ -1111,6 +1152,7 @@ class IocRecordFactory:
             field_info.description,
             record_creation_func,
             int,
+            group,
             **kwargs,
         )
 
@@ -1145,6 +1187,7 @@ class IocRecordFactory:
             record_name,
             field_info,
             builder.aOut,
+            PviGroup.PARAMETERS,
             initial_value=values[record_name],
             PREC=0,
         )
@@ -1160,6 +1203,7 @@ class IocRecordFactory:
             record_name,
             field_info,
             builder.aIn,
+            PviGroup.READBACKS,
             initial_value=values[record_name],
             PREC=0,
         )
@@ -1175,10 +1219,12 @@ class IocRecordFactory:
             record_name,
             field_info,
             builder.aOut,
+            PviGroup.OUTPUTS,  # TODO: Is this right? No examples to follow
             always_update=True,
             PREC=0,
         )
 
+    # TODO: Why don't I have a _make_int()? I do for other similar types
     def _make_int_param(
         self,
         record_name: EpicsName,
@@ -1193,6 +1239,7 @@ class IocRecordFactory:
                 field_info.description,
                 builder.longOut,
                 int,
+                PviGroup.PARAMETERS,
                 initial_value=values[record_name],
             )
         }
@@ -1211,6 +1258,7 @@ class IocRecordFactory:
                 field_info.description,
                 builder.longIn,
                 int,
+                PviGroup.READBACKS,
                 initial_value=values[record_name],
             )
         }
@@ -1228,6 +1276,7 @@ class IocRecordFactory:
                 field_info.description,
                 builder.longOut,
                 int,
+                PviGroup.PARAMETERS,
                 always_update=True,
             )
         }
@@ -1244,7 +1293,12 @@ class IocRecordFactory:
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
-            record_name, field_info.description, record_creation_func, float, **kwargs
+            record_name,
+            field_info.description,
+            record_creation_func,
+            float,
+            PviGroup.READBACKS,
+            **kwargs,
         )
 
         offset_record_name = EpicsName(record_name + ":OFFSET")
@@ -1253,6 +1307,7 @@ class IocRecordFactory:
             "Offset from scaled data to value",
             builder.aIn,
             type(field_info.offset),
+            PviGroup.READBACKS,
             initial_value=field_info.offset,
         )
 
@@ -1262,6 +1317,7 @@ class IocRecordFactory:
             "Scaling from raw data to value",
             builder.aIn,
             type(field_info.scale),
+            PviGroup.READBACKS,
             initial_value=field_info.scale,
         )
 
@@ -1271,6 +1327,7 @@ class IocRecordFactory:
             "Units associated with value",
             builder.stringIn,
             type(field_info.units),
+            PviGroup.READBACKS,
             initial_value=field_info.units,
         )
 
@@ -1320,6 +1377,7 @@ class IocRecordFactory:
         record_name: EpicsName,
         field_info: FieldInfo,
         record_creation_func: Callable,
+        group: PviGroup,
         **kwargs,
     ) -> Dict[EpicsName, RecordInfo]:
 
@@ -1329,6 +1387,7 @@ class IocRecordFactory:
                 field_info.description,
                 record_creation_func,
                 int,
+                group,
                 ZNAM=ZNAM_STR,
                 ONAM=ONAM_STR,
                 **kwargs,
@@ -1346,6 +1405,7 @@ class IocRecordFactory:
             record_name,
             field_info,
             builder.boolOut,
+            PviGroup.PARAMETERS,
             initial_value=values[record_name],
         )
 
@@ -1360,6 +1420,7 @@ class IocRecordFactory:
             record_name,
             field_info,
             builder.boolIn,
+            PviGroup.READBACKS,
             initial_value=values[record_name],
         )
 
@@ -1371,7 +1432,11 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_bit(
-            record_name, field_info, builder.boolOut, always_update=True
+            record_name,
+            field_info,
+            builder.boolOut,
+            PviGroup.OUTPUTS,  # TODO: Is this right? No examples to follow
+            always_update=True,
         )
 
     def _make_action_read(
@@ -1401,10 +1466,16 @@ class IocRecordFactory:
             field_info.description,
             builder.Action,
             int,  # not bool, as that'll treat string "0" as true
+            PviGroup.OUTPUTS,  # TODO: Not sure what group to use
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             on_update=lambda v: updater.update(v),
         )
+
+        # TODO: Work out how to not override this here, its a terrible pattern
+        # TODO: What value do I write? PandA uses an empty string
+        assert record_info._pvi_info
+        record_info._pvi_info.component = SignalX(record_name, record_name, value="")
 
         updater = _WriteRecordUpdater(
             record_info, self._client, self._all_values_dict, None
@@ -1419,12 +1490,18 @@ class IocRecordFactory:
         record_name: EpicsName,
         field_info: FieldInfo,
         record_creation_func: Callable,
+        group: PviGroup,
         **kwargs,
     ) -> Dict[EpicsName, RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
         return {
             record_name: self._create_record_info(
-                record_name, field_info.description, record_creation_func, str, **kwargs
+                record_name,
+                field_info.description,
+                record_creation_func,
+                str,
+                group,
+                **kwargs,
             ),
         }
 
@@ -1439,6 +1516,7 @@ class IocRecordFactory:
             record_name,
             field_info,
             builder.stringOut,
+            PviGroup.PARAMETERS,
             initial_value=values[record_name],
         )
 
@@ -1453,6 +1531,7 @@ class IocRecordFactory:
             record_name,
             field_info,
             builder.stringIn,
+            PviGroup.READBACKS,  # TODO: Is this right? No examples to follow
             initial_value=values[record_name],
         )
 
@@ -1464,7 +1543,11 @@ class IocRecordFactory:
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_lut(
-            record_name, field_info, builder.stringOut, always_update=True
+            record_name,
+            field_info,
+            builder.stringOut,
+            PviGroup.OUTPUTS,  # TODO: Is this right? No examples to follow
+            always_update=True,
         )
 
     def _make_enum(
@@ -1473,6 +1556,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, ScalarRecordValue],
         record_creation_func: Callable,
+        group: PviGroup,
         **kwargs,
     ) -> Dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
@@ -1488,6 +1572,7 @@ class IocRecordFactory:
                 field_info.description,
                 record_creation_func,
                 int,
+                group,
                 labels=labels,
                 initial_value=index_value,
                 **kwargs,
@@ -1500,7 +1585,9 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, ScalarRecordValue],
     ) -> Dict[EpicsName, RecordInfo]:
-        return self._make_enum(record_name, field_info, values, builder.mbbOut)
+        return self._make_enum(
+            record_name, field_info, values, builder.mbbOut, PviGroup.PARAMETERS
+        )
 
     def _make_enum_read(
         self,
@@ -1512,11 +1599,13 @@ class IocRecordFactory:
         # restricted-length labels. As you cannot write to this record, it's fine to
         # just have a string
         return {
+            # TODO: Determining the PviGroup here is VERY fragile
             record_name: self._create_record_info(
                 record_name,
                 field_info.description,
                 builder.stringIn,
                 str,
+                PviGroup.NONE if record_name.endswith("HEALTH") else PviGroup.READBACKS,
                 initial_value=values[record_name],
             )
         }
@@ -1532,7 +1621,12 @@ class IocRecordFactory:
         # Values are not returned for write fields. Create data for label parsing.
         values = {record_name: field_info.labels[0]}
         return self._make_enum(
-            record_name, field_info, values, builder.mbbOut, always_update=True
+            record_name,
+            field_info,
+            values,
+            builder.mbbOut,
+            PviGroup.OUTPUTS,  # TODO: Is this right? No examples to follow
+            always_update=True,
         )
 
     def create_record(
@@ -1664,7 +1758,12 @@ class IocRecordFactory:
                 value = block_info.description
 
             record_dict[key] = self._create_record_info(
-                key, None, builder.longStringIn, str, initial_value=value
+                key,
+                None,
+                builder.longStringIn,
+                str,
+                PviGroup.NONE,
+                initial_value=value,
             )
 
         if block == "PCAP":
@@ -1707,6 +1806,8 @@ async def create_records(
 
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
+    devices: List[Device] = []
+    pvi_records: List[str] = []
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
         block_info = panda_info.block_info
@@ -1726,11 +1827,11 @@ async def create_records(
             if new_record in all_records:
                 raise Exception(f"Duplicate record name {new_record} detected.")
 
-        all_records.update(block_records)
+        # all_records.update(block_records)
 
-        for field, field_info in panda_info.fields.items():
+        for block_num in range(block_info.number):
 
-            for block_num in range(block_info.number):
+            for field, field_info in panda_info.fields.items():
                 # For consistency in this module, always suffix the block with its
                 # number. This means all records will have the block number.
                 block_number = block + str(block_num + 1)
@@ -1760,7 +1861,54 @@ async def create_records(
                 for record_info in records.values():
                     record_info._field_info = field_info
 
-                all_records.update(records)
+                block_records.update(records)
+
+            groups: Dict[PviGroup, Group] = {}
+            for group in PviGroup:
+                groups[group] = Group(group.name, Grid(), [])
+            for k, v in block_records.items():
+                if k.startswith(block_number) and v._pvi_info is not None:
+
+                    groups[v._pvi_info.group].children.append(v._pvi_info.component)
+
+            # TODO: I definitely need to use ComboBox in MANY places!
+            # I don't use it anywhere, even when there are labels to be used
+
+            none_children = groups.pop(PviGroup.NONE)
+            children = deque(groups.values())
+            children.extendleft(none_children.children)
+
+            children_list = []
+            for a in children:
+                if not isinstance(a, Group):
+                    children_list.append(a)
+                elif isinstance(a, Group) and len(a.children) > 0:
+                    children_list.append(a)
+
+            device = Device(
+                block_number,
+                children_list,
+            )
+            devices.append(device)
+            # Create PVI record
+            pvi_record_name = block_number + ":PVI"
+            builder.longStringIn(
+                pvi_record_name, initial_value=json.dumps(device.serialize())
+            )
+            pvi_records.append(pvi_record_name)
+
+        # device = Device(block, children)
+
+        all_records.update(block_records)
+
+    # Create top level Device, with references to all child Devices
+    device_refs = [DeviceRef(x, x) for x in pvi_records]
+
+    # TODO: What should the label be?
+    device = Device("PLACEHOLDER", device_refs)
+
+    # Top level PVI record
+    builder.longStringIn("PVI", initial_value=json.dumps(device.serialize()))
 
     record_factory.initialise(dispatcher)
 

@@ -16,6 +16,7 @@ from pandablocks.ioc._types import (
     ZNAM_STR,
     EpicsName,
     InErrorException,
+    PviGroup,
     RecordInfo,
     ScalarRecordValue,
 )
@@ -617,6 +618,7 @@ def test_create_record_info_value_error(
         None,
         builder.aOut,
         float,
+        PviGroup.NONE,
         initial_value=InErrorException("Mocked exception"),
     )
 
@@ -625,6 +627,7 @@ def test_create_record_info_value_error(
         None,
         builder.aIn,
         float,
+        PviGroup.NONE,
         initial_value=InErrorException("Mocked exception"),
     )
 
@@ -698,14 +701,18 @@ def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
     name = EpicsName("TEST1")
     max_val = 500
     uint_field_info = UintFieldInfo("param", "uint", None, max_val)
-    record_dict = ioc_record_factory._make_uint(name, uint_field_info, builder.longOut)
+    record_dict = ioc_record_factory._make_uint(
+        name, uint_field_info, builder.longOut, PviGroup.NONE
+    )
     longout_rec = record_dict[name].record
     assert longout_rec.DRVL.Value() == 0
     assert longout_rec.DRVH.Value() == max_val
     assert longout_rec.HOPR.Value() == max_val
 
     name = EpicsName("TEST2")
-    record_dict = ioc_record_factory._make_uint(name, uint_field_info, builder.longIn)
+    record_dict = ioc_record_factory._make_uint(
+        name, uint_field_info, builder.longIn, PviGroup.NONE
+    )
     longin_rec = record_dict[name].record
     assert longin_rec.HOPR.Value() == max_val
 
@@ -717,7 +724,9 @@ def test_uint_allows_large_value(ioc_record_factory: IocRecordFactory, caplog):
     uint_field_info = UintFieldInfo("param", "uint", None, max_val)
 
     with caplog.at_level(logging.WARNING):
-        record_dict = ioc_record_factory._make_uint(name, uint_field_info, builder.aOut)
+        record_dict = ioc_record_factory._make_uint(
+            name, uint_field_info, builder.aOut, PviGroup.NONE
+        )
 
     longout_rec = record_dict[name].record
     assert longout_rec.DRVH.Value() == max_val
