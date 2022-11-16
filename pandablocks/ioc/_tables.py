@@ -324,13 +324,7 @@ class TableUpdater:
             self.table_scalar_records[scalar_record_name].add_record(scalar_record)
 
         # Create the mode record that controls when to Put back to PandA
-        labels = [
-            TableModeEnum.VIEW.name,
-            TableModeEnum.EDIT.name,
-            TableModeEnum.SUBMIT.name,
-            TableModeEnum.DISCARD.name,
-        ]
-
+        labels = [x.name for x in TableModeEnum]
         mode_record_name = EpicsName(table_name + ":" + "MODE")
 
         mode_record: RecordWrapper = builder.mbbOut(
