@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
+from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -16,6 +17,8 @@ from pandablocks.commands import GetMultiline, Put
 from pandablocks.ioc._types import (
     EpicsName,
     InErrorException,
+    PviGroup,
+    PviInfo,
     RecordInfo,
     RecordValue,
     check_num_labels,
@@ -223,6 +226,11 @@ class TableUpdater:
         }
         self.all_values_dict = all_values_dict
 
+        # TODO: This TableUpdater should create all of its PviInfo and provide it to the
+        # outside world somehow
+        # The PVI group to put all records into
+        pvi_group = PviGroup.PARAMETERS
+
         # The input field order will be whatever was configured in the PandA.
         # Ensure fields in bit order from lowest to highest so we can parse data
         self.table_fields_records = dict(
@@ -263,8 +271,14 @@ class TableUpdater:
                 initial_value=data,
                 length=field_info.max_length,
             )
+            pvi_info = PviInfo(
+                pvi_group,
+                SignalRW(full_name, full_name, TableWrite([TextWrite()])),
+            )
 
-            field_record_container.record_info = RecordInfo(lambda x: x, None, False)
+            field_record_container.record_info = RecordInfo(
+                lambda x: x, pvi_info, None, False
+            )
 
             field_record_container.record_info.add_record(field_record)
 
@@ -317,8 +331,13 @@ class TableUpdater:
                     DESC=scalar_record_desc,
                 )
 
+            scalar_pvi_info = PviInfo(
+                pvi_group,
+                SignalRW(scalar_record_name, scalar_record_name, TextWrite()),
+            )
+
             self.table_scalar_records[scalar_record_name] = RecordInfo(
-                lambda x: x, None, False
+                lambda x: x, scalar_pvi_info, None, False
             )
 
             self.table_scalar_records[scalar_record_name].add_record(scalar_record)
@@ -335,7 +354,11 @@ class TableUpdater:
             on_update=self.update_mode,
         )
 
-        self.mode_record_info = RecordInfo(lambda x: x, labels, False)
+        mode_pvi_info = PviInfo(
+            pvi_group, SignalRW(mode_record_name, mode_record_name, ComboBox())
+        )
+
+        self.mode_record_info = RecordInfo(lambda x: x, mode_pvi_info, labels, False)
         self.mode_record_info.add_record(mode_record)
 
         # Re-wrap the record itself so that GetChanges can access this TableUpdater

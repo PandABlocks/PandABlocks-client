@@ -2,12 +2,16 @@
 
 import asyncio
 import inspect
+import json
 import logging
+from collections import deque
 from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
+from pvi._format.dls import DLSFormatter
+from pvi.device import Device, DeviceRef, Grid, Group
 from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -27,12 +31,12 @@ from pandablocks.ioc._hdf_ioc import HDF5RecordController
 from pandablocks.ioc._tables import TableRecordWrapper, TableUpdater
 from pandablocks.ioc._types import (
     ONAM_STR,
+    OUT_RECORD_FUNCTIONS,
     ZNAM_STR,
     EpicsName,
     InErrorException,
     PandAName,
     PviGroup,
-    PviInfo,
     RecordInfo,
     RecordValue,
     ScalarRecordValue,
@@ -61,17 +65,6 @@ from pandablocks.responses import (
     TimeFieldInfo,
     UintFieldInfo,
 )
-
-OUT_RECORD_FUNCTIONS = [
-    builder.aOut,
-    builder.boolOut,
-    builder.Action,
-    builder.mbbOut,
-    builder.longOut,
-    builder.longStringOut,
-    builder.stringOut,
-    builder.WaveformOut,
-]
 
 
 @dataclass
@@ -614,6 +607,7 @@ class IocRecordFactory:
 
         record_info = RecordInfo(
             data_type_func=data_type_func,
+            pvi_info=make_pvi_info(group, record_name, record_creation_func),
             labels=labels if labels else None,
             is_in_record=record_creation_func not in OUT_RECORD_FUNCTIONS,
         )
@@ -642,10 +636,6 @@ class IocRecordFactory:
         # Annoyingly we have a circular dependency: The on_update kwarg must be provided
         # in order to create the record
         record_info.add_record(record)
-
-        record_info._pvi_info = make_pvi_info(
-            group, record_name, record_creation_func in OUT_RECORD_FUNCTIONS
-        )
 
         return record_info
 
@@ -1052,10 +1042,6 @@ class IocRecordFactory:
             validate=validator.validate,
         )
 
-        record_dict[record_name]._pvi_info = PviInfo(
-            PviGroup.OUTPUTS, SignalR(record_name, record_name, TextRead())
-        )
-
         delay_record_name = EpicsName(record_name + ":DELAY")
         record_dict[delay_record_name] = self._create_record_info(
             delay_record_name,
@@ -1064,10 +1050,6 @@ class IocRecordFactory:
             int,
             PviGroup.INPUTS,
             initial_value=values[delay_record_name],
-        )
-
-        record_dict[delay_record_name]._pvi_info = PviInfo(
-            PviGroup.INPUTS, SignalRW(delay_record_name, delay_record_name, TextWrite())
         )
 
         max_delay_record_name = EpicsName(record_name + ":MAX_DELAY")
@@ -1472,11 +1454,6 @@ class IocRecordFactory:
             on_update=lambda v: updater.update(v),
         )
 
-        # TODO: Work out how to not override this here, its a terrible pattern
-        # TODO: What value do I write? PandA uses an empty string
-        assert record_info._pvi_info
-        record_info._pvi_info.component = SignalX(record_name, record_name, value="")
-
         updater = _WriteRecordUpdater(
             record_info, self._client, self._all_values_dict, None
         )
@@ -1635,6 +1612,7 @@ class IocRecordFactory:
         field_info: FieldInfo,
         field_values: Dict[EpicsName, RecordValue],
     ) -> Dict[EpicsName, RecordInfo]:
+        # TODO: Name needs changing, this makes multiple records...
         """Create the record (and any child records) for the PandA field specified in
         the parameters.
 
@@ -1767,6 +1745,8 @@ class IocRecordFactory:
             )
 
         if block == "PCAP":
+            # TODO: Need to add PVI Info here. Just use create_record_info?
+            # And why isn't this record in the record_dict?
             builder.Action(
                 "PCAP:ARM",
                 ZNAM=ZNAM_STR,
@@ -1834,10 +1814,10 @@ async def create_records(
             for field, field_info in panda_info.fields.items():
                 # For consistency in this module, always suffix the block with its
                 # number. This means all records will have the block number.
-                block_number = block + str(block_num + 1)
+                suffixed_block = block + str(block_num + 1)
 
                 # ":" separator for EPICS Record names, unlike PandA's "."
-                record_name = EpicsName(block_number + ":" + field)
+                record_name = EpicsName(suffixed_block + ":" + field)
 
                 # Get the value of the field and all its sub-fields
                 # Watch for cases where the record name is a prefix to multiple
@@ -1863,16 +1843,14 @@ async def create_records(
 
                 block_records.update(records)
 
+            # TODO: Document this section, probably move to separate function
             groups: Dict[PviGroup, Group] = {}
             for group in PviGroup:
                 groups[group] = Group(group.name, Grid(), [])
             for k, v in block_records.items():
-                if k.startswith(block_number) and v._pvi_info is not None:
-
-                    groups[v._pvi_info.group].children.append(v._pvi_info.component)
-
-            # TODO: I definitely need to use ComboBox in MANY places!
-            # I don't use it anywhere, even when there are labels to be used
+                # TODO: Probably don't need the is Not None check anymore
+                if k.startswith(suffixed_block) and v.pvi_info is not None:
+                    groups[v.pvi_info.group].children.append(v.pvi_info.component)
 
             none_children = groups.pop(PviGroup.NONE)
             children = deque(groups.values())
@@ -1886,12 +1864,12 @@ async def create_records(
                     children_list.append(a)
 
             device = Device(
-                block_number,
+                suffixed_block,
                 children_list,
             )
             devices.append(device)
             # Create PVI record
-            pvi_record_name = block_number + ":PVI"
+            pvi_record_name = suffixed_block + ":PVI"
             builder.longStringIn(
                 pvi_record_name, initial_value=json.dumps(device.serialize())
             )

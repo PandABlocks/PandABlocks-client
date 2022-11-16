@@ -4,7 +4,16 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
 
-from pvi.device import Component, SignalR, SignalRW, TextRead, TextWrite
+from pvi.device import (
+    ComboBox,
+    Component,
+    SignalR,
+    SignalRW,
+    SignalX,
+    TextRead,
+    TextWrite,
+)
+from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.responses import FieldInfo
@@ -65,6 +74,7 @@ def trim_string_value(value: str, record_name: str) -> str:
 def trim_description(description: Optional[str], record_name: str) -> Optional[str]:
     """Record description field is a maximum of 40 characters long. Ensure any string
     is shorter than that before setting it."""
+    # TODO: Trim leading and trailing spaces?
     if description and len(description) > 39:
         # As per Tom Cobb, it's unlikely we'll ever re-write descriptions to be shorter,
         # so we'll hide this message in low level logging only
@@ -79,6 +89,18 @@ def trim_description(description: Optional[str], record_name: str) -> Optional[s
 # Constants used in bool records
 ZNAM_STR = "0"
 ONAM_STR = "1"
+
+# The list of all OUT record types
+OUT_RECORD_FUNCTIONS = [
+    builder.aOut,
+    builder.boolOut,
+    builder.Action,
+    builder.mbbOut,
+    builder.longOut,
+    builder.longStringOut,
+    builder.stringOut,
+    builder.WaveformOut,
+]
 
 
 class PviGroup(Enum):
@@ -102,14 +124,25 @@ class PviInfo:
     component: Component
 
 
-def make_pvi_info(group: PviGroup, record_name: str, writeable: bool) -> PviInfo:
-    """Create the most common forms of the `PviInfo` structure
-    NOTE: The component is sometimes overwritten at a later time, to handle
-    edge cases.
-    TODO: Don't do that."""
+def make_pvi_info(
+    group: PviGroup,
+    record_name: str,
+    record_creation_func: Callable,
+) -> PviInfo:
+    """Create the most common forms of the `PviInfo` structure"""
     component: Component
-    if writeable:
-        component = SignalRW(record_name, record_name, TextWrite())
+    writeable: bool = record_creation_func in OUT_RECORD_FUNCTIONS
+    useComboBox: bool = record_creation_func == builder.mbbOut
+
+    if record_creation_func == builder.Action:
+        # TODO: What value do I write? PandA uses an empty string
+        component = SignalX(record_name, record_name, value="")
+    elif writeable:
+        if useComboBox:
+            widget = ComboBox()
+        else:
+            widget = TextWrite()
+        component = SignalRW(record_name, record_name, widget)
     else:
         component = SignalR(record_name, record_name, TextRead())
 
@@ -125,6 +158,7 @@ class RecordInfo:
         via the add_record() method.
     `record_prefix`: The device prefix the record uses.
     `data_type_func`: Function to convert string data to form appropriate for the record
+    `pvi_info`: The PviInfo structure that defines how PVI should render it
     `labels`: List of valid labels for the record. By setting this field to non-None,
         the `record` is assumed to be mbbi/mbbo type.
     `is_in_record`: Flag for whether the `record` is an "In" record type.
@@ -132,18 +166,17 @@ class RecordInfo:
     `_pending_change`: Marks whether this record was just Put data to PandA, and so is
         expecting to see the same value come back from a *CHANGES? request.
     `_field_info`: The FieldInfo structure associated with this record. May be a
-        subclass of FieldInfo.
-    `pvi_info`: The PviInfo structure that defines how PVI should render it"""
+        subclass of FieldInfo."""
 
     record: RecordWrapper = field(init=False)
     data_type_func: Callable
+    pvi_info: PviInfo
     labels: Optional[List[str]] = None
     # PythonSoftIOC issues #52 or #54 may remove need for is_in_record
     is_in_record: bool = True
     on_changes_func: Optional[Callable[[Any], Awaitable[None]]] = None
     _pending_change: bool = field(default=False, init=False)
     _field_info: Optional[FieldInfo] = field(default=None, init=False)
-    _pvi_info: Optional[PviInfo] = field(default=None, init=False)
 
     def add_record(self, record: RecordWrapper) -> None:
         self.record = record
