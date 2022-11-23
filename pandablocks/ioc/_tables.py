@@ -14,11 +14,10 @@ from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
+from pandablocks.ioc._pvi import Pvi, PviGroup
 from pandablocks.ioc._types import (
     EpicsName,
     InErrorException,
-    PviGroup,
-    PviInfo,
     RecordInfo,
     RecordValue,
     check_num_labels,
@@ -271,14 +270,15 @@ class TableUpdater:
                 initial_value=data,
                 length=field_info.max_length,
             )
-            pvi_info = PviInfo(
-                pvi_group,
-                SignalRW(full_name, full_name, TableWrite([TextWrite()])),
-            )
 
-            field_record_container.record_info = RecordInfo(
-                lambda x: x, pvi_info, None, False
-            )
+            # TODO: TableWrite currently isn't implemented in PVI
+            # Pvi.add_pvi_info(
+            #     full_name,
+            #     pvi_group,
+            #     SignalRW(full_name, full_name, TableWrite([TextWrite()])),
+            # )
+
+            field_record_container.record_info = RecordInfo(lambda x: x, None, False)
 
             field_record_container.record_info.add_record(field_record)
 
@@ -331,13 +331,14 @@ class TableUpdater:
                     DESC=scalar_record_desc,
                 )
 
-            scalar_pvi_info = PviInfo(
+            Pvi.add_pvi_info(
+                scalar_record_name,
                 pvi_group,
                 SignalRW(scalar_record_name, scalar_record_name, TextWrite()),
             )
 
             self.table_scalar_records[scalar_record_name] = RecordInfo(
-                lambda x: x, scalar_pvi_info, None, False
+                lambda x: x, None, False
             )
 
             self.table_scalar_records[scalar_record_name].add_record(scalar_record)
@@ -353,12 +354,13 @@ class TableUpdater:
             initial_value=TableModeEnum.VIEW.value,
             on_update=self.update_mode,
         )
-
-        mode_pvi_info = PviInfo(
-            pvi_group, SignalRW(mode_record_name, mode_record_name, ComboBox())
+        Pvi.add_pvi_info(
+            mode_record_name,
+            pvi_group,
+            SignalRW(mode_record_name, mode_record_name, ComboBox()),
         )
 
-        self.mode_record_info = RecordInfo(lambda x: x, mode_pvi_info, labels, False)
+        self.mode_record_info = RecordInfo(lambda x: x, labels, False)
         self.mode_record_info.add_record(mode_record)
 
         # Re-wrap the record itself so that GetChanges can access this TableUpdater
@@ -375,6 +377,12 @@ class TableUpdater:
             on_update=self.update_index,
             DRVL=0,
             DRVH=data.size - 1,
+        )
+
+        Pvi.add_pvi_info(
+            index_record_name,
+            pvi_group,
+            SignalRW(index_record_name, index_record_name, TextWrite()),
         )
 
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:

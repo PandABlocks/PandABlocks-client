@@ -1,17 +1,13 @@
 # Creating EPICS records directly from PandA Blocks and Fields
-
 import asyncio
 import inspect
-import json
 import logging
-from collections import deque
 from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from pvi._format.dls import DLSFormatter
-from pvi.device import Device, DeviceRef, Grid, Group
+from pvi.device import Group, Row, SignalRW, TextWrite
 from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -28,6 +24,7 @@ from pandablocks.commands import (
     Put,
 )
 from pandablocks.ioc._hdf_ioc import HDF5RecordController
+from pandablocks.ioc._pvi import Pvi, PviGroup, add_pvi_info
 from pandablocks.ioc._tables import TableRecordWrapper, TableUpdater
 from pandablocks.ioc._types import (
     ONAM_STR,
@@ -36,14 +33,12 @@ from pandablocks.ioc._types import (
     EpicsName,
     InErrorException,
     PandAName,
-    PviGroup,
     RecordInfo,
     RecordValue,
     ScalarRecordValue,
     check_num_labels,
     device_and_record_to_panda_name,
     epics_to_panda_name,
-    make_pvi_info,
     panda_to_epics_name,
     trim_description,
     trim_string_value,
@@ -65,6 +60,9 @@ from pandablocks.responses import (
     TimeFieldInfo,
     UintFieldInfo,
 )
+
+# TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple
+# of possible errors
 
 
 @dataclass
@@ -607,9 +605,14 @@ class IocRecordFactory:
 
         record_info = RecordInfo(
             data_type_func=data_type_func,
-            pvi_info=make_pvi_info(group, record_name, record_creation_func),
             labels=labels if labels else None,
             is_in_record=record_creation_func not in OUT_RECORD_FUNCTIONS,
+        )
+
+        add_pvi_info(
+            group=group,
+            record_name=record_name,
+            record_creation_func=record_creation_func,
         )
 
         # If there is no on_update, and the record type allows one, create it
@@ -928,6 +931,52 @@ class IocRecordFactory:
         )
 
         self._pos_out_row_counter += 1
+
+        # TODO: This is WIP of how static length Tables _might_ look
+        Pvi.add_pvi_info(
+            record_name,
+            PviGroup.TABLE,
+            Group(
+                "NAME1", Row("NAME2"), [SignalRW(record_name, record_name, TextWrite())]
+            ),
+        )
+        Pvi.add_pvi_info(
+            capture_record_name,
+            PviGroup.TABLE,
+            Group(
+                "CAPTURE1",
+                Row("CAPTURE2"),
+                [SignalRW(capture_record_name, capture_record_name, TextWrite())],
+            ),
+        )
+        Pvi.add_pvi_info(
+            units_record_name,
+            PviGroup.TABLE,
+            Group(
+                "UNITS1",
+                Row("UNITS2"),
+                [SignalRW(units_record_name, units_record_name, TextWrite())],
+            ),
+        )
+        Pvi.add_pvi_info(
+            scale_record_name,
+            PviGroup.TABLE,
+            Group(
+                "SCALE1",
+                Row("SCALE2"),
+                [SignalRW(scale_record_name, scale_record_name, TextWrite())],
+            ),
+        )
+        Pvi.add_pvi_info(
+            offset_record_name,
+            PviGroup.TABLE,
+            Group(
+                "OFFSET1",
+                Row("OFFSET2"),
+                [SignalRW(offset_record_name, offset_record_name, TextWrite())],
+            ),
+        )
+        # TODO: VALUE column
 
         return record_dict
 
@@ -1786,8 +1835,6 @@ async def create_records(
 
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
-    devices: List[Device] = []
-    pvi_records: List[str] = []
     # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
         block_info = panda_info.block_info
@@ -1843,50 +1890,9 @@ async def create_records(
 
                 block_records.update(records)
 
-            # TODO: Document this section, probably move to separate function
-            groups: Dict[PviGroup, Group] = {}
-            for group in PviGroup:
-                groups[group] = Group(group.name, Grid(), [])
-            for k, v in block_records.items():
-                # TODO: Probably don't need the is Not None check anymore
-                if k.startswith(suffixed_block) and v.pvi_info is not None:
-                    groups[v.pvi_info.group].children.append(v.pvi_info.component)
-
-            none_children = groups.pop(PviGroup.NONE)
-            children = deque(groups.values())
-            children.extendleft(none_children.children)
-
-            children_list = []
-            for a in children:
-                if not isinstance(a, Group):
-                    children_list.append(a)
-                elif isinstance(a, Group) and len(a.children) > 0:
-                    children_list.append(a)
-
-            device = Device(
-                suffixed_block,
-                children_list,
-            )
-            devices.append(device)
-            # Create PVI record
-            pvi_record_name = suffixed_block + ":PVI"
-            builder.longStringIn(
-                pvi_record_name, initial_value=json.dumps(device.serialize())
-            )
-            pvi_records.append(pvi_record_name)
-
-        # device = Device(block, children)
-
         all_records.update(block_records)
 
-    # Create top level Device, with references to all child Devices
-    device_refs = [DeviceRef(x, x) for x in pvi_records]
-
-    # TODO: What should the label be?
-    device = Device("PLACEHOLDER", device_refs)
-
-    # Top level PVI record
-    builder.longStringIn("PVI", initial_value=json.dumps(device.serialize()))
+    Pvi.create_pvi_records()
 
     record_factory.initialise(dispatcher)
 

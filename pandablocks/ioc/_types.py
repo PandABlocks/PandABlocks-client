@@ -1,18 +1,8 @@
 # Various new or derived types/classes and helper functions for the IOC module
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
 
-from pvi.device import (
-    ComboBox,
-    Component,
-    SignalR,
-    SignalRW,
-    SignalX,
-    TextRead,
-    TextWrite,
-)
 from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
 
@@ -103,52 +93,6 @@ OUT_RECORD_FUNCTIONS = [
 ]
 
 
-class PviGroup(Enum):
-    """Categories to group record display widgets"""
-
-    NONE = None  # This marks a top-level group
-    INPUTS = "Inputs"
-    PARAMETERS = "Parameters"
-    READBACKS = "Readbacks"
-    OUTPUTS = "Outputs"
-
-
-@dataclass
-class PviInfo:
-    """A container for PVI related information for a record
-
-    `group`: The group that this info is a part of
-    `component`: The PVI Component used for rendering"""
-
-    group: PviGroup
-    component: Component
-
-
-def make_pvi_info(
-    group: PviGroup,
-    record_name: str,
-    record_creation_func: Callable,
-) -> PviInfo:
-    """Create the most common forms of the `PviInfo` structure"""
-    component: Component
-    writeable: bool = record_creation_func in OUT_RECORD_FUNCTIONS
-    useComboBox: bool = record_creation_func == builder.mbbOut
-
-    if record_creation_func == builder.Action:
-        # TODO: What value do I write? PandA uses an empty string
-        component = SignalX(record_name, record_name, value="")
-    elif writeable:
-        if useComboBox:
-            widget = ComboBox()
-        else:
-            widget = TextWrite()
-        component = SignalRW(record_name, record_name, widget)
-    else:
-        component = SignalR(record_name, record_name, TextRead())
-
-    return PviInfo(group, component)
-
-
 @dataclass
 class RecordInfo:
     """A container for a record and extra information needed to later update
@@ -158,7 +102,6 @@ class RecordInfo:
         via the add_record() method.
     `record_prefix`: The device prefix the record uses.
     `data_type_func`: Function to convert string data to form appropriate for the record
-    `pvi_info`: The PviInfo structure that defines how PVI should render it
     `labels`: List of valid labels for the record. By setting this field to non-None,
         the `record` is assumed to be mbbi/mbbo type.
     `is_in_record`: Flag for whether the `record` is an "In" record type.
@@ -170,7 +113,6 @@ class RecordInfo:
 
     record: RecordWrapper = field(init=False)
     data_type_func: Callable
-    pvi_info: PviInfo
     labels: Optional[List[str]] = None
     # PythonSoftIOC issues #52 or #54 may remove need for is_in_record
     is_in_record: bool = True
