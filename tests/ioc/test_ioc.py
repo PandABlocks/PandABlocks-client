@@ -11,12 +11,12 @@ from softioc import builder, fields
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetLine, Put
+from pandablocks.ioc._pvi import PviGroup
 from pandablocks.ioc._types import (
     ONAM_STR,
     ZNAM_STR,
     EpicsName,
     InErrorException,
-    PviGroup,
     RecordInfo,
     ScalarRecordValue,
 )
@@ -614,7 +614,7 @@ def test_create_record_info_value_error(
     This test succeeds if no exceptions are thrown."""
 
     ioc_record_factory._create_record_info(
-        EpicsName("SomeOutRec"),
+        EpicsName("SomePrefix:SomeOutRec"),
         None,
         builder.aOut,
         float,
@@ -623,7 +623,7 @@ def test_create_record_info_value_error(
     )
 
     ioc_record_factory._create_record_info(
-        EpicsName("SomeInRec"),
+        EpicsName("SomePrefix:SomeInRec"),
         None,
         builder.aIn,
         float,
@@ -698,7 +698,7 @@ async def test_time_record_updater_update_drvl(
 def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
     """Test that creating a uint record correctly sets all the attributes"""
 
-    name = EpicsName("TEST1")
+    name = EpicsName("SomePrefix:TEST1")
     max_val = 500
     uint_field_info = UintFieldInfo("param", "uint", None, max_val)
     record_dict = ioc_record_factory._make_uint(
@@ -709,7 +709,7 @@ def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
     assert longout_rec.DRVH.Value() == max_val
     assert longout_rec.HOPR.Value() == max_val
 
-    name = EpicsName("TEST2")
+    name = EpicsName("SomePrefix:TEST2")
     record_dict = ioc_record_factory._make_uint(
         name, uint_field_info, builder.longIn, PviGroup.NONE
     )
@@ -719,7 +719,7 @@ def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
 
 def test_uint_allows_large_value(ioc_record_factory: IocRecordFactory, caplog):
     """Test that we allow large max_values for uint fields"""
-    name = EpicsName("TEST1")
+    name = EpicsName("SomePrefix:TEST1")
     max_val = 99999999999999999999
     uint_field_info = UintFieldInfo("param", "uint", None, max_val)
 

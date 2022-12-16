@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
-from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
+from pvi.device import ComboBox, SignalRW, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper

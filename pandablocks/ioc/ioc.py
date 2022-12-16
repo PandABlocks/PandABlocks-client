@@ -7,7 +7,6 @@ from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from pvi.device import Group, Row, SignalRW, TextWrite
 from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -24,7 +23,7 @@ from pandablocks.commands import (
     Put,
 )
 from pandablocks.ioc._hdf_ioc import HDF5RecordController
-from pandablocks.ioc._pvi import Pvi, PviGroup, add_pvi_info
+from pandablocks.ioc._pvi import Pvi, PviGroup, add_positions_table_row, add_pvi_info
 from pandablocks.ioc._tables import TableRecordWrapper, TableUpdater
 from pandablocks.ioc._types import (
     ONAM_STR,
@@ -931,52 +930,13 @@ class IocRecordFactory:
         )
 
         self._pos_out_row_counter += 1
-
-        # TODO: This is WIP of how static length Tables _might_ look
-        Pvi.add_pvi_info(
+        add_positions_table_row(
             record_name,
-            PviGroup.TABLE,
-            Group(
-                "NAME1", Row("NAME2"), [SignalRW(record_name, record_name, TextWrite())]
-            ),
-        )
-        Pvi.add_pvi_info(
-            capture_record_name,
-            PviGroup.TABLE,
-            Group(
-                "CAPTURE1",
-                Row("CAPTURE2"),
-                [SignalRW(capture_record_name, capture_record_name, TextWrite())],
-            ),
-        )
-        Pvi.add_pvi_info(
             units_record_name,
-            PviGroup.TABLE,
-            Group(
-                "UNITS1",
-                Row("UNITS2"),
-                [SignalRW(units_record_name, units_record_name, TextWrite())],
-            ),
-        )
-        Pvi.add_pvi_info(
             scale_record_name,
-            PviGroup.TABLE,
-            Group(
-                "SCALE1",
-                Row("SCALE2"),
-                [SignalRW(scale_record_name, scale_record_name, TextWrite())],
-            ),
-        )
-        Pvi.add_pvi_info(
             offset_record_name,
-            PviGroup.TABLE,
-            Group(
-                "OFFSET1",
-                Row("OFFSET2"),
-                [SignalRW(offset_record_name, offset_record_name, TextWrite())],
-            ),
+            capture_record_name,
         )
-        # TODO: VALUE column
 
         return record_dict
 

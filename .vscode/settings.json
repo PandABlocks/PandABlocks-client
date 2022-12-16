@@ -14,4 +14,8 @@
     "editor.codeActionsOnSave": {
         "source.organizeImports": true
     },
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "python.analysis.typeCheckingMode": "off",
 }

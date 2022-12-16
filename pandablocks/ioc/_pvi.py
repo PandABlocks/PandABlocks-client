@@ -11,6 +11,7 @@ from pvi.device import (
     DeviceRef,
     Grid,
     Group,
+    Row,
     SignalR,
     SignalRW,
     SignalX,
@@ -31,7 +32,7 @@ class PviGroup(Enum):
     PARAMETERS = "Parameters"
     READBACKS = "Readbacks"
     OUTPUTS = "Outputs"
-    TABLE = "Table"
+    TABLE = "Table"  # TODO: May not need this anymore
 
 
 @dataclass
@@ -70,6 +71,52 @@ def add_pvi_info(
     Pvi.add_pvi_info(record_name=record_name, group=group, component=component)
 
 
+_positions_table_group = Group("POSITIONS_TABLE", Grid(labelled=True), children=[])
+_positions_columns_defs = [
+    # TODO: To exactly copy the PandA Table web GUI, we'll need a new widget
+    # type that displays a static string in the same space as a PV
+    # ("NAME", record_name),
+    ("VALUE", SignalR),
+    ("UNITS", SignalRW),
+    ("SCALE", SignalRW),
+    ("OFFSET", SignalRW),
+    ("CAPTURE", SignalRW),
+]
+
+
+# TODO: Replicate this for the BITS table
+def add_positions_table_row(
+    record_name: str,
+    units_record_name: str,
+    scale_record_name: str,
+    offset_record_name: str,
+    capture_record_name: str,
+) -> None:
+    """Add a Row to the Positions table"""
+    # TODO: Use the Components defined in _positions_columns_defs to
+    # create the children, which will make it more obvious which
+    # component is for which column
+    children = [
+        SignalR(record_name, record_name, TextRead()),
+        SignalRW(units_record_name, units_record_name, TextWrite()),
+        SignalRW(scale_record_name, scale_record_name, TextWrite()),
+        SignalRW(offset_record_name, offset_record_name, TextWrite()),
+        SignalRW(capture_record_name, capture_record_name, TextWrite()),
+    ]
+
+    row = Row()
+    if len(_positions_table_group.children) == 0:
+        row.header = [k[0] for k in _positions_columns_defs]
+
+    row_group = Group(
+        record_name + "_row",
+        row,
+        children,
+    )
+
+    _positions_table_group.children.append(row_group)
+
+
 class Pvi:
     """TODO: Docs"""
 
@@ -100,7 +147,8 @@ class Pvi:
             children: Tree = []
 
             # Item in the NONE group should be rendered outside of any Group box
-            children.extend(v.pop(PviGroup.NONE))
+            if PviGroup.NONE in v:
+                children.extend(v.pop(PviGroup.NONE))
             for group, components in v.items():
                 children.append(Group(group.name, Grid(), components))
 
@@ -112,6 +160,12 @@ class Pvi:
                 pvi_record_name, initial_value=json.dumps(device.serialize())
             )
             pvi_records.append(pvi_record_name)
+
+        # TODO: Properly add this to list of screens, add a PV, maybe roll into
+        # the "PLACEHOLDER" Device?
+        # Add Tables to a new top level screen
+        top_device = Device("PandA", children=[_positions_table_group])
+        devices.append(top_device)
 
         # Create top level Device, with references to all child Devices
         device_refs = [DeviceRef(x, x) for x in pvi_records]

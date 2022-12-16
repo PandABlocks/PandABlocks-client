@@ -63,3 +63,6 @@ target/
 /venv/
 /lightweight-venv/
 /installed.files
+
+# Local test files
+/bob/
