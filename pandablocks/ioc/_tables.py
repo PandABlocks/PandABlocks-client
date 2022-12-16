@@ -225,8 +225,6 @@ class TableUpdater:
         }
         self.all_values_dict = all_values_dict
 
-        # TODO: This TableUpdater should create all of its PviInfo and provide it to the
-        # outside world somehow
         # The PVI group to put all records into
         pvi_group = PviGroup.PARAMETERS
 

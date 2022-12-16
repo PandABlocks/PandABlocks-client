@@ -804,7 +804,7 @@ class IocRecordFactory:
             initial_value=field_info.offset,
         )
 
-        # TODO: Is this section supposed to be a table?
+        # TODO: Add BITS table support here
 
         return record_dict
 
@@ -817,8 +817,6 @@ class IocRecordFactory:
         self._check_num_values(values, 5)
         assert isinstance(field_info, PosOutFieldInfo)
         record_dict: Dict[EpicsName, RecordInfo] = {}
-
-        # TODO: This should be a table?
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -872,8 +870,6 @@ class IocRecordFactory:
             PviGroup.PARAMETERS,
             initial_value=values[units_record_name],
         )
-
-        # TODO: SCALED and POSITIONS table PviInfo
 
         # SCALED attribute doesn't get returned from GetChanges. Instead
         # of trying to dynamically query for it we'll just recalculate it
@@ -1813,8 +1809,6 @@ async def create_records(
         for new_record in block_records:
             if new_record in all_records:
                 raise Exception(f"Duplicate record name {new_record} detected.")
-
-        # all_records.update(block_records)
 
         for block_num in range(block_info.number):
 
