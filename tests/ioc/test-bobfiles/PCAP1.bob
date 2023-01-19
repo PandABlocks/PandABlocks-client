@@ -1,0 +1,136 @@
+<display version="2.0.0">
+  <name>Display</name>
+  <x>0</x>
+  <y>0</y>
+  <width>426</width>
+  <height>227</height>
+  <grid_step_x>4</grid_step_x>
+  <grid_step_y>4</grid_step_y>
+  <widget type="label" version="2.0.0">
+    <name>Title</name>
+    <class>TITLE</class>
+    <text>PCAP1 - ABC:</text>
+    <x use_class="true">0</x>
+    <y use_class="true">0</y>
+    <width>426</width>
+    <height>25</height>
+    <font use_class="true">
+      <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
+      </font>
+    </font>
+    <foreground_color use_class="true">
+      <color name="Text" red="0" green="0" blue="0">
+      </color>
+    </foreground_color>
+    <transparent use_class="true">true</transparent>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP1: LABEL</text>
+    <x>23</x>
+    <y>30</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>TextUpdate</name>
+    <pv_name>ABC:PCAP1:LABEL</pv_name>
+    <x>278</x>
+    <y>30</y>
+    <width>125</width>
+    <height>20</height>
+    <font>
+      <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+    </font>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>INPUTS</name>
+    <x>5</x>
+    <y>55</y>
+    <width>416</width>
+    <height>106</height>
+    <transparent>true</transparent>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP1: GATE</text>
+    <x>0</x>
+    <y>0</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="textentry" version="3.0.0">
+    <name>TextEntry</name>
+    <pv_name>ABC:PCAP1:GATE</pv_name>
+    <x>255</x>
+    <y>0</y>
+    <width>125</width>
+    <height>20</height>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP1: GATE: DELAY</text>
+    <x>0</x>
+    <y>25</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="textentry" version="3.0.0">
+    <name>TextEntry</name>
+    <pv_name>ABC:PCAP1:GATE:DELAY</pv_name>
+    <x>255</x>
+    <y>25</y>
+    <width>125</width>
+    <height>20</height>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP1: GATE: MAX_ DELAY</text>
+    <x>0</x>
+    <y>50</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>TextUpdate</name>
+    <pv_name>ABC:PCAP1:GATE:MAX_DELAY</pv_name>
+    <x>255</x>
+    <y>50</y>
+    <width>125</width>
+    <height>20</height>
+    <font>
+      <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+    </font>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>PARAMETERS</name>
+    <x>5</x>
+    <y>166</y>
+    <width>416</width>
+    <height>56</height>
+    <transparent>true</transparent>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP1: TRIG_ EDGE</text>
+    <x>0</x>
+    <y>0</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="combo" version="2.0.0">
+    <name>ComboBox</name>
+    <pv_name>ABC:PCAP1:TRIG_EDGE</pv_name>
+    <x>255</x>
+    <y>0</y>
+    <width>125</width>
+    <height>20</height>
+  </widget>
+  </widget>
+  </display>

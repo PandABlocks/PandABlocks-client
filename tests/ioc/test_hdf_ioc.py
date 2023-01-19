@@ -4,7 +4,6 @@ import asyncio
 import logging
 import time
 from asyncio import CancelledError
-from multiprocessing import Process
 from pathlib import Path
 from typing import Generator
 
@@ -13,7 +12,7 @@ import numpy
 import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput
-from conftest import TIMEOUT, custom_logger
+from conftest import TIMEOUT, custom_logger, get_multiprocessing_context
 from mock.mock import AsyncMock, MagicMock, patch
 from softioc import asyncio_dispatcher, builder, softioc
 
@@ -65,8 +64,8 @@ def hdf5_subprocess_ioc_no_logging_check(
 ) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     Note you probably want to use `hdf5_subprocess_ioc` instead."""
-
-    p = Process(target=subprocess_func)
+    ctx = get_multiprocessing_context()
+    p = ctx.Process(target=subprocess_func)
     p.start()
     time.sleep(3)  # Give IOC some time to start up
     yield
@@ -84,7 +83,8 @@ def hdf5_subprocess_ioc(
     When finished check logging logged no messages of WARNING or higher level."""
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
-            p = Process(target=subprocess_func)
+            ctx = get_multiprocessing_context()
+            p = ctx.Process(target=subprocess_func)
             p.start()
             time.sleep(3)  # Give IOC some time to start up
             yield

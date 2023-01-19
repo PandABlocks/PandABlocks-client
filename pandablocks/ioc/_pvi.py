@@ -122,6 +122,7 @@ class Pvi:
 
     # pvi_info_dict: Dict[EpicsName, PviInfo] = {}
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
+    bob_file_dict: Dict[str, str] = {}
 
     @staticmethod
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
@@ -181,18 +182,22 @@ class Pvi:
         # TODO: Temp code to test generating the .bob file
         # TODO: label widths need some tweaking - some are pretty long right now
         formatter = DLSFormatter(label_width=250)
+        import tempfile
         from pathlib import Path
 
+        temp_dir = tempfile.TemporaryDirectory()
         for device in devices:
             try:
                 formatter.format(
                     device,
                     "ABC" + ":",
-                    Path(
-                        f"/home/eyh46967/dev/PandABlocks-client/bob/{device.label}.bob"
-                    ),
+                    Path(f"{temp_dir.name}{device.label}.bob"),
                 )
+                with open(f"{temp_dir.name}{device.label}.bob") as f:
+                    Pvi.bob_file_dict.update({f"{device.label}.bob": f.read()})
+
             except NotImplementedError:
                 import logging
 
                 logging.exception("Cannot create TABLES yet")
+        temp_dir.cleanup()

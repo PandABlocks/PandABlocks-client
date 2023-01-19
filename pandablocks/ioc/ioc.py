@@ -4,9 +4,10 @@ import inspect
 import logging
 from dataclasses import dataclass
 from string import digits
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from aiohttp import web
 from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -84,6 +85,64 @@ def _when_finished(task):
     create_softioc_task = None
 
 
+async def _handle_file(request: web.Request) -> web.Response:
+    """Handles HTTP GET requests for individual bob files.
+
+    This function will handle incoming requests for bob files. And send back
+    a HTTP response with the bob file in question or 404.
+
+    Args:
+        request: An incoming HTTP request
+    Returns:
+        Response: A HTTP response
+    """
+    bob_file_dict = request.app["bob_file_dict"]
+    filename = request.match_info.get("filename")
+    if filename in bob_file_dict.keys():
+        return web.Response(text=bob_file_dict[filename])
+    else:
+        raise web.HTTPNotFound(text="404: Bob File Not Found \n")
+
+
+async def _handle_available_files(request: web.Request) -> web.Response:
+    """Handles HTTP GET requests to the sever root (/).
+
+    This function handles requests to the sites root and returns a response containing
+    a json array of all the bob files in the internal dictionary.
+
+    Args:
+        Request: An incoming HTTP request
+    Returns:
+        Response: A HTTP response
+    """
+    bob_file_dict = request.app["bob_file_dict"]
+    return web.json_response(list(bob_file_dict.keys()))
+
+
+def initialise_server(bob_file_dict: Dict[str, str]) -> web.Application:
+    """Initialises the server configuration."""
+    app = web.Application()
+    app["bob_file_dict"] = bob_file_dict
+    app.add_routes(
+        [web.get("/", _handle_available_files), web.get("/{filename}", _handle_file)]
+    )
+    return app
+
+
+async def _start_bobfile_server(host: str = "0.0.0.0", port: int = 8080) -> None:
+    """Sets up and starts the bobfile server."""
+    app = initialise_server(Pvi.bob_file_dict)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host=host, port=port)
+    await site.start()
+    print(
+        "======== Running bob file server on http://{} ========\n".format(
+            ":".join([host, str(port)])
+        )
+    )
+
+
 async def _create_softioc(
     client: AsyncioClient,
     record_prefix: str,
@@ -125,6 +184,8 @@ def create_softioc(host: str, record_prefix: str) -> None:
         asyncio.run_coroutine_threadsafe(
             _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
         ).result()
+
+        asyncio.run_coroutine_threadsafe(_start_bobfile_server(), dispatcher.loop)
 
         # Must leave this blocking line here, in the main thread, not in the
         # dispatcher's loop or it'll block every async process in this module
@@ -1151,7 +1212,7 @@ class IocRecordFactory:
                 f"Configured maximum value for {record_name} was too large."
                 f"Restricting to int32 maximum value."
             )
-            max_val = np.finfo(np.float64).max
+            max_val: Union[int, np.float64] = np.finfo(np.float64).max
         else:
             max_val = field_info.max_val
 

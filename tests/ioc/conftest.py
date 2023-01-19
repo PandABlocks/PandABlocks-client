@@ -1,10 +1,10 @@
 import asyncio
 import logging
+import multiprocessing
 import sys
 import time
 from contextlib import contextmanager
 from logging import handlers
-from multiprocessing import Process, Queue
 from typing import Dict, Generator, List
 
 import pytest
@@ -50,7 +50,8 @@ def caplog_workaround():
 
     @contextmanager
     def ctx():
-        logger_queue = Queue()
+        ctx = get_multiprocessing_context()
+        logger_queue = ctx.Queue()
         logger = logging.getLogger()
         logger.addHandler(handlers.QueueHandler(logger_queue))
         yield
@@ -273,7 +274,7 @@ def table_unpacked_data(
     table_fields: Dict[str, TableFieldDetails]
 ) -> Dict[EpicsName, ndarray]:
     """The unpacked equivalent of table_data"""
-    array_values = [
+    array_values: List[ndarray] = [
         array([5, 0, 50000], dtype=uint16),
         array([0, 6, 0], dtype=uint8),
         array([-5, 678, 0], dtype=int32),
@@ -292,7 +293,7 @@ def table_unpacked_data(
         array([0, 0, 1], dtype=uint8),
         array([1, 0, 1], dtype=uint8),
     ]
-    data = {}
+    data: Dict[EpicsName, ndarray] = {}
     for field_name, data_array in zip(table_fields.keys(), array_values):
         data[EpicsName(field_name)] = data_array
 
@@ -450,7 +451,8 @@ def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Ge
     messages of WARNING or higher level."""
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
-            p = Process(target=ioc_wrapper)
+            ctx = get_multiprocessing_context()
+            p = ctx.Process(target=ioc_wrapper)
             try:
                 p.start()
                 time.sleep(3)  # Give IOC some time to start up
@@ -492,3 +494,15 @@ def mocked_time_record_updater():
         TEST_PREFIX,
         True,
     )
+
+
+def get_multiprocessing_context():
+    """Tests must use "forkserver" method. If we use "fork" we inherit some
+    state from Channel Access from test-to-test, which causes test hangs.
+    We cannot use multiprocessing.set_start_method() as it doesn't work inside
+    of Pytest."""
+    if sys.platform == "win32":
+        start_method = "spawn"
+    else:
+        start_method = "forkserver"
+    return multiprocessing.get_context(start_method)

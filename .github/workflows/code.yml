@@ -24,6 +24,15 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v2
+        with:
+          path: PandABlocks-client
+      
+      - name: Checkout Pvi
+        uses: actions/checkout@v2
+        with:
+          repository: epics-containers/pvi
+          path: pvi
+          ref: tables
 
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v2
@@ -33,7 +42,14 @@ jobs:
       - name: Install Python Dependencies
         run: |
           pip install pipenv twine build
+          cd PandABlocks-client
           pipenv install --dev --deploy --python $(python -c 'import sys; print(sys.executable)') && pipenv graph
+      
+      # Needed until new version of pvi is released
+      - name: Install pvi from local repo
+        run: |
+          cd PandABlocks-client
+          pipenv install -e ../pvi
 
       - name: Create Sdist and Wheel
         if: matrix.publish
@@ -41,25 +57,28 @@ jobs:
         # https://reproducible-builds.org/
         # Set group writable and umask to do the same to match inside DLS
         run: |
+          cd PandABlocks-client
           chmod -R g+w .
           umask 0002
           SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) python -m build --sdist --wheel
 
       - name: Run Tests
-        run: pipenv run tests
+        run: |
+          cd PandABlocks-client
+          pipenv run tests
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           name: ${{ matrix.os }}/${{ matrix.python }}
-          files: cov.xml
+          files: PandABlocks-client/cov.xml
 
       - name: Upload Wheel and Sdist as artifacts
         if: matrix.publish
         uses: actions/upload-artifact@v2
         with:
           name: dist
-          path: dist/*
+          path: PandABlocks-client/dist/*
 
       - name: Publish Sdist and Wheel to PyPI
         # Only once when on a tag
@@ -67,4 +86,4 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.pypi_token }}
-        run: twine upload dist/*
+        run: twine upload PandABlocks-client/dist/*
