@@ -24,17 +24,13 @@ isort = ">5.0"
 sphinx = "==4.3.2"
 sphinx-rtd-theme = "*"
 aioca = "*"
-asynctest="*"
 
 [packages]
 # All other package requirements from setup.cfg
 pandablocks = {editable = true, extras = ["hdf5", "softioc"], path = "."}
 # Pins to make lockfile usable on multiple Python versions and platforms
 numpy = "*"
-aiohttp="*"
 typing-extensions = "*"
-importlib-metadata = "*"
-lxml = "*"
 
 [scripts]
 tests = "python -m pytest"

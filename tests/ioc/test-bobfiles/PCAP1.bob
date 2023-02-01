@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>PCAP1 - ABC:</text>
+    <text>PCAP1 - TEST-PREFIX:</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>426</width>
@@ -35,7 +35,7 @@
   </widget>
   <widget type="textupdate" version="2.0.0">
     <name>TextUpdate</name>
-    <pv_name>ABC:PCAP1:LABEL</pv_name>
+    <pv_name>TEST-PREFIX:PCAP1:LABEL</pv_name>
     <x>278</x>
     <y>30</y>
     <width>125</width>
@@ -63,7 +63,7 @@
   </widget>
   <widget type="textentry" version="3.0.0">
     <name>TextEntry</name>
-    <pv_name>ABC:PCAP1:GATE</pv_name>
+    <pv_name>TEST-PREFIX:PCAP1:GATE</pv_name>
     <x>255</x>
     <y>0</y>
     <width>125</width>
@@ -80,7 +80,7 @@
   </widget>
   <widget type="textentry" version="3.0.0">
     <name>TextEntry</name>
-    <pv_name>ABC:PCAP1:GATE:DELAY</pv_name>
+    <pv_name>TEST-PREFIX:PCAP1:GATE:DELAY</pv_name>
     <x>255</x>
     <y>25</y>
     <width>125</width>
@@ -97,7 +97,7 @@
   </widget>
   <widget type="textupdate" version="2.0.0">
     <name>TextUpdate</name>
-    <pv_name>ABC:PCAP1:GATE:MAX_DELAY</pv_name>
+    <pv_name>TEST-PREFIX:PCAP1:GATE:MAX_DELAY</pv_name>
     <x>255</x>
     <y>50</y>
     <width>125</width>
@@ -126,7 +126,7 @@
   </widget>
   <widget type="combo" version="2.0.0">
     <name>ComboBox</name>
-    <pv_name>ABC:PCAP1:TRIG_EDGE</pv_name>
+    <pv_name>TEST-PREFIX:PCAP1:TRIG_EDGE</pv_name>
     <x>255</x>
     <y>0</y>
     <width>125</width>

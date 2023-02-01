@@ -49,7 +49,7 @@ jobs:
       - name: Install pvi from local repo
         run: |
           cd PandABlocks-client
-          pipenv install -e ../pvi
+          pipenv install -e "../pvi[cli]"
 
       - name: Create Sdist and Wheel
         if: matrix.publish

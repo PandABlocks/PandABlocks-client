@@ -1,6 +1,9 @@
 import json
+import logging
+import tempfile
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Callable, Dict, List
 
 from pvi._format.dls import DLSFormatter
@@ -139,7 +142,7 @@ class Pvi:
             Pvi.pvi_info_dict[record_base] = {group: [component]}
 
     @staticmethod
-    def create_pvi_records():
+    def create_pvi_records(record_prefix: str):
         """Create the :PVI records, one for each block and one at the top level"""
 
         devices: List[Device] = []
@@ -179,25 +182,19 @@ class Pvi:
         # # Top level PVI record
         builder.longStringIn("PVI", initial_value=data)
 
-        # TODO: Temp code to test generating the .bob file
         # TODO: label widths need some tweaking - some are pretty long right now
         formatter = DLSFormatter(label_width=250)
-        import tempfile
-        from pathlib import Path
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for device in devices:
+                try:
+                    formatter.format(
+                        device,
+                        record_prefix + ":",
+                        Path(f"{temp_dir}/{device.label}.bob"),
+                    )
+                    with open(f"{temp_dir}/{device.label}.bob") as f:
+                        Pvi.bob_file_dict.update({f"{device.label}.bob": f.read()})
 
-        temp_dir = tempfile.TemporaryDirectory()
-        for device in devices:
-            try:
-                formatter.format(
-                    device,
-                    "ABC" + ":",
-                    Path(f"{temp_dir.name}{device.label}.bob"),
-                )
-                with open(f"{temp_dir.name}{device.label}.bob") as f:
-                    Pvi.bob_file_dict.update({f"{device.label}.bob": f.read()})
+                except NotImplementedError:
 
-            except NotImplementedError:
-                import logging
-
-                logging.exception("Cannot create TABLES yet")
-        temp_dir.cleanup()
+                    logging.exception("Cannot create TABLES yet")

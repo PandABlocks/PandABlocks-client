@@ -4,7 +4,7 @@ import inspect
 import logging
 from dataclasses import dataclass
 from string import digits
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from aiohttp import web
@@ -64,6 +64,11 @@ from pandablocks.responses import (
 # TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple
 # of possible errors
 
+REQUEST_FILE_NAME = "filename"
+INTERNAL_DICT_NAME = "bob_file_dict"
+BOB_FILE_HOST = "0.0.0.0"
+BOB_FILE_PORT = 8080
+
 
 @dataclass
 class _BlockAndFieldInfo:
@@ -88,20 +93,20 @@ def _when_finished(task):
 async def _handle_file(request: web.Request) -> web.Response:
     """Handles HTTP GET requests for individual bob files.
 
-    This function will handle incoming requests for bob files. And send back
-    a HTTP response with the bob file in question or 404.
+    This function will handle incoming requests for .bob files. Returns a reponse
+    containing the contents of the bobfile.
 
     Args:
         request: An incoming HTTP request
     Returns:
         Response: A HTTP response
     """
-    bob_file_dict = request.app["bob_file_dict"]
-    filename = request.match_info.get("filename")
-    if filename in bob_file_dict.keys():
+    bob_file_dict = request.app[INTERNAL_DICT_NAME]
+    filename = request.match_info["URL_FILENAME"]
+    if filename in bob_file_dict:
         return web.Response(text=bob_file_dict[filename])
     else:
-        raise web.HTTPNotFound(text="404: Bob File Not Found \n")
+        raise web.HTTPNotFound()
 
 
 async def _handle_available_files(request: web.Request) -> web.Response:
@@ -115,32 +120,31 @@ async def _handle_available_files(request: web.Request) -> web.Response:
     Returns:
         Response: A HTTP response
     """
-    bob_file_dict = request.app["bob_file_dict"]
+    bob_file_dict = request.app[INTERNAL_DICT_NAME]
     return web.json_response(list(bob_file_dict.keys()))
 
 
 def initialise_server(bob_file_dict: Dict[str, str]) -> web.Application:
     """Initialises the server configuration."""
     app = web.Application()
-    app["bob_file_dict"] = bob_file_dict
+    app[INTERNAL_DICT_NAME] = bob_file_dict
     app.add_routes(
-        [web.get("/", _handle_available_files), web.get("/{filename}", _handle_file)]
+        [
+            web.get("/", _handle_available_files),
+            web.get("/{URL_FILENAME}", _handle_file),
+        ]
     )
     return app
 
 
-async def _start_bobfile_server(host: str = "0.0.0.0", port: int = 8080) -> None:
+async def _start_bobfile_server(host: str, port: int) -> None:
     """Sets up and starts the bobfile server."""
     app = initialise_server(Pvi.bob_file_dict)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host=host, port=port)
     await site.start()
-    print(
-        "======== Running bob file server on http://{} ========\n".format(
-            ":".join([host, str(port)])
-        )
-    )
+    logging.info(f"Running bob file server on http://{host}:{port}\n")
 
 
 async def _create_softioc(
@@ -185,7 +189,10 @@ def create_softioc(host: str, record_prefix: str) -> None:
             _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
         ).result()
 
-        asyncio.run_coroutine_threadsafe(_start_bobfile_server(), dispatcher.loop)
+        asyncio.run_coroutine_threadsafe(
+            _start_bobfile_server(host=BOB_FILE_HOST, port=BOB_FILE_PORT),
+            dispatcher.loop,
+        )
 
         # Must leave this blocking line here, in the main thread, not in the
         # dispatcher's loop or it'll block every async process in this module
@@ -1203,18 +1210,7 @@ class IocRecordFactory:
             group,
             **kwargs,
         )
-
-        # Ensure VAL is clamped to valid range of values.
-        # The DRVH field is a signed LONG value, but PandA uses unsigned 32-bit
-        # which can overflow it.
-        if field_info.max_val > np.finfo(np.float64).max:
-            logging.warning(
-                f"Configured maximum value for {record_name} was too large."
-                f"Restricting to int32 maximum value."
-            )
-            max_val: Union[int, np.float64] = np.finfo(np.float64).max
-        else:
-            max_val = field_info.max_val
+        max_val = field_info.max_val
 
         if record_creation_func in OUT_RECORD_FUNCTIONS:
             record_dict[record_name].record.DRVL = 0
@@ -1907,7 +1903,7 @@ async def create_records(
 
         all_records.update(block_records)
 
-    Pvi.create_pvi_records()
+    Pvi.create_pvi_records(record_prefix)
 
     record_factory.initialise(dispatcher)
 
