@@ -7,7 +7,8 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
-from pvi.device import ComboBox, SignalRW, TextWrite
+from epicsdbbuilder import RecordName
+from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -220,6 +221,23 @@ class TableUpdater:
         self.client = client
         self.table_name = table_name
         self.field_info = field_info
+        pva_table_name = RecordName(table_name)
+
+        # Make a labels field
+        columns: RecordWrapper = builder.WaveformOut(
+            table_name + ":LABELS",
+            initial_value=np.array([k.encode() for k in field_info.fields]),
+        )
+        columns.add_info(
+            "Q:group",
+            {
+                pva_table_name: {
+                    "+id": "epics:nt/NTTable:1.0",
+                    "labels": {"+type": "plain", "+channel": "VAL"},
+                }
+            },
+        )
+
         self.table_fields_records = {
             k: TableFieldRecordContainer(v, None) for k, v in field_info.fields.items()
         }
@@ -227,6 +245,11 @@ class TableUpdater:
 
         # The PVI group to put all records into
         pvi_group = PviGroup.PARAMETERS
+        # Pvi.add_pvi_info(
+        #     table_name,
+        #     pvi_group,
+        #     SignalRW(table_name, table_name, TableWrite([])),
+        # )
 
         # The input field order will be whatever was configured in the PandA.
         # Ensure fields in bit order from lowest to highest so we can parse data
@@ -265,10 +288,21 @@ class TableUpdater:
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                initial_value=data,
+                initial_value=[str(x).encode() for x in data],
                 length=field_info.max_length,
             )
-
+            field_record.add_info(
+                "Q:group",
+                {
+                    pva_table_name: {
+                        f"value.{field_name}": {
+                            "+type": "plain",
+                            "+channel": "VAL",
+                        }
+                    }
+                },
+            )
+            print(list(field_info.fields.keys()).index(field_name))
             # TODO: TableWrite currently isn't implemented in PVI
             # Pvi.add_pvi_info(
             #     full_name,
