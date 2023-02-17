@@ -6,6 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List
 
+from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
 from pvi.device import (
     ComboBox,
@@ -23,6 +24,7 @@ from pvi.device import (
     Tree,
 )
 from softioc import builder
+from softioc.pythonSoftIoc import RecordWrapper
 
 from pandablocks.ioc._types import OUT_RECORD_FUNCTIONS, EpicsName
 
@@ -51,6 +53,7 @@ class PviInfo:
 
 def add_pvi_info(
     group: PviGroup,
+    record: RecordWrapper,
     record_name: EpicsName,
     record_creation_func: Callable,
 ) -> None:
@@ -62,15 +65,29 @@ def add_pvi_info(
     if record_creation_func == builder.Action:
         # TODO: What value do I write? PandA uses an empty string
         component = SignalX(record_name, record_name, value="")
+        access = "x"
     elif writeable:
         if useComboBox:
             widget = ComboBox()
         else:
             widget = TextWrite()
         component = SignalRW(record_name, record_name, widget)
+        access = "rw"
     else:
         component = SignalR(record_name, record_name, TextRead())
-
+        access = "r"
+    block, field = record_name.split(":", maxsplit=1)
+    record.add_info(
+        "Q:group",
+        {
+            RecordName(f"{block}:PVI"): {
+                f"pvi.{field.replace(':', '_')}.{access}": {
+                    "+channel": "NAME",
+                    "+type": "plain",
+                }
+            }
+        },
+    )
     Pvi.add_pvi_info(record_name=record_name, group=group, component=component)
 
 
@@ -159,10 +176,25 @@ class Pvi:
             device = Device(block_name, children)
             devices.append(device)
 
+            # Add PVI structure. Unfortunately we need something in the database
+            # that holds the PVI PV, and the QSRV records we have made so far aren't in the
+            # database, so have to make an extra record here just to hold the PVI PV name
             pvi_record_name = block_name + ":PVI"
-            builder.longStringIn(
-                pvi_record_name, initial_value=json.dumps(device.serialize())
+            block_pvi = builder.stringIn(
+                pvi_record_name + "_PV", initial_value=RecordName(pvi_record_name)
             )
+            block_pvi.add_info(
+                "Q:group",
+                {
+                    RecordName(f"PVI"): {
+                        f"pvi.{block_name}.d": {
+                            "+channel": "VAL",
+                            "+type": "plain",
+                        }
+                    }
+                },
+            )
+
             pvi_records.append(pvi_record_name)
 
         # TODO: Properly add this to list of screens, add a PV, maybe roll into
@@ -175,12 +207,8 @@ class Pvi:
         device_refs = [DeviceRef(x, x) for x in pvi_records]
 
         # # TODO: What should the label be?
-        device = Device("PLACEHOLDER", device_refs)
-
-        data = json.dumps(device.serialize())
-
-        # # Top level PVI record
-        builder.longStringIn("PVI", initial_value=data)
+        device = Device("TOP", device_refs)
+        devices.append(device)
 
         # TODO: label widths need some tweaking - some are pretty long right now
         formatter = DLSFormatter(label_width=250)

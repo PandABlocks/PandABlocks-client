@@ -676,12 +676,6 @@ class IocRecordFactory:
             is_in_record=record_creation_func not in OUT_RECORD_FUNCTIONS,
         )
 
-        add_pvi_info(
-            group=group,
-            record_name=record_name,
-            record_creation_func=record_creation_func,
-        )
-
         # If there is no on_update, and the record type allows one, create it
         record_updater = None
         if (
@@ -701,6 +695,13 @@ class IocRecordFactory:
 
         record = record_creation_func(
             record_name, *labels, *args, **extra_kwargs, **kwargs
+        )
+
+        add_pvi_info(
+            group=group,
+            record=record,
+            record_name=record_name,
+            record_creation_func=record_creation_func,
         )
 
         # Annoyingly we have a circular dependency: The on_update kwarg must be provided
