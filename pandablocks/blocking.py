@@ -35,7 +35,7 @@ class BlockingClient:
     For example::
 
         with BlockingClient("hostname-or-ip") as client:
-            # Control and data ports are now connected
+            # Control port is now connected
             resp1, resp2 = client.send([cmd1, cmd2])
             resp3 = client.send(cmd3)
             for data in client.data():
@@ -47,17 +47,14 @@ class BlockingClient:
         self._host = host
         self._ctrl_connection = ControlConnection()
         self._ctrl_socket = _SocketHelper()
-        self._data_socket = _SocketHelper()
 
     def connect(self):
-        """Connect to the control and data ports, and be ready to handle commands"""
+        """Connect to the control port, and be ready to handle commands"""
         self._ctrl_socket.connect(self._host, 8888)
-        self._data_socket.connect(self._host, 8889)
 
     def close(self):
-        """Close the control and data connections, and wait for completion"""
+        """Close the control connection, and wait for completion"""
         self._ctrl_socket.close()
-        self._data_socket.close()
 
     def __enter__(self) -> "BlockingClient":
         self.connect()
@@ -67,14 +64,18 @@ class BlockingClient:
         self.close()
 
     @overload
-    def send(self, commands: Command[T], timeout: int = None) -> T:
+    def send(self, commands: Command[T], timeout: Optional[int] = None) -> T:
         ...
 
     @overload
-    def send(self, commands: Iterable[Command], timeout: int = None) -> List:
+    def send(self, commands: Iterable[Command], timeout: Optional[int] = None) -> List:
         ...
 
-    def send(self, commands: Union[Command[T], Iterable[Command]], timeout: int = None):
+    def send(
+        self,
+        commands: Union[Command[T], Iterable[Command]],
+        timeout: Optional[int] = None,
+    ):
         """Send a command to control port of the PandA, returning its response.
 
         Args:
@@ -109,7 +110,9 @@ class BlockingClient:
         else:
             return responses
 
-    def data(self, scaled: bool = True, frame_timeout: int = None) -> Iterator[Data]:
+    def data(
+        self, scaled: bool = True, frame_timeout: Optional[int] = None
+    ) -> Iterator[Data]:
         """Connect to data port and yield data frames
 
         Args:
@@ -117,10 +120,16 @@ class BlockingClient:
             frame_timeout: If no data is received for this amount of time, raise
                 `socket.timeout`
         """
+        data_socket = _SocketHelper()
+        data_socket.connect(self._host, 8889)
+
         connection = DataConnection()
-        s = self._data_socket.socket
+        s = data_socket.socket
         s.settimeout(frame_timeout)  # close enough
         s.sendall(connection.connect(scaled))
-        while True:
-            received = s.recv(4096)
-            yield from connection.receive_bytes(received)
+        try:
+            while True:
+                received = s.recv(4096)
+                yield from connection.receive_bytes(received)
+        finally:
+            data_socket.close()

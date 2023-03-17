@@ -1,11 +1,40 @@
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from ._exchange import Exchange, ExchangeGenerator
-from .responses import BlockInfo, Changes, FieldInfo
+from .responses import (
+    BitMuxFieldInfo,
+    BitOutFieldInfo,
+    BlockInfo,
+    Changes,
+    EnumFieldInfo,
+    ExtOutBitsFieldInfo,
+    ExtOutFieldInfo,
+    FieldInfo,
+    PosMuxFieldInfo,
+    PosOutFieldInfo,
+    ScalarFieldInfo,
+    SubtypeTimeFieldInfo,
+    TableFieldDetails,
+    TableFieldInfo,
+    TimeFieldInfo,
+    UintFieldInfo,
+)
 
 # Define the public API of this module
 __all__ = [
@@ -13,6 +42,8 @@ __all__ = [
     "CommandException",
     "Raw",
     "Get",
+    "GetLine",
+    "GetMultiline",
     "Put",
     "Arm",
     "Disarm",
@@ -160,13 +191,16 @@ class Raw(Command[List[str]]):
 class Get(Command[Union[str, List[str]]]):
     """Get the value of a field or star command.
 
+    If the form of the expected return is known, consider using `GetLine`
+    or `GetMultiline` instead.
+
     Args:
         field: The field, attribute, or star command to get
 
     For example::
 
-        Get("PCAP.ACTIVE?") -> "1"
-        Get("SEQ1.TABLE?") -> ["1048576", "0", "1000", "1000"]
+        Get("PCAP.ACTIVE") -> "1"
+        Get("SEQ1.TABLE") -> ["1048576", "0", "1000", "1000"]
         Get("*IDN") -> "PandA 1.1..."
     """
 
@@ -185,26 +219,76 @@ class Get(Command[Union[str, List[str]]]):
 
 
 @dataclass
+class GetLine(Command[str]):
+    """Get the value of a field or star command, when the result is expected to be a
+    single line.
+
+    Args:
+        field: The field, attribute, or star command to get
+
+    For example::
+
+        GetLine("PCAP.ACTIVE") -> "1"
+        GetLine("*IDN") -> "PandA 1.1..."
+    """
+
+    field: str
+
+    def execute(self) -> ExchangeGenerator[str]:
+        ex = Exchange(f"{self.field}?")
+        yield ex
+        # Expect "OK =value"
+        line = ex.line
+        assert line.startswith("OK =")
+        return line[4:]
+
+
+@dataclass
+class GetMultiline(Command[List[str]]):
+    """Get the value of a field or star command, when the result is expected to be a
+    multiline response.
+
+    Args:
+        field: The field, attribute, or star command to get
+
+    For example::
+
+        GetMultiline("SEQ1.TABLE") -> ["1048576", "0", "1000", "1000"]
+        GetMultiline("*METADATA.*") -> ["LABEL_FILTER1", "APPNAME", ...]
+    """
+
+    field: str
+
+    def execute(self) -> ExchangeGenerator[List[str]]:
+        ex = Exchange(f"{self.field}?")
+        yield ex
+        return ex.multiline
+
+
+@dataclass
 class Put(Command[None]):
     """Put the value of a field.
 
     Args:
         field: The field, attribute, or star command to put
-        value: The value, possibly multiline, to put
+        value: The value, either str multiline or None, to put
 
     For example::
 
         Put("PCAP.TRIG", "PULSE1.OUT")
         Put("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
+        Put("SFP3_SYNC_IN1.SYNC_RESET", None)
     """
 
     field: str
-    value: Union[str, List[str]] = ""
+    value: Union[str, List[str], None] = ""
 
     def execute(self) -> ExchangeGenerator[None]:
         if isinstance(self.value, list):
             # Multiline table with blank line to terminate
             ex = Exchange([f"{self.field}<"] + self.value + [""])
+        elif self.value is None:
+            ex = Exchange(f"{self.field}=")
         else:
             ex = Exchange(f"{self.field}={self.value}")
         yield ex
@@ -258,7 +342,7 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
         for line in ex.multiline:
             block, num = line.split()
             blocks_list.append((block, int(num)))
-            commands.append(Get(f"*DESC.{block}"))
+            commands.append(GetLine(f"*DESC.{block}"))
 
         if self.skip_description:
             # Must use tuple() to match type returned by _execute_commands
@@ -274,78 +358,378 @@ class GetBlockInfo(Command[Dict[str, BlockInfo]]):
         return block_infos
 
 
+# The type of the generators used for creating the Get commands for each field
+# and setting the returned data into the FieldInfo structure
+_FieldGeneratorType = Generator[
+    Union[Exchange, List[Exchange]],
+    None,
+    Tuple[str, FieldInfo],
+]
+
+
 @dataclass
 class GetFieldInfo(Command[Dict[str, FieldInfo]]):
-    """Get the fields of a block, returning a `FieldInfo` for each one, ordered
-    to match the definition order in the PandA
+    """Get the fields of a block, returning a `FieldInfo` (or appropriate subclass) for
+    each one, ordered to match the definition order in the PandA
 
     Args:
         block: The name of the block type
-        skip_description: If `True`, prevents retrieving the description
-            for each Field. This will reduce network calls.
+        extended_metadata: If `True`, retrieves detailed metadata about a field and
+            all of its attributes. This will cause an additional network round trip.
+            If `False` only the field names and types will be returned. Default `True`.
 
     For example::
 
         GetFieldInfo("LUT") -> {
             "INPA":
-                FieldInfo(type='bit_mux',
-                        subtype=None,
-                        description='Input A',
-                        label=['TTLIN1.VAL', 'TTLIN2.VAL', ...]),
+                BitMuxFieldInfo(type='bit_mux',
+                                subtype=None,
+                                description='Input A',
+                                max_delay=5
+                                label=['TTLIN1.VAL', 'TTLIN2.VAL', ...]),
             ...}
     """
 
     block: str
-    skip_description: bool = False
+    extended_metadata: bool = True
+
+    _commands_map: Dict[
+        Tuple[str, Optional[str]],
+        Callable[
+            [str, str, Optional[str]],
+            _FieldGeneratorType,
+        ],
+    ] = field(init=False, repr=False, default_factory=dict)
+
+    def __post_init__(self):
+
+        # Map a (type, subtype) to a method that returns the appropriate
+        # subclasss of FieldInfo, and a list of all the Commands to request.
+        # Note that fields that do not have additional attributes are not listed.
+        self._commands_map = {
+            # Order matches that of PandA server's Field Types docs
+            ("time", None): self._time,
+            ("bit_out", None): self._bit_out,
+            ("pos_out", None): self._pos_out,
+            ("ext_out", "timestamp"): self._ext_out,
+            ("ext_out", "samples"): self._ext_out,
+            ("ext_out", "bits"): self._ext_out_bits,
+            ("bit_mux", None): self._bit_mux,
+            ("pos_mux", None): self._pos_mux,
+            ("table", None): self._table,
+            ("param", "uint"): self._uint,
+            ("read", "uint"): self._uint,
+            ("write", "uint"): self._uint,
+            ("param", "int"): self._no_attributes,
+            ("read", "int"): self._no_attributes,
+            ("write", "int"): self._no_attributes,
+            ("param", "scalar"): self._scalar,
+            ("read", "scalar"): self._scalar,
+            ("write", "scalar"): self._scalar,
+            ("param", "bit"): self._no_attributes,
+            ("read", "bit"): self._no_attributes,
+            ("write", "bit"): self._no_attributes,
+            ("param", "action"): self._no_attributes,
+            ("read", "action"): self._no_attributes,
+            ("write", "action"): self._no_attributes,
+            ("param", "lut"): self._no_attributes,
+            ("read", "lut"): self._no_attributes,
+            ("write", "lut"): self._no_attributes,
+            ("param", "enum"): self._enum,
+            ("read", "enum"): self._enum,
+            ("write", "enum"): self._enum,
+            ("param", "time"): self._subtype_time,
+            ("read", "time"): self._subtype_time,
+            ("write", "time"): self._subtype_time,
+        }
+
+    def _get_desc(self, field_name: str) -> GetLine:
+        """Create the Command to retrieve the description"""
+        return GetLine(f"*DESC.{self.block}.{field_name}")
+
+    def _uint(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, maximum = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetLine(f"{self.block}1.{field_name}.MAX"),
+        )
+
+        field_info = UintFieldInfo(field_type, field_subtype, desc, int(maximum))
+        return field_name, field_info
+
+    def _scalar(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, units, scale, offset = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetLine(f"{self.block}.{field_name}.UNITS"),
+            GetLine(f"{self.block}.{field_name}.SCALE"),
+            GetLine(f"{self.block}.{field_name}.OFFSET"),
+        )
+
+        field_info = ScalarFieldInfo(
+            field_type, field_subtype, desc, units, float(scale), int(offset)
+        )
+
+        return field_name, field_info
+
+    def _subtype_time(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, units_labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+        )
+
+        field_info = SubtypeTimeFieldInfo(field_type, field_subtype, desc, units_labels)
+
+        return field_name, field_info
+
+    def _enum(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
+        )
+
+        field_info = EnumFieldInfo(field_type, field_subtype, desc, labels)
+
+        return field_name, field_info
+
+    def _time(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, units, min = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
+            GetLine(f"{self.block}1.{field_name}.MIN"),
+        )
+
+        field_info = TimeFieldInfo(field_type, field_subtype, desc, units, float(min))
+
+        return field_name, field_info
+
+    def _bit_out(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, capture_word, offset = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetLine(f"{self.block}1.{field_name}.CAPTURE_WORD"),
+            GetLine(f"{self.block}1.{field_name}.OFFSET"),
+        )
+
+        field_info = BitOutFieldInfo(
+            field_type, field_subtype, desc, capture_word, int(offset)
+        )
+
+        return field_name, field_info
+
+    def _bit_mux(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, max_delay, labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetLine(f"{self.block}1.{field_name}.MAX_DELAY"),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
+        )
+
+        field_info = BitMuxFieldInfo(
+            field_type, field_subtype, desc, int(max_delay), labels
+        )
+
+        return field_name, field_info
+
+    def _pos_mux(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
+        )
+        field_info = PosMuxFieldInfo(field_type, field_subtype, desc, labels)
+
+        return field_name, field_info
+
+    def _table(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        # Ignore the ROW_WORDS attribute as it's new and won't be present on all PandAs,
+        # and there's no easy way to try it and catch an error while also running other
+        # Get commands at the same time
+        table_desc, max_length, fields = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetLine(f"{self.block}1.{field_name}.MAX_LENGTH"),
+            GetMultiline(f"{self.block}1.{field_name}.FIELDS"),
+        )
+
+        # Keep track of highest bit index
+        max_bit_offset: int = 0
+
+        desc_gets: List[GetLine] = []
+        enum_field_gets: List[GetMultiline] = []
+        enum_field_names: List[str] = []
+        fields_dict: Dict[str, TableFieldDetails] = {}
+        for field_details in fields:
+            # Fields are of the form <bit_high>:<bit_low> <name> <subtype>
+            bit_range, name, subtype = field_details.split()
+            bit_high_str, bit_low_str = bit_range.split(":")
+            bit_high = int(bit_high_str)
+            bit_low = int(bit_low_str)
+
+            if bit_high > max_bit_offset:
+                max_bit_offset = bit_high
+
+            if subtype == "enum":
+                enum_field_gets.append(
+                    GetMultiline(f"*ENUMS.{self.block}1.{field_name}[].{name}")
+                )
+                enum_field_names.append(name)
+
+            fields_dict[name] = TableFieldDetails(subtype, bit_low, bit_high)
+
+            desc_gets.append(GetLine(f"*DESC.{self.block}1.{field_name}[].{name}"))
+
+        # Calculate the number of 32 bit words that comprises one table row
+        row_words = max_bit_offset // 32 + 1
+
+        # The first len(enum_field_gets) items are enum labels, type List[str]
+        # The second part of the list are descriptions, type str
+        labels_and_descriptions = yield from _execute_commands(
+            *enum_field_gets, *desc_gets
+        )
+
+        for name, labels in zip(
+            enum_field_names, labels_and_descriptions[: len(enum_field_gets)]
+        ):
+            fields_dict[name].labels = labels
+
+        for name, desc in zip(
+            fields_dict.keys(), labels_and_descriptions[len(enum_field_gets) :]
+        ):
+            fields_dict[name].description = desc
+
+        field_info = TableFieldInfo(
+            field_type,
+            field_subtype,
+            table_desc,
+            int(max_length),
+            fields_dict,
+            row_words,
+        )
+
+        return field_name, field_info
+
+    def _pos_out(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, capture_labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+        )
+
+        field_info = PosOutFieldInfo(field_type, field_subtype, desc, capture_labels)
+        return field_name, field_info
+
+    def _ext_out(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+
+        desc, capture_labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+        )
+
+        field_info = ExtOutFieldInfo(field_type, field_subtype, desc, capture_labels)
+        return field_name, field_info
+
+    def _ext_out_bits(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+        desc, bits, capture_labels = yield from _execute_commands(
+            self._get_desc(field_name),
+            GetMultiline(f"{self.block}.{field_name}.BITS"),
+            GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
+        )
+        field_info = ExtOutBitsFieldInfo(
+            field_type, field_subtype, desc, capture_labels, bits
+        )
+        return field_name, field_info
+
+    def _no_attributes(
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
+    ) -> _FieldGeneratorType:
+        """Calling this method indicates type-subtype pair is known and
+        has no attributes, so only a description needs to be retrieved"""
+        desc = yield from self._get_desc(field_name).execute()
+
+        return field_name, FieldInfo(field_type, field_subtype, desc)
 
     def execute(self) -> ExchangeGenerator[Dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
         unsorted: Dict[int, Tuple[str, FieldInfo]] = {}
-        for line in ex.multiline:
-            name, index, type_subtype = line.split(maxsplit=2)
+        field_generators: List[ExchangeGenerator] = []
 
+        for line in ex.multiline:
+            field_name, index, type_subtype = line.split(maxsplit=2)
+
+            field_type: str
+            subtype: Optional[str]
             # Append "None" to list below so there are always at least 2 elements
             # so we can always unpack into subtype, even if no split occurs.
             field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
-            unsorted[int(index)] = (name, FieldInfo(field_type, subtype))
+
+            # Always create default FieldInfo. If necessary we will replace it later
+            # with a more type-specific version.
+            field_info = FieldInfo(field_type, subtype, None)
+
+            if self.extended_metadata:
+                try:
+                    # Construct the list of type-specific generators
+                    field_generators.append(
+                        self._commands_map[(field_type, subtype)](
+                            field_name, field_type, subtype
+                        )
+                    )
+
+                except KeyError:
+                    # This exception will be hit if PandA ever defines new types
+                    logging.exception(
+                        f"Unknown type {(field_type, subtype)} detected for "
+                        f"{field_name}, cannot retrieve extended information for it."
+                    )
+                    # We can assume the new field will have a description though
+                    field_generators.append(
+                        self._no_attributes(field_name, field_type, subtype)
+                    )
+
+            # Keep track of order of fields as returned by PandA. Important for later
+            # matching descriptions back to their field.
+            unsorted[int(index)] = (field_name, field_info)
 
         # Dict keeps insertion order, so insert in the order the server said
         fields = {name: field for _, (name, field) in sorted(unsorted.items())}
 
-        # Create the list of DESC and ENUM commands to request
-        commands: List[Get] = []
-        # Map from an index in the commands list to the associated field name
-        field_mapping: Dict[int, str] = {}
-        field: str
-        field_info: FieldInfo
-        for field, field_info in fields.items():
+        if self.extended_metadata is False:
+            # Asked to not perform the requests for extra metadata.
+            return fields
 
-            if not self.skip_description:
-                commands.append(Get(f"*DESC.{self.block}.{field}"))
-                field_mapping[len(commands) - 1] = field
+        field_name_info: Tuple[Tuple[str, FieldInfo], ...]
+        field_name_info = yield from _zip_with_return(field_generators)
 
-            if (
-                field_info.type in ("bit_mux", "pos_mux", "ext_out")
-                or field_info.subtype == "enum"
-            ):
-                enum_str = f"*ENUMS.{self.block}.{field}"
-                if field_info.type == "ext_out":
-                    enum_str += ".CAPTURE"
-                commands.append(Get(enum_str))
-                field_mapping[len(commands) - 1] = field
-
-        returned_values = yield from _execute_commands(*commands)
-
-        # Merge the returned information back into the existing FieldInfo for each field
-        for idx, value in enumerate(returned_values):
-            command: Get = commands[idx]
-            field_info = fields[field_mapping[idx]]
-
-            if command.field.startswith("*DESC"):
-                field_info.description = value
-            elif command.field.startswith("*ENUMS"):
-                field_info.labels = value
+        fields.update(field_name_info)
 
         return fields
 
@@ -406,6 +790,11 @@ class GetChanges(Command[Changes]):
 
     Args:
         group: Restrict to a particular `ChangeGroup`
+        get_multiline: If `True`, return values of multiline fields in the
+            `multiline_values` attribute. Note that this will invoke additional network
+            requests.
+            If `False` these fields will instead be returned in the `no_value`
+            attribute. Default value is `False`.
 
     For example::
 
@@ -413,23 +802,51 @@ class GetChanges(Command[Changes]):
             value={"PCAP.TRIG": "PULSE1.OUT"},
             no_value=["SEQ1.TABLE"],
             in_error=["BAD.ENUM"],
+            multiline_values={}
+        )
+
+        GetChanges(ChangeGroup.ALL, True) -> Changes(
+            values={"PCAP.TRIG": "PULSE1.OUT"},
+            no_value=[],
+            in_error=["BAD.ENUM"],
+            multiline_values={"SEQ1.TABLE" : ["1", "2", "3",...]}
         )
     """
 
     group: ChangeGroup = ChangeGroup.ALL
+    get_multiline: bool = False
 
     def execute(self) -> ExchangeGenerator[Changes]:
         ex = Exchange(f"*CHANGES{self.group.value}?")
         yield ex
-        changes = Changes({}, [], [])
+        changes = Changes({}, [], [], {})
+        multivalue_get_commands: List[Tuple[str, GetMultiline]] = []
         for line in ex.multiline:
             if line[-1] == "<":
-                changes.no_value.append(line[:-1])
+
+                if self.get_multiline:
+                    field = line[0:-1]
+                    multivalue_get_commands.append((field, GetMultiline(field)))
+                else:
+                    changes.no_value.append(line[:-1])
+
             elif line.endswith("(error)"):
                 changes.in_error.append(line.split(" ", 1)[0])
             else:
                 field, value = line.split("=", maxsplit=1)
                 changes.values[field] = value
+
+        if self.get_multiline:
+            multiline_vals = yield from _execute_commands(
+                *[item[1] for item in multivalue_get_commands]
+            )
+
+            for field, value in zip(
+                [item[0] for item in multivalue_get_commands], multiline_vals
+            ):
+                assert isinstance(value, list)
+                changes.multiline_values[field] = value
+
         return changes
 
 
@@ -437,6 +854,10 @@ class GetChanges(Command[Changes]):
 class GetState(Command[List[str]]):
     """Get the state of all the fields in a PandA that should be saved as a
     list of raw lines that could be sent with `SetState`.
+
+    NOTE: `GetState` may behave unexpectedly if `GetChanges` has previously been
+    called using the same client. The caller should use separate clients to avoid
+    potential issues.
 
     For example::
 
@@ -462,14 +883,14 @@ class GetState(Command[List[str]]):
         state = [f"{k}={v}" for k, v in line_values.items()]
         # Get the multiline values
         multiline_keys, commands = [], []
-        for field in table.no_value:
+        for field_name in table.no_value:
             # Get tables as base64
-            multiline_keys.append(f"{field}<B")
-            commands.append(Get(f"{field}.B"))
-        for field in metadata.no_value:
+            multiline_keys.append(f"{field_name}<B")
+            commands.append(GetMultiline(f"{field_name}.B"))
+        for field_name in metadata.no_value:
             # Get metadata as string list
-            multiline_keys.append(f"{field}<")
-            commands.append(Get(f"{field}"))
+            multiline_keys.append(f"{field_name}<")
+            commands.append(GetMultiline(f"{field_name}"))
         multiline_values = yield from _execute_commands(*commands)
         for k, v in zip(multiline_keys, multiline_values):
             state += [k] + v + [""]

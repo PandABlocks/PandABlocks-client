@@ -1,20 +1,16 @@
-import pytest
+import pytest_asyncio
 
 from pandablocks._control import BlockCompleter
 from pandablocks.blocking import BlockingClient
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def dummy_server_with_blocks(dummy_server_in_thread):
     dummy_server_in_thread.send += [
         "!PCAP 1\n!LUT 8\n!SRGATE 2\n.",
         "!INPB 1 bit_mux\n!TYPEA 5 param enum\n.",  # LUT fields
         "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n.",  # PCAP fields
         "!OUT 1 bit_out\n.",  # SRGATE fields
-        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # LUT.INPB labels
-        "!Input-Level\n!Pulse-On-Rising-Edge\n.",  # LUT.TYPEA labels
-        "!TTLIN1.VAL\n!LVDSIN1.VAL\n.",  # PCAP.GATE labels
-        "!Rising\n!Falling\n.",  # PCAP.TRIG_EDGE labels
     ]
     yield dummy_server_in_thread
 

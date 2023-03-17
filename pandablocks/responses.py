@@ -8,6 +8,19 @@ import numpy as np
 __all__ = [
     "BlockInfo",
     "FieldInfo",
+    "UintFieldInfo",
+    "ScalarFieldInfo",
+    "TimeFieldInfo",
+    "SubtypeTimeFieldInfo",
+    "EnumFieldInfo",
+    "BitOutFieldInfo",
+    "BitMuxFieldInfo",
+    "PosMuxFieldInfo",
+    "TableFieldDetails",
+    "TableFieldInfo",
+    "PosOutFieldInfo",
+    "ExtOutFieldInfo",
+    "ExtOutBitsFieldInfo",
     "Changes",
     "EndReason",
     "FieldCapture",
@@ -38,6 +51,9 @@ class FieldInfo:
     """Field type, subtype, description and labels as exposed by TCP server:
     https://pandablocks-server.readthedocs.io/en/latest/fields.html#field-types
 
+    Note that many fields will use a more specialised subclass of FieldInfo for
+    their additional attributes.
+
     Attributes:
         type: Field type, like "param", "bit_out", "pos_mux", etc.
         subtype: Some types have subtype, like "uint", "scalar", "lut", etc.
@@ -47,9 +63,115 @@ class FieldInfo:
     """
 
     type: str
-    subtype: Optional[str] = None
+    subtype: Optional[str]
+    description: Optional[str]
+
+
+@dataclass
+class UintFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "uint"""
+
+    max_val: int
+
+
+@dataclass
+class ScalarFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "scalar"""
+
+    units: str
+    scale: float
+    offset: float
+
+
+@dataclass
+class TimeFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "time"""
+
+    units_labels: List[str]
+    min_val: float
+
+
+@dataclass
+class SubtypeTimeFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "time"""
+
+    units_labels: List[str]
+
+
+@dataclass
+class EnumFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
+    "enum"""
+
+    labels: List[str]
+
+
+@dataclass
+class BitOutFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "bit_out"""
+
+    capture_word: str
+    offset: int
+
+
+@dataclass
+class BitMuxFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "bit_mux"""
+
+    max_delay: int
+    labels: List[str]
+
+
+@dataclass
+class PosMuxFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "pos_mux"""
+
+    labels: List[str]
+
+
+@dataclass
+class TableFieldDetails:
+    """Info for each field in a table"""
+
+    subtype: str
+    bit_low: int
+    bit_high: int
     description: Optional[str] = None
     labels: Optional[List[str]] = None
+
+
+@dataclass
+class TableFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "table"""
+
+    max_length: int
+    fields: Dict[str, TableFieldDetails]
+    row_words: int
+
+
+@dataclass
+class PosOutFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "pos_out"""
+
+    capture_labels: List[str]
+
+
+@dataclass
+class ExtOutFieldInfo(FieldInfo):
+    """Extended `FieldInfo` for fields with type "ext_out" and subtypes "timestamp"
+    or "samples"""
+
+    capture_labels: List[str]
+
+
+@dataclass
+class ExtOutBitsFieldInfo(ExtOutFieldInfo):
+    """Extended `ExtOutFieldInfo` for fields with type "ext_out" and subtype "bits"""
+
+    bits: List[str]
 
 
 @dataclass
@@ -62,6 +184,8 @@ class Changes:
     no_value: List[str]
     #: The fields that were in error
     in_error: List[str]
+    #: Map field -> value for multi-line values that were returned
+    multiline_values: Dict[str, List[str]]
 
 
 # Data
@@ -84,6 +208,12 @@ class EndReason(Enum):
     DRIVER_DATA_OVERRUN = "Driver data overrun"
     #: Data capture too fast for memory bandwidth
     DMA_DATA_ERROR = "DMA data error"
+
+    # Reasons below this point are not from the server, they are generated in code
+    #: An unknown exception occurred during HDF5 file processing
+    UNKNOWN_EXCEPTION = "Unknown exception"
+    #: StartData packets did not match when trying to continue printing to a file
+    START_DATA_MISMATCH = "Start Data mismatched"
 
 
 @dataclass

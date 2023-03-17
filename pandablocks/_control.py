@@ -49,7 +49,7 @@ class BlockCompleter:
 
     def _get_fields(self, blocks: List[str]) -> Dict[str, Dict[str, FieldInfo]]:
         fields = self._client.send(
-            [GetFieldInfo(block, skip_description=True) for block in blocks],
+            [GetFieldInfo(block, extended_metadata=False) for block in blocks],
             timeout=TIMEOUT,
         )
         return dict(zip(blocks, fields))

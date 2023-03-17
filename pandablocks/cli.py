@@ -49,41 +49,6 @@ def cli(ctx, log_level: str):
 
 
 @cli.command()
-@click.option(
-    "--num",
-    help="Number of collections to capture",
-    default=1,
-    show_default=True,
-)
-@click.option(
-    "--arm",
-    help="Arm PCAP at the start, and after each successful acquisition",
-    is_flag=True,
-)
-@click.argument("host")
-@click.argument("scheme")
-def hdf(host: str, scheme: str, num: int, arm: bool):
-    """
-    Write an HDF file for each PCAP acquisition for HOST
-
-    Uses the filename pattern specified by SCHEME, including %d for scan number
-    starting from 1
-    """
-
-    async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
-        # Local import as we might not have h5py installed and want other commands
-        # to work
-        from pandablocks.hdf import write_hdf_files
-
-        async with AsyncioClient(host) as client:
-            await write_hdf_files(client, scheme=scheme, num=num, arm=arm)
-
-    # Don't use asyncio.run to workaround Python3.7 bug
-    # https://bugs.python.org/issue38013
-    asyncio_run(_write_hdf_files(host, scheme, num, arm))
-
-
-@cli.command()
 @click.option("--prompt", help="Prompt character", default=PROMPT, show_default=True)
 @click.option(
     "--no-readline",
@@ -133,3 +98,54 @@ def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
             await client.send(SetState(state))
 
     asyncio_run(_load(host, state))
+
+
+try:
+    # Local import as we might not have h5py installed and want other commands
+    # to work.
+    from pandablocks.hdf import write_hdf_files
+
+    @cli.command()
+    @click.option(
+        "--num",
+        help="Number of collections to capture",
+        default=1,
+        show_default=True,
+    )
+    @click.option(
+        "--arm",
+        help="Arm PCAP at the start, and after each successful acquisition",
+        is_flag=True,
+    )
+    @click.argument("host")
+    @click.argument("scheme")
+    def hdf(host: str, scheme: str, num: int, arm: bool):
+        """
+        Write an HDF file for each PCAP acquisition for HOST
+
+        Uses the filename pattern specified by SCHEME, including %d for scan number
+        starting from 1
+        """
+
+        async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
+            def file_name_generator(scheme: str):
+                """Yield incrementally numbered file names based on provided scheme"""
+                counter = 1
+                while True:
+                    yield scheme % counter
+                    counter += 1
+
+            async with AsyncioClient(host) as client:
+                await write_hdf_files(
+                    client, file_names=file_name_generator(scheme), num=num, arm=arm
+                )
+
+        # Don't use asyncio.run to workaround Python3.7 bug
+        # https://bugs.python.org/issue38013
+        asyncio_run(_write_hdf_files(host, scheme, num, arm))
+
+except ImportError:
+
+    @cli.command(hidden=True)
+    def hdf():
+        click.echo("ERROR: hdf subcommand unavailable - install 'hdf5' extras.")

@@ -1,12 +1,14 @@
 import asyncio
+import os
 import threading
 from collections import deque
 from io import BufferedReader
 from pathlib import Path
-from typing import Deque, Iterable, Iterator, List
+from typing import Deque, Dict, Iterable, Iterator, List
 
 import numpy as np
 import pytest
+import pytest_asyncio
 
 from pandablocks.connections import Buffer
 from pandablocks.responses import (
@@ -26,21 +28,21 @@ def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
         data = f.read(size)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def slow_dump():
     with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
         # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
         yield chunked_read(f, 44)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def fast_dump():
     with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
         # Simulate larger chunked read
         yield chunked_read(f, 500)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def raw_dump():
     with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
         # Simulate largest chunked read
@@ -123,7 +125,7 @@ class Rows:
         return same
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def slow_dump_expected():
     yield [
         ReadyData(),
@@ -137,7 +139,7 @@ def slow_dump_expected():
     ]
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def fast_dump_expected():
     yield [
         ReadyData(),
@@ -229,7 +231,19 @@ def fast_dump_expected():
 
 
 class DummyServer:
-    def __init__(self):
+
+    # Flag for useful debug output when writing tests
+    # for diagnosing mismatching sent data.
+    debug = False
+    _debug_file = "out.txt"
+
+    # Mechanism to tell the server to send a specific response back to the client
+    # when it sees an expected string. When the expected message is seen the
+    # response will be left-appended to the send buffer so it is sent next.
+    # Items are removed from the Dict when they are sent.
+    expected_message_responses: Dict[str, str] = {}
+
+    def __init__(self) -> None:
         # This will be added to whenever control port gets a message
         self.received: List[str] = []
         # Add to this to give the control port something to send back
@@ -237,23 +251,34 @@ class DummyServer:
         # Add to this to give the data port something to send
         self.data: Iterable[bytes] = []
 
+        if self.debug and os.path.isfile(self._debug_file):
+            os.remove(self._debug_file)
+
     async def handle_ctrl(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         buf = Buffer()
         is_multiline = False
+
         while True:
             received = await reader.read(4096)
             if not received:
                 break
             buf += received
             for line in buf:
-                self.received.append(line.decode())
+                decoded_line = line.decode()
+                self.received.append(decoded_line)
+                if decoded_line in self.expected_message_responses:
+                    self.send.appendleft(self.expected_message_responses[decoded_line])
+                    del self.expected_message_responses[decoded_line]
                 if line.endswith(b"<") or line.endswith(b"<B"):
                     is_multiline = True
                 if not is_multiline or not line:
                     is_multiline = False
                     to_send = self.send.popleft() + "\n"
+                    if self.debug:
+                        with open(self._debug_file, "a") as f:
+                            print(line, to_send, flush=True, file=f)
                     writer.write(to_send.encode())
                     await writer.drain()
 
@@ -282,7 +307,7 @@ class DummyServer:
         await self._data_server.wait_closed()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def dummy_server_async():
     server = DummyServer()
     await server.open()
@@ -290,7 +315,7 @@ async def dummy_server_async():
     await server.close()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def dummy_server_in_thread():
     loop = asyncio.new_event_loop()
     server = DummyServer()

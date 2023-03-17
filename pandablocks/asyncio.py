@@ -47,7 +47,7 @@ class AsyncioClient:
     For example::
 
         async with AsyncioClient("hostname-or-ip") as client:
-            # Control and data ports are now connected
+            # Control port is now connected
             resp1, resp2 = await asyncio.gather(client.send(cmd1), client.send(cmd2))
             resp3 = await client.send(cmd3)
             async for data in client.data():
@@ -61,23 +61,20 @@ class AsyncioClient:
         self._ctrl_task: Optional[asyncio.Task] = None
         self._ctrl_queues: Dict[int, asyncio.Queue] = {}
         self._ctrl_stream = _StreamHelper()
-        self._data_stream = _StreamHelper()
 
     async def connect(self):
-        """Connect to the control and data ports, and be ready to handle commands"""
-        await asyncio.gather(
-            self._ctrl_stream.connect(self._host, 8888),
-            self._data_stream.connect(self._host, 8889),
-        )
+        """Connect to the control port, and be ready to handle commands"""
+        await self._ctrl_stream.connect(self._host, 8888),
+
         self._ctrl_task = asyncio.create_task(
             self._ctrl_read_forever(self._ctrl_stream.reader)
         )
 
     async def close(self):
-        """Close the control and data connections, and wait for completion"""
+        """Close the control connection, and wait for completion"""
         assert self._ctrl_task, "connect() not called yet"
         self._ctrl_task.cancel()
-        await asyncio.gather(self._ctrl_stream.close(), self._data_stream.close())
+        await self._ctrl_stream.close()
 
     async def __aenter__(self) -> "AsyncioClient":
         await self.connect()
@@ -118,8 +115,8 @@ class AsyncioClient:
     async def data(
         self,
         scaled: bool = True,
-        flush_period: float = None,
-        frame_timeout: float = None,
+        flush_period: Optional[float] = None,
+        frame_timeout: Optional[float] = None,
     ) -> AsyncGenerator[Data, None]:
         """Connect to data port and yield data frames
 
@@ -130,9 +127,13 @@ class AsyncioClient:
             frame_timeout: If no data is received for this amount of time, raise
                 `asyncio.TimeoutError`
         """
+
+        data_stream = _StreamHelper()
+        await data_stream.connect(self._host, 8889),
+
         connection = DataConnection()
         data: Deque[Data] = deque()
-        reader = self._data_stream.reader
+        reader = data_stream.reader
         # Should we flush every FrameData?
         flush_every_frame = flush_period is None
 
@@ -149,7 +150,7 @@ class AsyncioClient:
 
         flush_task = asyncio.create_task(periodic_flush())
         try:
-            await self._data_stream.write_and_drain(connection.connect(scaled))
+            await data_stream.write_and_drain(connection.connect(scaled))
             while True:
                 received = await asyncio.wait_for(reader.read(4096), frame_timeout)
                 for d in connection.receive_bytes(received, flush_every_frame):
@@ -158,3 +159,4 @@ class AsyncioClient:
                     yield data.popleft()
         finally:
             flush_task.cancel()
+            await data_stream.close()

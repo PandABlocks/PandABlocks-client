@@ -148,7 +148,7 @@ class ControlConnection:
                 do_something_with(response)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._buf = Buffer()
         self._lines: List[str] = []
         self._contexts: Deque[_ExchangeContext] = deque()
@@ -263,7 +263,7 @@ class DataConnection:
                 do_something_with(data)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # TODO: could support big endian, but are there any systems out there?
         assert sys.byteorder == "little", "PandA sends data little endian"
         # Store of bytes received so far to parse in the handlers
@@ -271,7 +271,7 @@ class DataConnection:
         # Header text from PandA with field info
         self._header = ""
         # The next parsing handler that should be called if there is data in buffer
-        self._next_handler: Callable[[], Optional[Iterator[Data]]] = None
+        self._next_handler: Optional[Callable[[], Optional[Iterator[Data]]]] = None
         # numpy dtype of produced FrameData
         self._frame_dtype = None
         # frame data that has been received but should be discarded on Data Overrun
