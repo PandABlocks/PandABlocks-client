@@ -180,10 +180,10 @@ def test_connect_put_multi_line_bad_list_format():
         assert conn.send(cmd) == b""
 
 
-def test_connect_put_none_value():
-    """Confirm Put works with a value of None"""
+def test_connect_put_no_value():
+    """Confirm Put works with no value"""
     conn = ControlConnection()
-    cmd = Put("SFP3_SYNC_IN1.SYNC_RESET", None)
+    cmd = Put("SFP3_SYNC_IN1.SYNC_RESET")
     assert conn.send(cmd) == b"SFP3_SYNC_IN1.SYNC_RESET=\n"
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
 
