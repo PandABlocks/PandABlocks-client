@@ -26,10 +26,17 @@ class _StreamHelper:
         assert self._writer, "connect() not called yet"
         return self._writer
 
-    async def write_and_drain(self, data: bytes):
+    async def write_and_drain(self, data: bytes, timeout: Optional[float] = None):
         writer = self.writer
         writer.write(data)
-        await writer.drain()
+
+        # Cannot simply await the drain, as if the remote end has disconnected
+        # then the drain will never complete as the OS cannot clear its send buffer.
+        _, pending = await asyncio.wait([writer.drain()], timeout=timeout)
+        if len(pending):
+            for task in pending:
+                task.cancel()
+            raise asyncio.TimeoutError("Timeout writing data")
 
     async def connect(self, host: str, port: int):
         self._reader, self._writer = await asyncio.open_connection(host, port)
@@ -70,6 +77,13 @@ class AsyncioClient:
             self._ctrl_read_forever(self._ctrl_stream.reader)
         )
 
+    def is_connected(self):
+        """True if there is a currently active connection.
+        NOTE: This does not indicate if the remote end is still connected."""
+        if self._ctrl_task and not self._ctrl_task.done():
+            return True
+        return False
+
     async def close(self):
         """Close the control connection, and wait for completion"""
         assert self._ctrl_task, "connect() not called yet"
@@ -95,7 +109,7 @@ class AsyncioClient:
             except Exception:
                 logging.exception(f"Error handling '{received.decode()}'")
 
-    async def send(self, command: Command[T]) -> T:
+    async def send(self, command: Command[T], timeout: Optional[float] = None) -> T:
         """Send a command to control port of the PandA, returning its response.
 
         Args:
@@ -105,8 +119,8 @@ class AsyncioClient:
         # Need to use the id as non-frozen dataclasses don't hash
         self._ctrl_queues[id(command)] = queue
         to_send = self._ctrl_connection.send(command)
-        await self._ctrl_stream.write_and_drain(to_send)
-        response = await queue.get()
+        await self._ctrl_stream.write_and_drain(to_send, timeout)
+        response = await asyncio.wait_for(queue.get(), timeout)
         if isinstance(response, Exception):
             raise response
         else:
