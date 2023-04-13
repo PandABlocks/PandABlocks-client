@@ -32,7 +32,8 @@ class _StreamHelper:
 
         # Cannot simply await the drain, as if the remote end has disconnected
         # then the drain will never complete as the OS cannot clear its send buffer.
-        _, pending = await asyncio.wait([writer.drain()], timeout=timeout)
+        write_task = asyncio.create_task(writer.drain())
+        _, pending = await asyncio.wait([write_task], timeout=timeout)
         if len(pending):
             for task in pending:
                 task.cancel()
