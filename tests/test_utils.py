@@ -1,4 +1,4 @@
-from typing import Dict, List, Iterable, OrderedDict
+from typing import Dict, Iterable, List, OrderedDict
 
 import pytest
 
@@ -179,7 +179,16 @@ def test_table_to_words_and_words_to_table(table_field_info: TableFieldInfo):
         table[f"OUT{key}1"] = table[f"OUT{key}2"] = [False, False]
 
     words = table_to_words(table, table_field_info)
-    # assert words == ["67108865", "0", "0", "0", "1048576", "1", "1", "1"]
+    assert words == [
+        "67108865",
+        "4294967276",
+        "12",
+        "32",
+        "1048576",
+        "2147483647",
+        "4294967295",
+        "1",
+    ]
     output = words_to_table(words, table_field_info)
 
     # Test the correct keys are outputted

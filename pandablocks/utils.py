@@ -1,4 +1,4 @@
-from typing import Dict, List, Sequence, Union, Iterable, cast
+from typing import Dict, Iterable, List, Sequence, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -21,12 +21,13 @@ def words_to_table(
     Returns the unpacked data in {column_name: column_data} column-indexed format
 
     Args:
-        words: The list of data for this table, from PandA. Each item is
+        words: An iterable of data for this table, from PandA. Each item is
             expected to be the string representation of a uint32.
         table_fields_info: The info for tables, containing the number of words per row,
             and the bit information for fields.
     Returns:
-        unpacked: A dict of lists, one item per field.
+        unpacked: A dict containing record information, where keys are field names
+            and values are numpy arrays of record values in that column.
     """
 
     row_words = table_field_info.row_words
@@ -72,13 +73,14 @@ def words_to_table(
 def table_to_words(
     table: Dict[str, Iterable], table_field_info: TableFieldInfo
 ) -> List[str]:
-    """Pack the records based on the field definitions into the format PandA expects
+    """Convert records based on the field definitions into the format PandA expects
     for table writes.
 
     Args:
-        row_words: The number of 32-bit words per row
-        table_fields_info: The info for tables, containing the number of words per row,
-            and the bit information for fields.
+        table: A dict containing record information, where keys are field names
+            and values are iterables of record values in that column.
+        table_field_info: The info for tables, containing the dict `fields` for
+            information on each field, and the number of words per row.
     Returns:
         List[str]: The list of data ready to be sent to PandA
     """
