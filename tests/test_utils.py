@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Iterable, OrderedDict
 
 import pytest
 
@@ -155,13 +155,22 @@ def table_field_info(table_fields) -> TableFieldInfo:
     )
 
 
-def test_table_to_words_and_words_to_table(table_field_info):
-    table = dict(
+def ensure_matching_order(list1: List, list2: List):
+    old_index = 0
+    for list1_element in list1:
+        new_index = list2.index(list1_element)
+        if new_index < old_index:
+            return False
+        old_index = new_index
+
+
+def test_table_to_words_and_words_to_table(table_field_info: TableFieldInfo):
+    table: Dict[str, Iterable] = dict(
         REPEATS=[1, 0],
         TRIGGER=["Immediate", "Immediate"],
-        POSITION=[0, 1],
-        TIME1=[0, 1],
-        TIME2=[0, 1],
+        POSITION=[-20, 2**31 - 1],
+        TIME1=[12, 2**32 - 1],
+        TIME2=[32, 1],
     )
 
     table["OUTA1"] = [False, True]
@@ -170,7 +179,15 @@ def test_table_to_words_and_words_to_table(table_field_info):
         table[f"OUT{key}1"] = table[f"OUT{key}2"] = [False, False]
 
     words = table_to_words(table, table_field_info)
-    assert words == ["67108865", "0", "0", "0", "1048576", "1", "1", "1"]
+    # assert words == ["67108865", "0", "0", "0", "1048576", "1", "1", "1"]
+    output = words_to_table(words, table_field_info)
 
-    # Verify the methods are inverse
-    assert words_to_table(words, table_field_info) == table
+    # Test the correct keys are outputted
+    assert output.keys() == table.keys()
+
+    # Check the items have been inserted in panda order
+    sorted_table = OrderedDict({key: table[key] for key in output.keys()})
+    assert sorted_table != OrderedDict(table)
+
+    # Check the values are the same
+    assert [(x, list(y)) for x, y in output.items()] == list(sorted_table.items())

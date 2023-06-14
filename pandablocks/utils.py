@@ -1,4 +1,4 @@
-from typing import Dict, List, Sequence, Union
+from typing import Dict, List, Sequence, Union, Iterable, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -6,13 +6,17 @@ import numpy.typing as npt
 from pandablocks.responses import TableFieldInfo
 
 UnpackedArray = Union[
-    npt.NDArray[np.int32], npt.NDArray[np.uint8], npt.NDArray[np.uint16]
+    npt.NDArray[np.int32],
+    npt.NDArray[np.uint8],
+    npt.NDArray[np.uint16],
+    npt.NDArray[np.bool_],
+    Sequence[str],
 ]
 
 
 def words_to_table(
-    words: Sequence[str], table_field_info: TableFieldInfo
-) -> Dict[str, List]:
+    words: Iterable[str], table_field_info: TableFieldInfo
+) -> Dict[str, UnpackedArray]:
     """Unpacks the given `packed` data based on the fields provided.
     Returns the unpacked data in {column_name: column_data} column-indexed format
 
@@ -31,17 +35,9 @@ def words_to_table(
     data = data.reshape(len(data) // row_words, row_words)
     packed = data.T
 
-    # Ensure fields are in bit-order
-    table_fields = dict(
-        sorted(
-            table_field_info.fields.items(),
-            key=lambda item: item[1].bit_low,
-        )
-    )
+    unpacked: Dict[str, UnpackedArray] = {}
 
-    unpacked: Dict[str, List] = {}
-
-    for field_name, field_info in table_fields.items():
+    for field_name, field_info in table_field_info.fields.items():
         offset = field_info.bit_low
         bit_length = field_info.bit_high - field_info.bit_low + 1
 
@@ -55,31 +51,26 @@ def words_to_table(
         # Mask to remove every bit that isn't in the range we want
         mask = (1 << bit_length) - 1
 
-        value: UnpackedArray = (packed[word_offset] >> bit_offset) & mask
+        value = (packed[word_offset] >> bit_offset) & mask
 
         if field_info.subtype == "int":
             # First convert from 2's complement to offset, then add in offset.
-            value = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
-            value = value.astype(np.int32)
+            packing_value = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
+            packing_value = value.astype(np.int32)
+        elif field_info.labels:
+            packing_value = [field_info.labels[x] for x in value]
+        elif bit_length == 1:
+            packing_value = value.astype(np.bool_)
         else:
-            # Use shorter types, as these are used in waveform creation
-            if bit_length <= 8:
-                value = value.astype(np.uint8)
-            elif bit_length <= 16:
-                value = value.astype(np.uint16)
+            packing_value = value
 
-        value_list = value.tolist()
-        # Convert back to label from integer
-        if field_info.labels:
-            value_list = [field_info.labels[x] for x in value_list]
-
-        unpacked.update({field_name: value_list})
+        unpacked.update({field_name: packing_value})
 
     return unpacked
 
 
 def table_to_words(
-    table: Dict[str, Sequence], table_field_info: TableFieldInfo
+    table: Dict[str, Iterable], table_field_info: TableFieldInfo
 ) -> List[str]:
     """Pack the records based on the field definitions into the format PandA expects
     for table writes.
@@ -93,20 +84,12 @@ def table_to_words(
     """
     row_words = table_field_info.row_words
 
-    # Ensure fields are in bit-order
-    table_fields = dict(
-        sorted(
-            table_field_info.fields.items(),
-            key=lambda item: item[1].bit_low,
-        )
-    )
-
     # Iterate over the zipped fields and their associated records to construct the
     # packed array.
     packed = None
 
     for column_name, column in table.items():
-        field_details = table_fields[column_name]
+        field_details = table_field_info.fields[column_name]
         if field_details.labels:
             # Must convert the list of ints into strings
             column = [field_details.labels.index(x) for x in column]
@@ -115,7 +98,10 @@ def table_to_words(
         column_value = np.uint32(np.array(column))
 
         if packed is None:
-            # Create 1-D array sufficiently long to exactly hold the entire table
+            # Create 1-D array sufficiently long to exactly hold the entire table, cast
+            # to prevent type error, this will still work if column is another iterable
+            # e.g numpy array
+            column = cast(List, column)
             packed = np.zeros((len(column), row_words), dtype=np.uint32)
         else:
             assert len(packed) == len(column), (
@@ -135,7 +121,7 @@ def table_to_words(
         # bit shift the value to the relevant bits of the word
         packed[:, word_offset] |= column_value << bit_offset
 
-    assert isinstance(packed, np.ndarray)  # Squash mypy warning
+    assert isinstance(packed, np.ndarray), "Table has no columns"  # Squash mypy warning
 
     # 2-D array -> 1-D array -> list[int] -> list[str]
     return [str(x) for x in packed.flatten().tolist()]
