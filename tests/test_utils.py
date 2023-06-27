@@ -1,9 +1,11 @@
+from itertools import chain
 from typing import Dict, Iterable, List, OrderedDict
 
+import numpy as np
 import pytest
 
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from pandablocks.utils import table_to_words, words_to_table
+from pandablocks.utils import UnpackedArray, table_to_words, words_to_table
 
 
 @pytest.fixture
@@ -155,16 +157,69 @@ def table_field_info(table_fields) -> TableFieldInfo:
     )
 
 
-def ensure_matching_order(list1: List, list2: List):
-    old_index = 0
-    for list1_element in list1:
-        new_index = list2.index(list1_element)
-        if new_index < old_index:
-            return False
-        old_index = new_index
+@pytest.fixture
+def table_1(table_fields: Dict[str, TableFieldDetails]) -> OrderedDict[str, np.ndarray]:
+    """The unpacked equivalent of table_data"""
+    array_values: List[np.ndarray] = [
+        np.array([5, 0, 50000], dtype=np.uint16),
+        # Below labels correspond to numeric values [0, 6, 0]
+        np.array(["Immediate", "BITC=1", "Immediate"], dtype="<U9"),
+        np.array([-5, 678, 0], dtype=np.int32),
+        np.array([100, 0, 9], dtype=np.uint32),
+        np.array([0, 1, 1], dtype=np.uint8),
+        np.array([0, 0, 1], dtype=np.uint8),
+        np.array([0, 0, 1], dtype=np.uint8),
+        np.array([1, 0, 1], dtype=np.uint8),
+        np.array([0, 0, 1], dtype=np.uint8),
+        np.array([1, 0, 1], dtype=np.uint8),
+        np.array([0, 55, 9999], dtype=np.uint32),
+        np.array([0, 0, 1], dtype=np.uint8),
+        np.array([0, 0, 1], dtype=np.uint8),
+        np.array([1, 1, 1], dtype=np.uint8),
+        np.array([0, 0, 1], dtype=np.uint8),
+        np.array([0, 0, 1], dtype=np.uint8),
+        np.array([1, 0, 1], dtype=np.uint8),
+    ]
+    return OrderedDict(zip(table_fields.keys(), array_values))
 
 
-def test_table_to_words_and_words_to_table(table_field_info: TableFieldInfo):
+@pytest.fixture
+def table_1_not_in_panda_order(
+    table_1: OrderedDict[str, np.ndarray]
+) -> OrderedDict[str, np.ndarray]:
+    # To ensure the order is different: we want to check packed values
+    # come out in panda order
+    to_insert = list(table_1.items())
+    data: OrderedDict[str, np.ndarray] = OrderedDict()
+    for insert_iteration in chain(range(5), [7, 6, 5], range(8, len(to_insert))):
+        field_name, data_array = to_insert[insert_iteration]
+        data[str(field_name)] = data_array
+
+    return data
+
+
+@pytest.fixture
+def table_data_1() -> List[str]:
+    """Table data associated with table_fields and table_field_info fixtures.
+    See table_unpacked_data for the unpacked equivalent"""
+    return [
+        "2457862149",
+        "4294967291",
+        "100",
+        "0",
+        "269877248",
+        "678",
+        "0",
+        "55",
+        "4293968720",
+        "0",
+        "9",
+        "9999",
+    ]
+
+
+@pytest.fixture
+def table_2() -> Dict[str, Iterable]:
     table: Dict[str, Iterable] = dict(
         REPEATS=[1, 0],
         TRIGGER=["Immediate", "Immediate"],
@@ -178,8 +233,12 @@ def test_table_to_words_and_words_to_table(table_field_info: TableFieldInfo):
     for key in "BCDEF":
         table[f"OUT{key}1"] = table[f"OUT{key}2"] = [False, False]
 
-    words = table_to_words(table, table_field_info)
-    assert words == [
+    return table
+
+
+@pytest.fixture
+def table_data_2() -> List[str]:
+    return [
         "67108865",
         "4294967276",
         "12",
@@ -189,14 +248,74 @@ def test_table_to_words_and_words_to_table(table_field_info: TableFieldInfo):
         "4294967295",
         "1",
     ]
-    output = words_to_table(words, table_field_info)
+
+
+def test_table_packing_pack_length_mismatched(
+    table_1: OrderedDict[str, Iterable],
+    table_field_info: TableFieldInfo,
+):
+    assert table_field_info.row_words
+
+    # Adjust one of the record lengths so it mismatches
+    field_info = table_field_info.fields[("OUTC1")]
+    assert field_info
+    table_1["OUTC1"] = np.array([1, 2, 3, 4, 5, 6, 7, 8])
+
+    with pytest.raises(AssertionError):
+        table_to_words(table_1, table_field_info)
+
+
+@pytest.mark.parametrize(
+    "table_fixture_name,table_data_fixture_name",
+    [("table_1_not_in_panda_order", "table_data_1"), ("table_2", "table_data_2")],
+)
+def test_table_to_words_and_words_to_table(
+    table_fixture_name: str,
+    table_data_fixture_name: str,
+    table_field_info: TableFieldInfo,
+    request,
+):
+    table: Dict[str, Iterable] = request.getfixturevalue(table_fixture_name)
+    table_data: List[str] = request.getfixturevalue(table_data_fixture_name)
+
+    output_data = table_to_words(table, table_field_info)
+    assert output_data == table_data
+    output_table = words_to_table(output_data, table_field_info)
 
     # Test the correct keys are outputted
-    assert output.keys() == table.keys()
+    assert output_table.keys() == table.keys()
 
     # Check the items have been inserted in panda order
-    sorted_table = OrderedDict({key: table[key] for key in output.keys()})
-    assert sorted_table != OrderedDict(table)
+    sorted_output_table = OrderedDict({key: table[key] for key in output_table.keys()})
+    assert sorted_output_table != OrderedDict(table)
 
     # Check the values are the same
-    assert [(x, list(y)) for x, y in output.items()] == list(sorted_table.items())
+    for output_key in output_table.keys():
+        np.testing.assert_equal(output_table[output_key], table[output_key])
+
+
+def test_table_packing_unpack(
+    table_1: OrderedDict[str, np.ndarray],
+    table_field_info: TableFieldInfo,
+    table_data_1: List[str],
+):
+    assert table_field_info.row_words
+    output_table = words_to_table(table_data_1, table_field_info)
+
+    actual: UnpackedArray
+    for field_name, actual in output_table.items():
+        expected = table_1[str(field_name)]
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_table_packing_pack(
+    table_1: Dict[str, Iterable],
+    table_field_info: TableFieldInfo,
+    table_data_1: List[str],
+):
+    """Test table unpacking works as expected"""
+    assert table_field_info.row_words
+    unpacked = table_to_words(table_1, table_field_info)
+
+    for actual, expected in zip(unpacked, table_data_1):
+        assert actual == expected

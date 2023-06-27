@@ -9,6 +9,7 @@ UnpackedArray = Union[
     npt.NDArray[np.int32],
     npt.NDArray[np.uint8],
     npt.NDArray[np.uint16],
+    npt.NDArray[np.uint32],
     npt.NDArray[np.bool_],
     Sequence[str],
 ]
@@ -27,7 +28,8 @@ def words_to_table(
             and the bit information for fields.
     Returns:
         unpacked: A dict containing record information, where keys are field names
-            and values are numpy arrays of record values in that column.
+            and values are numpy arrays or a sequence of strings of record values
+            in that column.
     """
 
     row_words = table_field_info.row_words
@@ -57,11 +59,8 @@ def words_to_table(
         if field_info.subtype == "int":
             # First convert from 2's complement to offset, then add in offset.
             packing_value = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
-            packing_value = value.astype(np.int32)
         elif field_info.labels:
             packing_value = [field_info.labels[x] for x in value]
-        elif bit_length == 1:
-            packing_value = value.astype(np.bool_)
         else:
             packing_value = value
 
