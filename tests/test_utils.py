@@ -1,4 +1,3 @@
-from itertools import chain
 from typing import Dict, Iterable, List, OrderedDict
 
 import numpy as np
@@ -158,50 +157,84 @@ def table_field_info(table_fields) -> TableFieldInfo:
 
 
 @pytest.fixture
-def table_1(table_fields: Dict[str, TableFieldDetails]) -> OrderedDict[str, np.ndarray]:
-    """The unpacked equivalent of table_data"""
-    array_values: List[np.ndarray] = [
-        np.array([5, 0, 50000], dtype=np.uint16),
-        # Below labels correspond to numeric values [0, 6, 0]
-        np.array(["Immediate", "BITC=1", "Immediate"], dtype="<U9"),
-        np.array([-5, 678, 0], dtype=np.int32),
-        np.array([100, 0, 9], dtype=np.uint32),
-        np.array([0, 1, 1], dtype=np.uint8),
-        np.array([0, 0, 1], dtype=np.uint8),
-        np.array([0, 0, 1], dtype=np.uint8),
-        np.array([1, 0, 1], dtype=np.uint8),
-        np.array([0, 0, 1], dtype=np.uint8),
-        np.array([1, 0, 1], dtype=np.uint8),
-        np.array([0, 55, 9999], dtype=np.uint32),
-        np.array([0, 0, 1], dtype=np.uint8),
-        np.array([0, 0, 1], dtype=np.uint8),
-        np.array([1, 1, 1], dtype=np.uint8),
-        np.array([0, 0, 1], dtype=np.uint8),
-        np.array([0, 0, 1], dtype=np.uint8),
-        np.array([1, 0, 1], dtype=np.uint8),
-    ]
-    return OrderedDict(zip(table_fields.keys(), array_values))
+def table_1() -> OrderedDict[str, Iterable]:
+    return OrderedDict(
+        {
+            "REPEATS": [5, 0, 50000],
+            "TRIGGER": ["Immediate", "BITC=1", "Immediate"],
+            "POSITION": [-5, 678, 0],
+            "TIME1": [100, 0, 9],
+            "OUTA1": [0, 1, 1],
+            "OUTB1": [0, 0, 1],
+            "OUTC1": [0, 0, 1],
+            "OUTD1": [1, 0, 1],
+            "OUTE1": [0, 0, 1],
+            "OUTF1": [1, 0, 1],
+            "TIME2": [0, 55, 9999],
+            "OUTA2": [0, 0, 1],
+            "OUTB2": [0, 0, 1],
+            "OUTC2": [1, 1, 1],
+            "OUTD2": [0, 0, 1],
+            "OUTE2": [0, 0, 1],
+            "OUTF2": [1, 0, 1],
+        }
+    )
 
 
 @pytest.fixture
-def table_1_not_in_panda_order(
-    table_1: OrderedDict[str, np.ndarray]
-) -> OrderedDict[str, np.ndarray]:
-    # To ensure the order is different: we want to check packed values
-    # come out in panda order
-    to_insert = list(table_1.items())
-    data: OrderedDict[str, np.ndarray] = OrderedDict()
-    for insert_iteration in chain(range(5), [7, 6, 5], range(8, len(to_insert))):
-        field_name, data_array = to_insert[insert_iteration]
-        data[str(field_name)] = data_array
+def table_1_np_arrays() -> OrderedDict[str, Iterable]:
+    # Intentionally not in panda order. Whatever types the np arrays are,
+    # the outputs from words_to_table will be uint32 or int32.
+    return OrderedDict(
+        {
+            "POSITION": np.array([-5, 678, 0], dtype=np.int32),
+            "TIME1": np.array([100, 0, 9], dtype=np.uint32),
+            "OUTA1": np.array([0, 1, 1], dtype=np.uint8),
+            "OUTB1": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTD1": np.array([1, 0, 1], dtype=np.uint8),
+            "OUTE1": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTC1": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTF1": np.array([1, 0, 1], dtype=np.uint8),
+            "TIME2": np.array([0, 55, 9999], dtype=np.uint32),
+            "OUTA2": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTB2": np.array([0, 0, 1], dtype=np.uint8),
+            "REPEATS": np.array([5, 0, 50000], dtype=np.uint32),
+            "OUTC2": np.array([1, 1, 1], dtype=np.uint8),
+            "OUTD2": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTE2": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTF2": np.array([1, 0, 1], dtype=np.uint8),
+            "TRIGGER": np.array(["Immediate", "BITC=1", "Immediate"], dtype="<U9"),
+        }
+    )
 
-    return data
+
+@pytest.fixture
+def table_1_not_in_panda_order() -> OrderedDict[str, Iterable]:
+    return OrderedDict(
+        {
+            "REPEATS": [5, 0, 50000],
+            "TRIGGER": ["Immediate", "BITC=1", "Immediate"],
+            "POSITION": [-5, 678, 0],
+            "TIME1": [100, 0, 9],
+            "OUTA1": [0, 1, 1],
+            "OUTB1": [0, 0, 1],
+            "OUTC1": [0, 0, 1],
+            "OUTD1": [1, 0, 1],
+            "OUTF1": [1, 0, 1],
+            "OUTE1": [0, 0, 1],
+            "TIME2": [0, 55, 9999],
+            "OUTA2": [0, 0, 1],
+            "OUTC2": [1, 1, 1],
+            "OUTB2": [0, 0, 1],
+            "OUTD2": [0, 0, 1],
+            "OUTE2": [0, 0, 1],
+            "OUTF2": [1, 0, 1],
+        }
+    )
 
 
 @pytest.fixture
 def table_data_1() -> List[str]:
-    """Table data associated with table_fields and table_field_info fixtures.
-    See table_unpacked_data for the unpacked equivalent"""
     return [
         "2457862149",
         "4294967291",
@@ -267,7 +300,11 @@ def test_table_packing_pack_length_mismatched(
 
 @pytest.mark.parametrize(
     "table_fixture_name,table_data_fixture_name",
-    [("table_1_not_in_panda_order", "table_data_1"), ("table_2", "table_data_2")],
+    [
+        ("table_1_not_in_panda_order", "table_data_1"),
+        ("table_2", "table_data_2"),
+        ("table_1_np_arrays", "table_data_1"),
+    ],
 )
 def test_table_to_words_and_words_to_table(
     table_fixture_name: str,
@@ -295,7 +332,7 @@ def test_table_to_words_and_words_to_table(
 
 
 def test_table_packing_unpack(
-    table_1: OrderedDict[str, np.ndarray],
+    table_1_np_arrays: OrderedDict[str, np.ndarray],
     table_field_info: TableFieldInfo,
     table_data_1: List[str],
 ):
@@ -304,7 +341,7 @@ def test_table_packing_unpack(
 
     actual: UnpackedArray
     for field_name, actual in output_table.items():
-        expected = table_1[str(field_name)]
+        expected = table_1_np_arrays[str(field_name)]
         np.testing.assert_array_equal(actual, expected)
 
 
@@ -313,7 +350,6 @@ def test_table_packing_pack(
     table_field_info: TableFieldInfo,
     table_data_1: List[str],
 ):
-    """Test table unpacking works as expected"""
     assert table_field_info.row_words
     unpacked = table_to_words(table_1, table_field_info)
 

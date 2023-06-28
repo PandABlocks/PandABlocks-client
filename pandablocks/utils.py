@@ -7,10 +7,7 @@ from pandablocks.responses import TableFieldInfo
 
 UnpackedArray = Union[
     npt.NDArray[np.int32],
-    npt.NDArray[np.uint8],
-    npt.NDArray[np.uint16],
     npt.NDArray[np.uint32],
-    npt.NDArray[np.bool_],
     Sequence[str],
 ]
 
@@ -96,7 +93,7 @@ def table_to_words(
             column = [field_details.labels.index(x) for x in column]
 
         # PandA always handles tables in uint32 format
-        column_value = np.uint32(np.array(column))
+        column_value = np.array(column, dtype=np.uint32)
 
         if packed is None:
             # Create 1-D array sufficiently long to exactly hold the entire table, cast
