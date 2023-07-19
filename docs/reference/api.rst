@@ -12,6 +12,7 @@ from code:
 - `pandablocks.asyncio`: An asyncio client that uses the control and data connections
 - `pandablocks.blocking`: A blocking client that uses the control and data connections
 - `pandablocks.hdf`: Some helpers for efficiently writing data responses to disk
+- `pandablocks.utils`: General utility methods for use with pandablocks
 
 
 .. automodule:: pandablocks.commands
@@ -82,3 +83,10 @@ from code:
     gives multi-CPU benefits without hitting the limit of the GIL.
 
     .. seealso:: `library-hdf`, `performance`
+
+.. automodule:: pandablocks.utils    
+    
+    Utilities
+    ---------
+
+    This package contains general methods for working with pandablocks.
