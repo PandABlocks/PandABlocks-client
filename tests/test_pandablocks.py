@@ -14,6 +14,7 @@ from pandablocks.commands import (
     GetPcapBitsLabels,
     GetState,
     Put,
+    Append,
     SetState,
     is_multiline_command,
 )
@@ -186,6 +187,21 @@ def test_connect_put_no_value():
     cmd = Put("SFP3_SYNC_IN1.SYNC_RESET")
     assert conn.send(cmd) == b"SFP3_SYNC_IN1.SYNC_RESET=\n"
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
+
+
+def test_connect_append():
+    conn = ControlConnection()
+    cmd = Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
+    assert conn.send(cmd) == b"SEQ1.TABLE<<\n1048576\n0\n1000\n1000\n\n"
+    assert get_responses(conn, b"OK\n") == [(cmd, None)]
+
+
+def test_connect_append_multi_bad_list_format():
+    """Confirm that an invalid data format raises the expected exception"""
+    conn = ControlConnection()
+    cmd = Append("SEQ1.TABLE", [1, 2, 3])
+    with pytest.raises(TypeError):
+        assert conn.send(cmd) == b""
 
 
 def test_get_block_info():
