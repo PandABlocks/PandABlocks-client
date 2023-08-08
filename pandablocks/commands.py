@@ -304,7 +304,7 @@ class Append(Command[None]):
 
     For example::
 
-        Put("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
+        Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
     """
 
     field: str
