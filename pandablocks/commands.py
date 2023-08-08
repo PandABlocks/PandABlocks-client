@@ -311,11 +311,10 @@ class Append(Command[None]):
     value: List[str]
 
     def execute(self) -> ExchangeGenerator[None]:
-        if isinstance(self.value, list):
-            # Multiline table with blank line to terminate
-            ex = Exchange([f"{self.field}<<"] + self.value + [""])
-            yield ex
-            assert ex.line == "OK"
+        # Multiline table with blank line to terminate
+        ex = Exchange([f"{self.field}<<"] + self.value + [""])
+        yield ex
+        assert ex.line == "OK"
 
 
 class Arm(Command[None]):
