@@ -308,7 +308,7 @@ class Append(Command[None]):
     """
 
     field: str
-    value: Union[List[str]] = ["",]
+    value: List[str]
 
     def execute(self) -> ExchangeGenerator[None]:
         if isinstance(self.value, list):
