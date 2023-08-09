@@ -3,6 +3,7 @@ from typing import Iterator, OrderedDict
 import pytest
 
 from pandablocks.commands import (
+    Append,
     ChangeGroup,
     CommandException,
     Get,
@@ -14,7 +15,6 @@ from pandablocks.commands import (
     GetPcapBitsLabels,
     GetState,
     Put,
-    Append,
     SetState,
     is_multiline_command,
 )
