@@ -45,6 +45,7 @@ __all__ = [
     "GetLine",
     "GetMultiline",
     "Put",
+    "Append",
     "Arm",
     "Disarm",
     "GetBlockInfo",
@@ -289,6 +290,29 @@ class Put(Command[None]):
             ex = Exchange([f"{self.field}<"] + self.value + [""])
         else:
             ex = Exchange(f"{self.field}={self.value}")
+        yield ex
+        assert ex.line == "OK"
+
+
+@dataclass
+class Append(Command[None]):
+    """Append the value of a table field.
+
+    Args:
+        field: The field, attribute, or star command to append
+        value: The value, list of strings, to append
+
+    For example::
+
+        Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
+    """
+
+    field: str
+    value: List[str]
+
+    def execute(self) -> ExchangeGenerator[None]:
+        # Multiline table with blank line to terminate
+        ex = Exchange([f"{self.field}<<"] + self.value + [""])
         yield ex
         assert ex.line == "OK"
 
