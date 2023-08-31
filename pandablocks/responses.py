@@ -200,7 +200,9 @@ class EndReason(Enum):
     DISARMED = "Disarmed"
     #: Client disconnect detected
     EARLY_DISCONNECT = "Early disconnect"
-    #: Client not taking data quickly or network congestion, internal buffer overflow
+    #: Client not taking data quickly or network congestion, internal buffer overflow.
+    #: In raw unscaled mode (i.e., no server-side scaling), the most recent
+    #: `FrameData` is likely corrupted.
     DATA_OVERRUN = "Data overrun"
     #: Triggers too fast for configured data capture
     FRAMING_ERROR = "Framing error"

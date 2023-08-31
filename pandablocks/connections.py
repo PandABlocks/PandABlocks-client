@@ -274,8 +274,6 @@ class DataConnection:
         self._next_handler: Optional[Callable[[], Optional[Iterator[Data]]]] = None
         # numpy dtype of produced FrameData
         self._frame_dtype = None
-        # frame data that has been received but should be discarded on Data Overrun
-        self._pending_data = bytearray()
         # frame data that has been received but not flushed yet
         self._partial_data = bytearray()
         # whether to flush after every frame
@@ -358,9 +356,7 @@ class DataConnection:
         length = struct.unpack("<I", self._buf.peek_bytes(4))[0]
         # we already read "BIN ", so read the rest
         data = self._buf.read_bytes(length - 4)[4:]
-        # The pending data is now valid, and what we got is pending
-        self._partial_data += self._pending_data
-        self._pending_data = data
+        self._partial_data += data
         # if told to flush now, then yield what we have
         if self._flush_every_frame:
             yield from self.flush()
@@ -370,9 +366,6 @@ class DataConnection:
         # Handle the end reason
         samples, reason = self._buf.read_line().split(maxsplit=1)
         reason_enum = EndReason(reason.decode())
-        if reason_enum != EndReason.DATA_OVERRUN:
-            # The last bit of pending data is now valid
-            self._partial_data += self._pending_data
         # Flush whatever is not already flushed
         yield from self.flush()
         yield EndData(samples=int(samples), reason=reason_enum)

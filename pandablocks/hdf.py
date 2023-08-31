@@ -10,18 +10,23 @@ from pandablocks.commands import Arm
 
 from .asyncio import AsyncioClient
 from .connections import SAMPLES_FIELD
-from .responses import EndData, FieldCapture, FrameData, ReadyData, StartData
+from .responses import EndData, EndReason, FieldCapture, FrameData, ReadyData, StartData
 
 # Define the public API of this module
 __all__ = [
     "Pipeline",
     "HDFWriter",
     "FrameProcessor",
+    "HDFDataOverrunException",
     "create_pipeline",
     "create_default_pipeline",
     "stop_pipeline",
     "write_hdf_files",
 ]
+
+
+class HDFDataOverrunException(Exception):
+    """Raised if `DATA_OVERRUN` occurs while receiving data for HDF file"""
 
 
 class Pipeline(threading.Thread):
@@ -211,13 +216,17 @@ async def write_hdf_files(
         num: The number of acquisitions to store in separate files. 0 = Infinite capture
         arm: Whether to arm PCAP at the start, and after each successful acquisition
 
+    Raises:
+        HDFDataOverrunException: if there is a data overrun.
     """
     counter = 0
+    end_data = None
     pipeline = create_default_pipeline(file_names)
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
             if type(data) == EndData:
+                end_data = data
                 counter += 1
                 if counter == num:
                     # We produced the right number of frames
@@ -225,5 +234,9 @@ async def write_hdf_files(
             if type(data) in (ReadyData, EndData) and arm:
                 # Told to arm at the beginning, and after each acquisition ends
                 await client.send(Arm())
+        if end_data and end_data.reason == EndReason.DATA_OVERRUN:
+            raise HDFDataOverrunException(
+                "Data overrun - streaming aborted! Last frame may be corrupt."
+            )
     finally:
         stop_pipeline(pipeline)

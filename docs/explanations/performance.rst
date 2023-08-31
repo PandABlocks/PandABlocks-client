@@ -51,7 +51,7 @@ Scale the data on the client
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `AsyncioClient.data` and `BlockingClient.data` accept a ``scaled`` argument.
-Setting this to True will transfer the raw unscaled data, allowing for up to
+Setting this to False will transfer the raw unscaled data, allowing for up to
 50% more data to be sent depending on the datatype of the field. You can
 use the `StartData.fields` information to scale the data on the client.
 The `write_hdf_files` function uses this approach.
@@ -98,4 +98,17 @@ When panda-webcontrol was not installed, the following results were achieved:
 - PandA CPU usage about 65% (of both cores)
 - local client CPU usage about 60% (of a single core)
 
-Increasing above these throughputs failed most scans with DATA_OVERRUN.
+Increasing above these throughputs failed most scans with `DATA_OVERRUN`.
+
+Data overruns
+-------------
+
+If there is a `DATA_OVERRUN`, the server will stop sending data. The most recently
+received `FrameData` from either `AsyncioClient.data` or `BlockingClient.data` may
+be corrupt. This is the case if the ``scaled`` argument is set to False. The mechanism
+the server uses to send raw unscaled data is only able to detect the corrupt frame after
+it has already been sent. Conversely, the mechanism used to send scaled data aborts prior
+to sending a corrupt frame.
+
+The `write_hdf_files` function uses ``scaled=False``, so your HDF file may include some
+corrupt data in the event of an overrun.
