@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from asyncio.streams import StreamReader, StreamWriter
+from contextlib import suppress
 from typing import AsyncGenerator, Dict, Iterable, Optional
 
 from .commands import Command, T
@@ -179,3 +180,5 @@ class AsyncioClient:
         finally:
             fut.cancel()
             await stream.close()
+            with suppress(asyncio.CancelledError):
+                await fut
