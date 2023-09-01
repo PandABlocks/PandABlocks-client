@@ -1,8 +1,7 @@
 import asyncio
 import logging
 from asyncio.streams import StreamReader, StreamWriter
-from collections import deque
-from typing import AsyncGenerator, Deque, Dict, Optional
+from typing import AsyncGenerator, Dict, Iterable, Optional
 
 from .commands import Command, T
 from .connections import ControlConnection, DataConnection
@@ -142,35 +141,41 @@ class AsyncioClient:
                 `asyncio.TimeoutError`
         """
 
-        data_stream = _StreamHelper()
-        await data_stream.connect(self._host, 8889),
-
+        stream = _StreamHelper()
         connection = DataConnection()
-        data: Deque[Data] = deque()
-        reader = data_stream.reader
-        # Should we flush every FrameData?
-        flush_every_frame = flush_period is None
+        queue: asyncio.Queue[Iterable[Data]] = asyncio.Queue()
 
-        async def queue_flushed_data():
-            data.extend(connection.flush())
+        def raise_timeouterror():
+            raise asyncio.TimeoutError(f"No data received for {frame_timeout}s")
+            yield
 
         async def periodic_flush():
-            if not flush_every_frame:
+            if flush_period is not None:
                 while True:
                     # Every flush_period seconds flush and queue data
-                    await asyncio.gather(
-                        asyncio.sleep(flush_period), queue_flushed_data()
-                    )
+                    await asyncio.sleep(flush_period)
+                    queue.put_nowait(connection.flush())
 
-        flush_task = asyncio.create_task(periodic_flush())
-        try:
-            await data_stream.write_and_drain(connection.connect(scaled))
+        async def read_from_stream():
+            reader = stream.reader
+            # Should we flush every FrameData?
+            flush_every_frame = flush_period is None
             while True:
-                received = await asyncio.wait_for(reader.read(4096), frame_timeout)
-                for d in connection.receive_bytes(received, flush_every_frame):
-                    data.append(d)
-                while data:
-                    yield data.popleft()
+                try:
+                    recv = await asyncio.wait_for(reader.read(4096), frame_timeout)
+                except asyncio.TimeoutError:
+                    queue.put_nowait(raise_timeouterror())
+                    break
+                else:
+                    queue.put_nowait(connection.receive_bytes(recv, flush_every_frame))
+
+        await stream.connect(self._host, 8889)
+        await stream.write_and_drain(connection.connect(scaled))
+        fut = asyncio.gather(periodic_flush(), read_from_stream())
+        try:
+            while True:
+                for data in await queue.get():
+                    yield data
         finally:
-            flush_task.cancel()
-            await data_stream.close()
+            fut.cancel()
+            await stream.close()

@@ -31,15 +31,31 @@ async def test_asyncio_bad_put_raises(dummy_server_async):
 
 
 @pytest.mark.asyncio
-async def test_asyncio_data(dummy_server_async, fast_dump, fast_dump_expected):
+@pytest.mark.parametrize("disarmed", [True, False])
+@pytest.mark.parametrize("flush_period", [0.1, None])
+async def test_asyncio_data(
+    dummy_server_async, fast_dump, fast_dump_expected, disarmed, flush_period
+):
+    if not disarmed:
+        # simulate getting the data without the END marker as if arm was not pressed
+        fast_dump = map(lambda x: x.split(b"END")[0], fast_dump)
+        fast_dump_expected = list(fast_dump_expected)[:-1]
     dummy_server_async.data = fast_dump
     events = []
     async with AsyncioClient("localhost") as client:
-        async for data in client.data(frame_timeout=1):
+        async for data in client.data(frame_timeout=1, flush_period=flush_period):
             events.append(data)
-            if len(events) == 9:
+            if len(events) == len(fast_dump_expected):
                 break
     assert fast_dump_expected == events
+
+
+async def test_asyncio_data_timeout(dummy_server_async, fast_dump):
+    dummy_server_async.data = fast_dump
+    async with AsyncioClient("localhost") as client:
+        with pytest.raises(asyncio.TimeoutError, match="No data received for 0.1s"):
+            async for data in client.data(frame_timeout=0.1):
+                "This goes forever, when it runs out of data we will get our timeout"
 
 
 @pytest.mark.asyncio
