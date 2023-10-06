@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, OrderedDict
+from typing import Dict, List, OrderedDict, Union
 
 import numpy as np
 import pytest
@@ -157,7 +157,7 @@ def table_field_info(table_fields) -> TableFieldInfo:
 
 
 @pytest.fixture
-def table_1() -> OrderedDict[str, Iterable]:
+def table_1() -> OrderedDict[str, Union[List, np.ndarray]]:
     return OrderedDict(
         {
             "REPEATS": [5, 0, 50000],
@@ -182,7 +182,7 @@ def table_1() -> OrderedDict[str, Iterable]:
 
 
 @pytest.fixture
-def table_1_np_arrays() -> OrderedDict[str, Iterable]:
+def table_1_np_arrays() -> OrderedDict[str, Union[List, np.ndarray]]:
     # Intentionally not in panda order. Whatever types the np arrays are,
     # the outputs from words_to_table will be uint32 or int32.
     return OrderedDict(
@@ -209,7 +209,7 @@ def table_1_np_arrays() -> OrderedDict[str, Iterable]:
 
 
 @pytest.fixture
-def table_1_not_in_panda_order() -> OrderedDict[str, Iterable]:
+def table_1_not_in_panda_order() -> OrderedDict[str, Union[List, np.ndarray]]:
     return OrderedDict(
         {
             "REPEATS": [5, 0, 50000],
@@ -252,8 +252,8 @@ def table_data_1() -> List[str]:
 
 
 @pytest.fixture
-def table_2() -> Dict[str, Iterable]:
-    table: Dict[str, Iterable] = dict(
+def table_2() -> Dict[str, Union[List, np.ndarray]]:
+    table: Dict[str, Union[List, np.ndarray]] = dict(
         REPEATS=[1, 0],
         TRIGGER=["Immediate", "Immediate"],
         POSITION=[-20, 2**31 - 1],
@@ -284,7 +284,7 @@ def table_data_2() -> List[str]:
 
 
 def test_table_packing_pack_length_mismatched(
-    table_1: OrderedDict[str, Iterable],
+    table_1: OrderedDict[str, Union[List, np.ndarray]],
     table_field_info: TableFieldInfo,
 ):
     assert table_field_info.row_words
@@ -312,12 +312,16 @@ def test_table_to_words_and_words_to_table(
     table_field_info: TableFieldInfo,
     request,
 ):
-    table: Dict[str, Iterable] = request.getfixturevalue(table_fixture_name)
+    table: Dict[str, Union[List, np.ndarray]] = request.getfixturevalue(
+        table_fixture_name
+    )
     table_data: List[str] = request.getfixturevalue(table_data_fixture_name)
 
     output_data = table_to_words(table, table_field_info)
     assert output_data == table_data
-    output_table = words_to_table(output_data, table_field_info)
+    output_table = words_to_table(
+        output_data, table_field_info, convert_enum_indices=True
+    )
 
     # Test the correct keys are outputted
     assert output_table.keys() == table.keys()
@@ -337,7 +341,9 @@ def test_table_packing_unpack(
     table_data_1: List[str],
 ):
     assert table_field_info.row_words
-    output_table = words_to_table(table_data_1, table_field_info)
+    output_table = words_to_table(
+        table_data_1, table_field_info, convert_enum_indices=True
+    )
 
     actual: UnpackedArray
     for field_name, actual in output_table.items():
@@ -346,7 +352,7 @@ def test_table_packing_unpack(
 
 
 def test_table_packing_pack(
-    table_1: Dict[str, Iterable],
+    table_1: Dict[str, Union[List, np.ndarray]],
     table_field_info: TableFieldInfo,
     table_data_1: List[str],
 ):

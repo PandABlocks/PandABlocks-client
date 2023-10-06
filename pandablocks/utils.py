@@ -13,7 +13,9 @@ UnpackedArray = Union[
 
 
 def words_to_table(
-    words: Iterable[str], table_field_info: TableFieldInfo
+    words: Iterable[str],
+    table_field_info: TableFieldInfo,
+    convert_enum_indices: bool = False,
 ) -> Dict[str, UnpackedArray]:
     """Unpacks the given `packed` data based on the fields provided.
     Returns the unpacked data in {column_name: column_data} column-indexed format
@@ -23,6 +25,9 @@ def words_to_table(
             expected to be the string representation of a uint32.
         table_fields_info: The info for tables, containing the number of words per row,
             and the bit information for fields.
+        convert_enum_indices: If True, converts enum indices to labels, the packed
+            value will be a list of strings. If False the packed value will be a
+            numpy array of the indices the labels correspond to.
     Returns:
         unpacked: A dict containing record information, where keys are field names
             and values are numpy arrays or a sequence of strings of record values
@@ -56,10 +61,15 @@ def words_to_table(
         if field_info.subtype == "int":
             # First convert from 2's complement to offset, then add in offset.
             packing_value = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
-        elif field_info.labels:
+        elif convert_enum_indices and field_info.labels:
             packing_value = [field_info.labels[x] for x in value]
         else:
-            packing_value = value
+            if bit_length <= 8:
+                packing_value = value.astype(np.uint8)
+            elif bit_length <= 16:
+                packing_value = value.astype(np.uint16)
+            else:
+                packing_value = value.astype(np.uint32)
 
         unpacked.update({field_name: packing_value})
 
@@ -67,7 +77,7 @@ def words_to_table(
 
 
 def table_to_words(
-    table: Dict[str, Iterable], table_field_info: TableFieldInfo
+    table: Dict[str, Union[np.ndarray, List]], table_field_info: TableFieldInfo
 ) -> List[str]:
     """Convert records based on the field definitions into the format PandA expects
     for table writes.
@@ -88,8 +98,8 @@ def table_to_words(
 
     for column_name, column in table.items():
         field_details = table_field_info.fields[column_name]
-        if field_details.labels:
-            # Must convert the list of ints into strings
+        if field_details.labels and len(column) and isinstance(column[0], str):
+            # Must convert the list of strings to list of ints
             column = [field_details.labels.index(x) for x in column]
 
         # PandA always handles tables in uint32 format
