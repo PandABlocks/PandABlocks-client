@@ -209,6 +209,33 @@ def table_1_np_arrays() -> OrderedDict[str, Union[List, np.ndarray]]:
 
 
 @pytest.fixture
+def table_1_np_arrays_int_enums() -> OrderedDict[str, Union[List, np.ndarray]]:
+    # Intentionally not in panda order. Whatever types the np arrays are,
+    # the outputs from words_to_table will be uint32 or int32.
+    return OrderedDict(
+        {
+            "POSITION": np.array([-5, 678, 0], dtype=np.int32),
+            "TIME1": np.array([100, 0, 9], dtype=np.uint32),
+            "OUTA1": np.array([0, 1, 1], dtype=np.uint8),
+            "OUTB1": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTD1": np.array([1, 0, 1], dtype=np.uint8),
+            "OUTE1": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTC1": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTF1": np.array([1, 0, 1], dtype=np.uint8),
+            "TIME2": np.array([0, 55, 9999], dtype=np.uint32),
+            "OUTA2": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTB2": np.array([0, 0, 1], dtype=np.uint8),
+            "REPEATS": np.array([5, 0, 50000], dtype=np.uint32),
+            "OUTC2": np.array([1, 1, 1], dtype=np.uint8),
+            "OUTD2": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTE2": np.array([0, 0, 1], dtype=np.uint8),
+            "OUTF2": np.array([1, 0, 1], dtype=np.uint8),
+            "TRIGGER": np.array([0, 6, 0], dtype=np.uint8),
+        }
+    )
+
+
+@pytest.fixture
 def table_1_not_in_panda_order() -> OrderedDict[str, Union[List, np.ndarray]]:
     return OrderedDict(
         {
@@ -348,6 +375,20 @@ def test_table_packing_unpack(
     actual: UnpackedArray
     for field_name, actual in output_table.items():
         expected = table_1_np_arrays[str(field_name)]
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_table_packing_unpack_no_convert_enum(
+    table_1_np_arrays_int_enums: OrderedDict[str, np.ndarray],
+    table_field_info: TableFieldInfo,
+    table_data_1: List[str],
+):
+    assert table_field_info.row_words
+    output_table = words_to_table(table_data_1, table_field_info)
+
+    actual: UnpackedArray
+    for field_name, actual in output_table.items():
+        expected = table_1_np_arrays_int_enums[str(field_name)]
         np.testing.assert_array_equal(actual, expected)
 
 
