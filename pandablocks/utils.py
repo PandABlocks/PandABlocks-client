@@ -64,7 +64,7 @@ def words_to_table(
             assert field_info.labels, f"Enum field {field_name} has no labels"
             packing_value = [field_info.labels[x] for x in value]
         else:
-            packing_value = value.astype(np.uint32)
+            packing_value = value
 
         unpacked.update({field_name: packing_value})
 
