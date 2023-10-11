@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Sequence, Union, cast
+from typing import Dict, Iterable, List, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -8,12 +8,14 @@ from pandablocks.responses import TableFieldInfo
 UnpackedArray = Union[
     npt.NDArray[np.int32],
     npt.NDArray[np.uint32],
-    Sequence[str],
+    List[str],
 ]
 
 
 def words_to_table(
-    words: Iterable[str], table_field_info: TableFieldInfo
+    words: Iterable[str],
+    table_field_info: TableFieldInfo,
+    convert_enum_indices: bool = False,
 ) -> Dict[str, UnpackedArray]:
     """Unpacks the given `packed` data based on the fields provided.
     Returns the unpacked data in {column_name: column_data} column-indexed format
@@ -23,6 +25,8 @@ def words_to_table(
             expected to be the string representation of a uint32.
         table_fields_info: The info for tables, containing the number of words per row,
             and the bit information for fields.
+        convert_enum_indices: If True, convert all enum values to their string
+            representation. Otherwise return enums as integer values
     Returns:
         unpacked: A dict containing record information, where keys are field names
             and values are numpy arrays or a sequence of strings of record values
@@ -56,7 +60,8 @@ def words_to_table(
         if field_info.subtype == "int":
             # First convert from 2's complement to offset, then add in offset.
             packing_value = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
-        elif field_info.labels:
+        elif field_info.subtype == "enum" and convert_enum_indices:
+            assert field_info.labels, f"Enum field {field_name} has no labels"
             packing_value = [field_info.labels[x] for x in value]
         else:
             packing_value = value
@@ -67,7 +72,7 @@ def words_to_table(
 
 
 def table_to_words(
-    table: Dict[str, Iterable], table_field_info: TableFieldInfo
+    table: Dict[str, UnpackedArray], table_field_info: TableFieldInfo
 ) -> List[str]:
     """Convert records based on the field definitions into the format PandA expects
     for table writes.
@@ -88,18 +93,19 @@ def table_to_words(
 
     for column_name, column in table.items():
         field_details = table_field_info.fields[column_name]
-        if field_details.labels:
-            # Must convert the list of ints into strings
-            column = [field_details.labels.index(x) for x in column]
-
-        # PandA always handles tables in uint32 format
-        column_value = np.array(column, dtype=np.uint32)
+        if field_details.labels and len(column) and isinstance(column[0], str):
+            # Must convert the list of strings to list of ints
+            column_value = np.array(
+                [field_details.labels.index(x) for x in column], dtype=np.uint32
+            )
+        else:
+            # PandA always handles tables in uint32 format
+            column_value = np.array(column, dtype=np.uint32)
 
         if packed is None:
             # Create 1-D array sufficiently long to exactly hold the entire table, cast
             # to prevent type error, this will still work if column is another iterable
             # e.g numpy array
-            column = cast(List, column)
             packed = np.zeros((len(column), row_words), dtype=np.uint32)
         else:
             assert len(packed) == len(column), (
@@ -117,7 +123,8 @@ def table_to_words(
 
         # Slice to get the column to apply the values to.
         # bit shift the value to the relevant bits of the word
-        packed[:, word_offset] |= column_value << bit_offset
+
+        packed[:, word_offset] |= cast(np.unsignedinteger, column_value) << bit_offset
 
     assert isinstance(packed, np.ndarray), "Table has no columns"  # Squash mypy warning
 
