@@ -349,3 +349,19 @@ def test_table_packing_pack(
 
     for actual, expected in zip(unpacked, table_data_1):
         assert actual == expected
+
+
+def test_table_packing_give_default_values(
+    table_1_np_arrays: Dict[str, UnpackedArray],
+    table_field_info: TableFieldInfo,
+):
+    # We should have a complete table at the point of unpacking
+    table_1_np_arrays["TRIGGER"] = np.array([])
+
+    try:
+        table_to_words(table_1_np_arrays, table_field_info)
+    except AssertionError as e:
+        assert (
+            "Table record TRIGGER has mismatched length 0 compared "
+            "to other records 3" in str(e)
+        )

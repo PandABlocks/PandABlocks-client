@@ -6,6 +6,8 @@ import numpy.typing as npt
 from pandablocks.responses import TableFieldInfo
 
 UnpackedArray = Union[
+    npt.NDArray[np.uint8],
+    npt.NDArray[np.uint16],
     npt.NDArray[np.int32],
     npt.NDArray[np.uint32],
     List[str],
@@ -55,16 +57,24 @@ def words_to_table(
         # Mask to remove every bit that isn't in the range we want
         mask = (1 << bit_length) - 1
 
-        value = (packed[word_offset] >> bit_offset) & mask
+        value: npt.NDArray[np.uint32] = (packed[word_offset] >> bit_offset) & mask
+        packing_value: UnpackedArray
 
         if field_info.subtype == "int":
             # First convert from 2's complement to offset, then add in offset.
-            packing_value = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
+            temp = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
+            packing_value = temp.astype(np.int32)
         elif field_info.subtype == "enum" and convert_enum_indices:
             assert field_info.labels, f"Enum field {field_name} has no labels"
             packing_value = [field_info.labels[x] for x in value]
         else:
-            packing_value = value
+            # Use shorter types, as these are used in waveform creation
+            if bit_length <= 8:
+                packing_value = value.astype(np.uint8)
+            elif bit_length <= 16:
+                packing_value = value.astype(np.uint16)
+            else:
+                packing_value = value.astype(np.uint32)  # already uint32
 
         unpacked.update({field_name: packing_value})
 
@@ -109,8 +119,10 @@ def table_to_words(
             packed = np.zeros((len(column), row_words), dtype=np.uint32)
         else:
             assert len(packed) == len(column), (
-                f"Table record {column_name} has mismatched length "
-                "compared to other records, cannot pack data"
+                f"Table record {column_name} has mismatched length {len(column)} "
+                f"compared to other records {len(packed)}, cannot pack data. "
+                "If setting values through the ioc, ensure all values are given "
+                "before submitting."
             )
 
         offset = field_details.bit_low
