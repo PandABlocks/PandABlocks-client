@@ -358,10 +358,9 @@ def test_table_packing_give_default_values(
     # We should have a complete table at the point of unpacking
     table_1_np_arrays["TRIGGER"] = np.array([])
 
-    try:
+    with pytest.raises(AssertionError) as e:
         table_to_words(table_1_np_arrays, table_field_info)
-    except AssertionError as e:
         assert (
             "Table record TRIGGER has mismatched length 0 compared "
-            "to other records 3" in str(e)
+            "to other records 3" in str(e.value)
         )
