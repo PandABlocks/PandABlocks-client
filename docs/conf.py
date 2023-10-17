@@ -67,7 +67,7 @@ nitpick_ignore = [
     ("py:class", "'object'"),
     ("py:class", "'id'"),
     ("py:class", "typing_extensions.Literal"),
-    ("py:func", "int")
+    ("py:func", "int"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and
@@ -103,14 +103,14 @@ pygments_style = "sphinx"
 
 # This means you can link things like `str` and `asyncio` to the relevant
 # docs in the python documentation.
-intersphinx_mapping = dict(
-    python=("https://docs.python.org/3/", None),
-    numpy=("https://numpy.org/doc/stable/", None),
-    h5py=("https://docs.h5py.org/en/stable/", None),
-)
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "h5py": ("https://docs.h5py.org/en/stable/", None),
+}
 
 # A dictionary of graphviz graph attributes for inheritance diagrams.
-inheritance_graph_attrs = dict(rankdir="TB")
+inheritance_graph_attrs = {"rankdir": "TB"}
 
 # Common links that should be available on every page
 rst_epilog = """

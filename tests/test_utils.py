@@ -230,13 +230,13 @@ def table_data_1() -> List[str]:
 
 @pytest.fixture
 def table_2_np_arrays() -> Dict[str, UnpackedArray]:
-    table: Dict[str, UnpackedArray] = dict(
-        REPEATS=np.array([1, 0], dtype=np.uint32),
-        TRIGGER=["Immediate", "Immediate"],
-        POSITION=np.array([-20, 2**31 - 1], dtype=np.int32),
-        TIME1=np.array([12, 2**32 - 1], dtype=np.uint32),
-        TIME2=np.array([32, 1], dtype=np.uint32),
-    )
+    table: Dict[str, UnpackedArray] = {
+        "REPEATS": np.array([1, 0], dtype=np.uint32),
+        "TRIGGER": ["Immediate", "Immediate"],
+        "POSITION": np.array([-20, 2**31 - 1], dtype=np.int32),
+        "TIME1": np.array([12, 2**32 - 1], dtype=np.uint32),
+        "TIME2": np.array([32, 1], dtype=np.uint32),
+    }
 
     table["OUTA1"] = np.array([0, 1], dtype=np.uint8)
     table["OUTA2"] = np.array([1, 0], dtype=np.uint8)

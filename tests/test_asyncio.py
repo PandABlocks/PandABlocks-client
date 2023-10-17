@@ -36,9 +36,11 @@ async def test_asyncio_bad_put_raises(dummy_server_async):
 async def test_asyncio_data(
     dummy_server_async, fast_dump, fast_dump_expected, disarmed, flush_period
 ):
+    print(disarmed)
+    print(flush_period)
     if not disarmed:
         # simulate getting the data without the END marker as if arm was not pressed
-        fast_dump = map(lambda x: x.split(b"END")[0], fast_dump)
+        fast_dump = (x.split(b"END")[0] for x in fast_dump)
         fast_dump_expected = list(fast_dump_expected)[:-1]
     dummy_server_async.data = fast_dump
     events = []

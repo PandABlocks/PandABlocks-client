@@ -424,7 +424,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     ] = field(init=False, repr=False, default_factory=dict)
 
     def __post_init__(self):
-
         # Map a (type, subtype) to a method that returns the appropriate
         # subclasss of FieldInfo, and a list of all the Commands to request.
         # Note that fields that do not have additional attributes are not listed.
@@ -472,7 +471,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _uint(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, maximum = yield from _execute_commands(
             self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.MAX"),
@@ -484,7 +482,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _scalar(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, units, scale, offset = yield from _execute_commands(
             self._get_desc(field_name),
             GetLine(f"{self.block}.{field_name}.UNITS"),
@@ -501,7 +498,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _subtype_time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, units_labels = yield from _execute_commands(
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
@@ -514,7 +510,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _enum(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, labels = yield from _execute_commands(
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
@@ -527,7 +522,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, units, min = yield from _execute_commands(
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
@@ -541,7 +535,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _bit_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, capture_word, offset = yield from _execute_commands(
             self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.CAPTURE_WORD"),
@@ -557,7 +550,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _bit_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, max_delay, labels = yield from _execute_commands(
             self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.MAX_DELAY"),
@@ -573,7 +565,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _pos_mux(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, labels = yield from _execute_commands(
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
@@ -585,7 +576,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _table(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         # Ignore the ROW_WORDS attribute as it's new and won't be present on all PandAs,
         # and there's no easy way to try it and catch an error while also running other
         # Get commands at the same time
@@ -655,7 +645,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _pos_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, capture_labels = yield from _execute_commands(
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
@@ -667,7 +656,6 @@ class GetFieldInfo(Command[Dict[str, FieldInfo]]):
     def _ext_out(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-
         desc, capture_labels = yield from _execute_commands(
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
@@ -845,7 +833,6 @@ class GetChanges(Command[Changes]):
         multivalue_get_commands: List[Tuple[str, GetMultiline]] = []
         for line in ex.multiline:
             if line[-1] == "<":
-
                 if self.get_multiline:
                     field = line[0:-1]
                     multivalue_get_commands.append((field, GetMultiline(field)))

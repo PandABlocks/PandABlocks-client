@@ -94,4 +94,4 @@ def get_cmdclass(build_py=None, sdist=None):
             for pkg in self.distribution.packages:
                 make_version_static(base_dir, pkg)
 
-    return dict(build_py=BuildPy, sdist=Sdist)
+    return {"build_py": BuildPy, "sdist": Sdist}
