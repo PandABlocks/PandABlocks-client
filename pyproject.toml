@@ -3,6 +3,7 @@ requires = ["setuptools>=64", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
+description = "A Python client to control and data ports of the PandABlocks TCP server"
 name = "pandablocks"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -13,24 +14,30 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-description = "One line description of your module"
-dependencies = [
-    "typing-extensions;python_version<'3.8'",
-] # Add project dependencies here, e.g. ["click", "numpy"]
+dependencies = ["typing-extensions;python_version<'3.8'", "numpy", "click"]
 dynamic = ["version"]
-license.file = "LICENSE"
+license.file = "Apache License 2.0"
 readme = "README.rst"
 requires-python = ">=3.7"
 
 [project.optional-dependencies]
+h5py = ["h5py", "matplotlib"]
 dev = [
+    # A dev install will require [h5py] packages too
+    "h5py",
+    "matplotlib",
+
     "black",
     "mypy",
+    "mock",
+    "types-mock",
+    "atomicwrites",
+    "typed-ast",
     "pipdeptree",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
-    "pytest",
     "pytest-cov",
+    "pytest-asyncio",
     "ruff",
     "sphinx-autobuild",
     "sphinx-copybutton",
@@ -40,10 +47,10 @@ dev = [
 ]
 
 [project.scripts]
-pandablocks = "pandablocks.__main__:main"
+pandablocks = "pandablocks.cli:cli"
 
 [project.urls]
-GitHub = "https://github.com/PandABlocks/pandablocks"
+GitHub = "https://github.com/PandABlocks/Pandablocks-client"
 
 [[project.authors]] # Further authors may be added by duplicating this section
 email = "tom.cobb@diamond.ac.uk"
@@ -60,7 +67,9 @@ ignore_missing_imports = true # Ignore missing stubs in imported modules
 # Run pytest with all our checkers, and don't spam us with massive tracebacks on error
 addopts = """
     --tb=native -vv --doctest-modules --doctest-glob="*.rst"
+     --cov=pandablocks --cov-report term --cov-report xml:cov.xml
     """
+asyncio_mode = "auto"
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
 filterwarnings = "error"
 # Doctest python code in docs, python code in src docstrings, test functions in tests
@@ -71,7 +80,7 @@ data_file = "/tmp/pandablocks.coverage"
 
 [tool.coverage.paths]
 # Tests are run from installed location, map back to the src directory
-source = ["src", "**/site-packages/"]
+source = ["src/pandablocks", "**/site-packages/"]
 
 # tox must currently be configured via an embedded ini string
 # See: https://github.com/tox-dev/tox/issues/999
