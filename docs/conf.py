@@ -10,15 +10,15 @@ from subprocess import check_output
 
 import requests
 
-import python3_pip_skeleton
+import pandablocks
 
 # -- General configuration ------------------------------------------------
 
 # General information about the project.
-project = "python3-pip-skeleton"
+project = "pandablocks"
 
 # The full version, including alpha/beta/rc tags.
-release = python3_pip_skeleton.__version__
+release = pandablocks.__version__
 
 # The short X.Y version.
 if "+" in release:
@@ -127,7 +127,7 @@ copybutton_prompt_is_regexp = True
 #
 html_theme = "pydata_sphinx_theme"
 github_repo = project
-github_user = "DiamondLightSource"
+github_user = "PandABlocks"
 switcher_json = f"https://{github_user}.github.io/{github_repo}/switcher.json"
 switcher_exists = requests.get(switcher_json).ok
 if not switcher_exists:

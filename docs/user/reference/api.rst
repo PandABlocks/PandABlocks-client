@@ -1,14 +1,14 @@
 API
 ===
 
-.. automodule:: python3_pip_skeleton
+.. automodule:: pandablocks
 
-    ``python3_pip_skeleton``
+    ``pandablocks``
     -----------------------------------
 
-This is the internal API reference for python3_pip_skeleton
+This is the internal API reference for pandablocks
 
-.. data:: python3_pip_skeleton.__version__
+.. data:: pandablocks.__version__
     :type: str
 
     Version number as calculated by https://github.com/pypa/setuptools_scm
