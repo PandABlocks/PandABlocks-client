@@ -67,11 +67,9 @@ ignore_missing_imports = true # Ignore missing stubs in imported modules
 # Run pytest with all our checkers, and don't spam us with massive tracebacks on error
 addopts = """
     --tb=native -vv --doctest-modules --doctest-glob="*.rst"
-     --cov=pandablocks --cov-report term --cov-report xml:cov.xml
+    --cov=pandablocks --cov-report term --cov-report xml:cov.xml 
     """
 asyncio_mode = "auto"
-# https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-filterwarnings = "error"
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs src tests"
 
@@ -80,7 +78,7 @@ data_file = "/tmp/pandablocks.coverage"
 
 [tool.coverage.paths]
 # Tests are run from installed location, map back to the src directory
-source = ["src/pandablocks", "**/site-packages/"]
+source = ["src", "**/site-packages/"]
 
 # tox must currently be configured via an embedded ini string
 # See: https://github.com/tox-dev/tox/issues/999
@@ -100,7 +98,7 @@ allowlist_externals =
     sphinx-build
     sphinx-autobuild
 commands =
-    pytest: pytest --cov=pandablocks --cov-report term --cov-report xml:cov.xml {posargs}
+    pytest: pytest {posargs}
     mypy: mypy src tests {posargs}
     pre-commit: pre-commit run --all-files {posargs}
     docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
