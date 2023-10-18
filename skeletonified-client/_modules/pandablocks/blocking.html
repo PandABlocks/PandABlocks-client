@@ -1,0 +1,647 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandablocks.blocking &#8212; PandABlocks-client 0.5.4.dev75+gd059bc0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
+  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
+
+    <script src="../../_static/documentation_options.js?v=02d38f95"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=30646c52"></script>
+    <script src="../../_static/design-tabs.js?v=36754332"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pandablocks/blocking';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.14.1';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'skeletonified-client';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
+        </script>
+    <link rel="icon" href="../../_static/dls-favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/dls-logo.svg" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../_static/dls-logo.svg" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+    <p class="title logo__title">PandABlocks-client</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../user/index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
+    <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../user/index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
+    <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pandablocks.blocking</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pandablocks.blocking</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">overload</span>
+
+<span class="kn">from</span> <span class="nn">.commands</span> <span class="kn">import</span> <span class="n">Command</span><span class="p">,</span> <span class="n">T</span>
+<span class="kn">from</span> <span class="nn">.connections</span> <span class="kn">import</span> <span class="n">ControlConnection</span><span class="p">,</span> <span class="n">DataConnection</span>
+<span class="kn">from</span> <span class="nn">.responses</span> <span class="kn">import</span> <span class="n">Data</span>
+
+<span class="c1"># Define the public API of this module</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BlockingClient&quot;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">_SocketHelper</span><span class="p">:</span>
+    <span class="n">_socket</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SOL_TCP</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">TCP_NODELAY</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span> <span class="o">=</span> <span class="n">s</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">socket</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="p">,</span> <span class="s2">&quot;connect() not called yet&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SHUT_WR</span><span class="p">)</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="BlockingClient">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.blocking.BlockingClient">[docs]</a>
+<span class="k">class</span> <span class="nc">BlockingClient</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Blocking implementation of a PandABlocks client.</span>
+<span class="sd">    For example::</span>
+
+<span class="sd">        with BlockingClient(&quot;hostname-or-ip&quot;) as client:</span>
+<span class="sd">            # Control port is now connected</span>
+<span class="sd">            resp1, resp2 = client.send([cmd1, cmd2])</span>
+<span class="sd">            resp3 = client.send(cmd3)</span>
+<span class="sd">            for data in client.data():</span>
+<span class="sd">                handle(data)</span>
+<span class="sd">        # Control and data ports are now disconnected</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span> <span class="o">=</span> <span class="n">ControlConnection</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_socket</span> <span class="o">=</span> <span class="n">_SocketHelper</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BlockingClient.connect">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.blocking.BlockingClient.connect">[docs]</a>
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to the control port, and be ready to handle commands&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_socket</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_host</span><span class="p">,</span> <span class="mi">8888</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BlockingClient.close">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.blocking.BlockingClient.close">[docs]</a>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close the control connection, and wait for completion&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;BlockingClient&quot;</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commands</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+        <span class="o">...</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commands</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Command</span><span class="p">],</span> <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+        <span class="o">...</span>
+
+<div class="viewcode-block" id="BlockingClient.send">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.blocking.BlockingClient.send">[docs]</a>
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">commands</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Command</span><span class="p">]],</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Send a command to control port of the PandA, returning its response.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            commands: If single `Command`, return its response. If a list of commands</span>
+<span class="sd">                return a list of reponses</span>
+<span class="sd">            timeout: If no reponse in this time, raise `socket.timeout`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_socket</span><span class="o">.</span><span class="n">socket</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">Command</span><span class="p">):</span>
+            <span class="n">commands</span> <span class="o">=</span> <span class="p">[</span><span class="n">commands</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">commands</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">:</span>
+            <span class="n">to_send</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+        <span class="c1"># Rely on dicts being ordered, Ellipsis is shorthand for &quot;no response yet&quot;</span>
+        <span class="n">cr</span> <span class="o">=</span> <span class="p">{</span><span class="nb">id</span><span class="p">(</span><span class="n">command</span><span class="p">):</span> <span class="o">...</span> <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">}</span>
+        <span class="k">while</span> <span class="o">...</span> <span class="ow">in</span> <span class="n">cr</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">received</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+            <span class="n">to_send</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">response</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_connection</span><span class="o">.</span><span class="n">responses</span><span class="p">():</span>
+                <span class="k">assert</span> <span class="n">cr</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">command</span><span class="p">)]</span> <span class="ow">is</span> <span class="o">...</span><span class="p">,</span> <span class="s2">&quot;Already got response for </span><span class="si">{command}</span><span class="s2">&quot;</span>
+                <span class="n">cr</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">command</span><span class="p">)]</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="n">responses</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cr</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">responses</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">response</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">responses</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">responses</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">responses</span></div>
+
+
+<div class="viewcode-block" id="BlockingClient.data">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.blocking.BlockingClient.data">[docs]</a>
+    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">scaled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">frame_timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Data</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to data port and yield data frames</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            scaled: Whether to scale and average data frames, reduces throughput</span>
+<span class="sd">            frame_timeout: If no data is received for this amount of time, raise</span>
+<span class="sd">                `socket.timeout`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_socket</span> <span class="o">=</span> <span class="n">_SocketHelper</span><span class="p">()</span>
+        <span class="n">data_socket</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_host</span><span class="p">,</span> <span class="mi">8889</span><span class="p">)</span>
+
+        <span class="n">connection</span> <span class="o">=</span> <span class="n">DataConnection</span><span class="p">()</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">data_socket</span><span class="o">.</span><span class="n">socket</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="n">frame_timeout</span><span class="p">)</span>  <span class="c1"># close enough</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">scaled</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">received</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+                <span class="k">yield from</span> <span class="n">connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">data_socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  <!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2020, Diamond Light Source.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

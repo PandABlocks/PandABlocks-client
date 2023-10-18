@@ -1,0 +1,689 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Why write a Sans-IO library? &#8212; PandABlocks-client 0.5.4.dev75+gd059bc0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
+  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
+
+    <script src="../../_static/documentation_options.js?v=02d38f95"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=30646c52"></script>
+    <script src="../../_static/design-tabs.js?v=36754332"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user/explanations/sans-io';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.14.1';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'skeletonified-client';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
+        </script>
+    <link rel="icon" href="../../_static/dls-favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="API" href="../reference/api.html" />
+    <link rel="prev" title="How fast can we write HDF files?" href="performance.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/dls-logo.svg" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../_static/dls-logo.svg" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+    <p class="title logo__title">PandABlocks-client</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
+    <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary" tabindex="0">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
+    <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item"><nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/installation.html">Installation Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/control.html">Interactive Control Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">How-to Guides</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../how-to/run-container.html">Run in a container</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-to/introspect-panda.html">How to introspect a PandA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-to/library-hdf.html">How to use the library to capture HDF files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-to/poll-changes.html">How to efficiently poll for changes</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Explanations</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="docs-structure.html">About the documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">How fast can we write HDF files?</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Why write a Sans-IO library?</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../reference/api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">Why write a...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="why-write-a-sans-io-library">
+<span id="sans-io"></span><h1>Why write a Sans-IO library?<a class="headerlink" href="#why-write-a-sans-io-library" title="Link to this heading">#</a></h1>
+<p>As the <a class="reference external" href="https://sans-io.readthedocs.io/">reference</a> says: <em>Reusability</em>. The protocol can be coded in a separate
+class to the I/O allowing integration into a number of different concurrency
+frameworks.</p>
+<p>For instance, we need both a <a class="reference internal" href="../reference/api.html#pandablocks.blocking.BlockingClient" title="pandablocks.blocking.BlockingClient"><code class="xref any py py-class docutils literal notranslate"><span class="pre">BlockingClient</span></code></a> and an <a class="reference internal" href="../reference/api.html#pandablocks.asyncio.AsyncioClient" title="pandablocks.asyncio.AsyncioClient"><code class="xref any py py-class docutils literal notranslate"><span class="pre">AsyncioClient</span></code></a>. If we had
+coded the protocol in either of them it would not be usable in the other. Much
+better to put it in a separate class and feed it bytes off the wire. We call
+this protocol encapsulation a Connection.</p>
+<section id="connections">
+<h2>Connections<a class="headerlink" href="#connections" title="Link to this heading">#</a></h2>
+<p>The PandA TCP server exposes a Control port and a Data port, so there are
+corresponding <a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection" title="pandablocks.connections.ControlConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ControlConnection</span></code></a> and <a class="reference internal" href="../reference/api.html#pandablocks.connections.DataConnection" title="pandablocks.connections.DataConnection"><code class="xref any py py-class docutils literal notranslate"><span class="pre">DataConnection</span></code></a> objects:</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.connections.</span></span><span class="sig-name descname"><span class="pre">ControlConnection</span></span><a class="reference internal" href="../../_modules/pandablocks/connections.html#ControlConnection"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Sans-IO connection to control port of PandA TCP server, supporting a
+Command based interface. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cc</span> <span class="o">=</span> <span class="n">ControlConnection</span><span class="p">()</span>
+<span class="c1"># Connection says what bytes should be sent to execute command</span>
+<span class="n">to_send</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+<span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="c1"># Repeatedly process bytes from the PandA</span>
+    <span class="n">received</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
+    <span class="c1"># Sending any subsequent bytes to be sent back to the PandA</span>
+    <span class="n">to_send</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">)</span>
+    <span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+    <span class="c1"># And processing the produced responses</span>
+    <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">cc</span><span class="o">.</span><span class="n">responses</span><span class="p">()</span>
+        <span class="n">do_something_with</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection.send" title="pandablocks.connections.ControlConnection.send"><code class="xref py py-meth docutils literal notranslate"><span class="pre">send()</span></code></a> method takes a <a class="reference internal" href="../reference/api.html#pandablocks.commands.Command" title="pandablocks.commands.Command"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Command</span></code></a> subclass and
+returns the bytes that should be sent to the PandA. Whenever bytes are
+received from the socket they can be passed to
+<a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection.receive_bytes" title="pandablocks.connections.ControlConnection.receive_bytes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">receive_bytes()</span></code></a> which will return any subsequent
+bytes that should be send back. The <a class="reference internal" href="../reference/api.html#pandablocks.connections.ControlConnection.responses" title="pandablocks.connections.ControlConnection.responses"><code class="xref py py-meth docutils literal notranslate"><span class="pre">responses()</span></code></a>
+method returns an iterator of <code class="docutils literal notranslate"><span class="pre">(command,</span> <span class="pre">response)</span></code> tuples that have now
+completed. The response type will depend on the command. For instance <a class="reference internal" href="../reference/api.html#pandablocks.commands.Get" title="pandablocks.commands.Get"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Get</span></code></a>
+returns <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">bytes</span></code></a> or a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">bytes</span></code></a> of the field value, and <a class="reference internal" href="../reference/api.html#pandablocks.commands.GetFieldInfo" title="pandablocks.commands.GetFieldInfo"><code class="xref any py py-class docutils literal notranslate"><span class="pre">GetFieldInfo</span></code></a>
+returns a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> mapping <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> field name to <a class="reference internal" href="../reference/api.html#pandablocks.responses.FieldInfo" title="pandablocks.responses.FieldInfo"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FieldInfo</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.connections.</span></span><span class="sig-name descname"><span class="pre">DataConnection</span></span><a class="reference internal" href="../../_modules/pandablocks/connections.html#DataConnection"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Sans-IO connection to data port of PandA TCP server, supporting an
+flushable iterator interface. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dc</span> <span class="o">=</span> <span class="n">DataConnection</span><span class="p">()</span>
+<span class="c1"># Single connection string to send</span>
+<span class="n">to_send</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">socket</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">to_send</span><span class="p">)</span>
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="c1"># Repeatedly process bytes from the PandA looking for data</span>
+    <span class="n">received</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dc</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">received</span><span class="p">):</span>
+        <span class="n">do_something_with</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../reference/api.html#pandablocks.connections.DataConnection.connect" title="pandablocks.connections.DataConnection.connect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">connect()</span></code></a> method takes any connection arguments
+and returns the bytes that should be sent to the PandA to make the initial
+connection. Whenever bytes are received from the socket they can be passed
+to <a class="reference internal" href="../reference/api.html#pandablocks.connections.DataConnection.receive_bytes" title="pandablocks.connections.DataConnection.receive_bytes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">receive_bytes()</span></code></a> which will return an iterator of
+<a class="reference internal" href="../reference/api.html#pandablocks.responses.Data" title="pandablocks.responses.Data"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> objects. Intermediate <a class="reference internal" href="../reference/api.html#pandablocks.responses.FrameData" title="pandablocks.responses.FrameData"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FrameData</span></code></a> can be squashed together by passing
+<code class="docutils literal notranslate"><span class="pre">flush_every_frame=False</span></code>, then explicitly calling
+<a class="reference internal" href="../reference/api.html#pandablocks.connections.DataConnection.flush" title="pandablocks.connections.DataConnection.flush"><code class="xref py py-meth docutils literal notranslate"><span class="pre">flush()</span></code></a> when they are required.</p>
+</dd></dl>
+
+</section>
+<section id="wrappers">
+<h2>Wrappers<a class="headerlink" href="#wrappers" title="Link to this heading">#</a></h2>
+<p>Of course, these Connections are useless without connecting some I/O. To aid with
+this, wrappers are included for use in <a class="reference internal" href="../reference/api.html#module-pandablocks.asyncio" title="pandablocks.asyncio"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code></a> and blocking programs. They expose
+slightly different APIs to make best use of the features of their respective concurrency frameworks.</p>
+<p>For example, to send multiple commands in fields with the <a class="reference internal" href="../reference/api.html#module-pandablocks.blocking" title="pandablocks.blocking"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">blocking</span></code></a> wrapper:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">BlockingClient</span><span class="p">(</span><span class="s2">&quot;hostname&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="n">resp1</span><span class="p">,</span> <span class="n">resp2</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">([</span><span class="n">cmd1</span><span class="p">,</span> <span class="n">cmd2</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>while with the <a class="reference internal" href="../reference/api.html#module-pandablocks.asyncio" title="pandablocks.asyncio"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code></a> wrapper we would:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">AsyncioClient</span><span class="p">(</span><span class="s2">&quot;hostname&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="n">resp1</span><span class="p">,</span> <span class="n">resp2</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">cmd1</span><span class="p">),</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">cmd2</span><span class="p">)</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>The first has the advantage of simplicity, but blocks while waiting for data.
+The second allows multiple co-routines to use the client at the same time at the
+expense of a more verbose API.</p>
+<p>The wrappers do not guarantee feature parity, for instance the <code class="docutils literal notranslate"><span class="pre">flush_period</span></code>
+option is only available in the asyncio wrapper.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  <!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="performance.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">How fast can we write HDF files?</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../reference/api.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">API</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#connections">Connections</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrappers">Wrappers</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/PandABlocks/PandABlocks-client/edit/skeletonified-client/docs/user/explanations/sans-io.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/user/explanations/sans-io.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2020, Diamond Light Source.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
