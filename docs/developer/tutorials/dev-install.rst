@@ -10,7 +10,7 @@ Clone the repository
 First clone the repository locally using `Git
 <https://git-scm.com/downloads>`_::
 
-    $ git clone git://github.com/PandABlocks/pandablocks.git
+    $ git clone git://github.com/PandABlocks/PandABlocks-client.git
 
 Install dependencies
 --------------------

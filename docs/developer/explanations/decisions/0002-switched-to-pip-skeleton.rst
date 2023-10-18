@@ -11,7 +11,7 @@ Accepted
 Context
 -------
 
-We should use the following `pip-skeleton <https://github.com/PandABlocks/pandablocks>`_.
+We should use the following `pip-skeleton <https://github.com/PandABlocks/PandABlocks-client>`_.
 The skeleton will ensure consistency in developer
 environments and package management.
 
