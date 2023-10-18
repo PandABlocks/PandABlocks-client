@@ -48,7 +48,7 @@ Wrappers
 --------
 
 Of course, these Connections are useless without connecting some I/O. To aid with
-this, wrappers are included for use in `asyncio <library/asyncio>` and blocking programs. They expose
+this, wrappers are included for use in `asyncio <asyncio>` and blocking programs. They expose
 slightly different APIs to make best use of the features of their respective concurrency frameworks.
 
 For example, to send multiple commands in fields with the `blocking` wrapper::

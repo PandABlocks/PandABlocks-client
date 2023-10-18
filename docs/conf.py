@@ -119,6 +119,8 @@ rst_epilog = """
 .. _ruff: https://beta.ruff.rs/docs/
 .. _mypy: http://mypy-lang.org/
 .. _pre-commit: https://pre-commit.com/
+.. _numpy: https://numpy.org/
+.. _h5py: https://www.h5py.org/
 """
 
 # Ignore localhost links for periodic check that links in docs are valid

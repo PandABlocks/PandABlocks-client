@@ -22,7 +22,7 @@ fields.
 
 e.g. the first few lines of the tutorial save file look like this:
 
-.. literalinclude:: ../../pandablocks/saves/tutorial.sav
+.. literalinclude:: ../../../src/pandablocks/saves/tutorial.sav
    :lines: 1-12
 
 Load

@@ -13,7 +13,7 @@ Approach 1: Call the function directly
 If you need a one-shot configure and run application, you can use the
 function directly:
 
-.. literalinclude:: ../../examples/arm_and_hdf.py
+.. literalinclude:: ../../../examples/arm_and_hdf.py
 
 With the `AsyncioClient` as a `Context Manager <typecontextmanager>`, this code
 sets up some fields of a PandA before taking a single acquisition. The code in
@@ -36,7 +36,7 @@ means you can make decisions about when to start and stop acquisitions based on
 the `Data` objects that go past. For example, if we want to make a progress bar
 we could:
 
-.. literalinclude:: ../../examples/hdf_queue_reporting.py
+.. literalinclude:: ../../../examples/hdf_queue_reporting.py
 
 This time, after setting up the PandA, we create the `AsyncioClient.data`
 iterator ourselves. Each `Data` object we get is queued on the first `Pipeline`

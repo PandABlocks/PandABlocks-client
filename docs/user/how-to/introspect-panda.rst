@@ -7,9 +7,9 @@ to list all blocks, and all fields inside each block, that exist.
 Call the following script, with the address of the PandA as the first and only command line argument:
 
 
-.. literalinclude:: ../../examples/introspect_panda.py
+.. literalinclude:: ../../../examples/introspect_panda.py
 
-This script can be found in ``docs/examples/introspect_panda.py``.
+This script can be found in ``examples/introspect_panda.py``.
 
 By examining the `BlockInfo` structure returned from `GetBlockInfo` for each Block the number
 and description may be acquired for every block.

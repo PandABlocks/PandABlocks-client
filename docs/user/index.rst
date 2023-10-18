@@ -14,6 +14,9 @@ side-bar.
             :maxdepth: 1
 
             tutorials/installation
+            tutorials/commandline-hdf
+            tutorials/control
+            tutorials/load-save
 
         +++
 
@@ -26,6 +29,9 @@ side-bar.
             :maxdepth: 1
 
             how-to/run-container
+            how-to/introspect-panda
+            how-to/library-hdf
+            how-to/poll-changes
 
         +++
 
@@ -38,6 +44,8 @@ side-bar.
             :maxdepth: 1
 
             explanations/docs-structure
+            explanations/performance
+            explanations/sans-io
 
         +++
 
@@ -50,6 +58,8 @@ side-bar.
             :maxdepth: 1
 
             reference/api
+            reference/changelog
+            reference/contributing
             ../genindex
 
         +++

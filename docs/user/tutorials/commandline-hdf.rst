@@ -51,7 +51,7 @@ mode so that you can read partial acquisitions before they are complete.
 In the repository ``examples/plot_counter_hdf.py`` is an example of reading the
 file, listing the datasets, and plotting the counters:
 
-.. literalinclude:: ../../examples/plot_counter_hdf.py
+.. literalinclude:: ../../../examples/plot_counter_hdf.py
 
 Running it on ``/tmp/panda-capture-1.h5`` will show the three counter values:
 
