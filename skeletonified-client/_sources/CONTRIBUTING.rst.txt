@@ -17,8 +17,9 @@ To get the source code and run the unit tests, run::
 
     $ git clone git@github.com:PandABlocks/PandABlocks-client.git
     $ cd PandABlocks-client
-    $ pipenv install --dev
-    $ pipenv run tests
+    $ python3 -m venv /path/to/venv
+    $ source /path/to/venv/bin/activate
+    $ pytest
 
 While 100% code coverage does not make a library bug-free, it significantly
 reduces the number of easily caught bugs! Please make sure coverage remains the
@@ -38,7 +39,7 @@ The code in this repository conforms to standards set by the following tools:
 .. _flake8: http://flake8.pycqa.org/en/latest/
 .. _isort: https://github.com/timothycrosley/isort
 
-These tests will be run on code when running ``pipenv run tests`` and also
+These tests will be run on code when running ``pytest`` and also
 automatically at check in. Please read the tool documentation for details
 on how to fix the errors it reports.
 
@@ -62,7 +63,7 @@ Docs follow the underlining convention::
 
 You can build the docs from the project directory by running::
 
-    $ pipenv run docs
+    $ tox -e docs
     $ firefox build/html/index.html
 
 Release Checklist

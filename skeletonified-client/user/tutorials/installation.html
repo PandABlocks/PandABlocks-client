@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Installation Tutorial &#8212; PandABlocks-client 0.5.4.dev76+gd34b755 documentation</title>
+    <title>Installation &#8212; PandABlocks-client 0.5.4.dev76+g309f095 documentation</title>
   
   
   
@@ -39,7 +39,7 @@
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
   <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
 
-    <script src="../../_static/documentation_options.js?v=8f0b6545"></script>
+    <script src="../../_static/documentation_options.js?v=40733265"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -392,7 +392,7 @@ document.write(`
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Installation Tutorial</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="control.html">Interactive Control Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="load-save.html">Commandline Load/Save Tutorial</a></li>
@@ -456,7 +456,7 @@ document.write(`
     
     <li class="breadcrumb-item"><a href="../index.html" class="nav-link">User Guide</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page">Installation...</li>
+    <li class="breadcrumb-item active" aria-current="page">Installation</li>
   </ul>
 </nav>
 </div>
@@ -473,19 +473,13 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article" role="main">
                   
-  <section id="installation-tutorial">
-<h1>Installation Tutorial<a class="headerlink" href="#installation-tutorial" title="Link to this heading">#</a></h1>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>For installation inside DLS, please see the internal documentation on
-<code class="docutils literal notranslate"><span class="pre">dls-python3</span></code> and <code class="docutils literal notranslate"><span class="pre">pipenv</span></code>. Although these instructions will work
-inside DLS, they are intended for external use.</p>
-</div>
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h1>
 <section id="check-your-version-of-python">
 <h2>Check your version of python<a class="headerlink" href="#check-your-version-of-python" title="Link to this heading">#</a></h2>
-<p>You will need python 3.7 or later. You can check your version of python by
+<p>You will need python 3.8 or later. You can check your version of python by
 typing into a terminal:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="o">--</span><span class="n">version</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3 --version
 </pre></div>
 </div>
 </section>
@@ -493,8 +487,8 @@ typing into a terminal:</p>
 <h2>Create a virtual environment<a class="headerlink" href="#create-a-virtual-environment" title="Link to this heading">#</a></h2>
 <p>It is recommended that you install into a “virtual environment” so this
 installation will not interfere with any existing Python software:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span>
-<span class="n">source</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3 -m venv /path/to/venv
+$ source /path/to/venv/bin/activate
 </pre></div>
 </div>
 </section>

@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Contributing &#8212; PandABlocks-client 0.5.4.dev76+gd34b755 documentation</title>
+    <title>Contributing &#8212; PandABlocks-client 0.5.4.dev76+g309f095 documentation</title>
   
   
   
@@ -39,7 +39,7 @@
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
   <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
 
-    <script src="../../_static/documentation_options.js?v=8f0b6545"></script>
+    <script src="../../_static/documentation_options.js?v=40733265"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -392,7 +392,7 @@ document.write(`
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/installation.html">Installation Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/control.html">Interactive Control Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
@@ -486,8 +486,9 @@ fit the scope of the project.</p>
 <p>To get the source code and run the unit tests, run:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git clone git@github.com:PandABlocks/PandABlocks-client.git
 $ cd PandABlocks-client
-$ pipenv install --dev
-$ pipenv run tests
+$ python3 -m venv /path/to/venv
+$ source /path/to/venv/bin/activate
+$ pytest
 </pre></div>
 </div>
 <p>While 100% code coverage does not make a library bug-free, it significantly
@@ -503,7 +504,7 @@ same or is improved by a pull request!</p>
 <li><p><a class="reference external" href="https://github.com/timothycrosley/isort">isort</a> for import ordering</p></li>
 <li><p><a class="reference external" href="http://mypy-lang.org/">mypy</a> for static type checking</p></li>
 </ul>
-<p>These tests will be run on code when running <code class="docutils literal notranslate"><span class="pre">pipenv</span> <span class="pre">run</span> <span class="pre">tests</span></code> and also
+<p>These tests will be run on code when running <code class="docutils literal notranslate"><span class="pre">pytest</span></code> and also
 automatically at check in. Please read the tool documentation for details
 on how to fix the errors it reports.</p>
 </section>
@@ -523,7 +524,7 @@ docstrings of the API.</p>
 </pre></div>
 </div>
 <p>You can build the docs from the project directory by running:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pipenv run docs
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ tox -e docs
 $ firefox build/html/index.html
 </pre></div>
 </div>
