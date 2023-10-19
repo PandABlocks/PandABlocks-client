@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 description = "A Python client to control and data ports of the PandABlocks TCP server"
 name = "pandablocks"
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
@@ -24,9 +24,7 @@ requires-python = ">=3.7"
 h5py = ["h5py", "matplotlib"]
 dev = [
     # A dev install will require [h5py] packages too
-    "h5py",
-    "matplotlib",
-
+    "pandablocks[h5py]",
     "black",
     "mypy",
     "mock",
