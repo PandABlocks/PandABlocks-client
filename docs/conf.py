@@ -201,5 +201,5 @@ html_show_sphinx = False
 html_show_copyright = True
 
 # Logo
-html_logo = "images/dls-logo.svg"
-html_favicon = "images/dls-favicon.ico"
+html_logo = "images/PandA-logo-for-black-background.svg"
+html_favicon = "images/PandA-logo.ico"
