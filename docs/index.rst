@@ -1,74 +1,29 @@
+:html_theme.sidebar_secondary.remove:
+
 .. include:: ../README.rst
     :end-before: when included in index.rst
 
 How the documentation is structured
 -----------------------------------
 
-Documentation is split into four categories, accessible from links in the side-bar.
+The documentation is split into 2 sections:
 
-.. rst-class:: columns
+.. grid:: 2
 
-Tutorials
-~~~~~~~~~
+    .. grid-item-card:: :material-regular:`person;4em`
+        :link: user/index
+        :link-type: doc
 
-Tutorials for installation, library and commandline usage. New users start here.
+        The User Guide contains documentation on how to install and use pandablocks.
 
-.. toctree::
-    :caption: Tutorials
-    :hidden:
+    .. grid-item-card:: :material-regular:`code;4em`
+        :link: developer/index
+        :link-type: doc
 
-    tutorials/installation
-    tutorials/load-save
-    tutorials/control
-    tutorials/commandline-hdf
-
-.. rst-class:: columns
-
-How-to Guides
-~~~~~~~~~~~~~
-
-Practical step-by-step guides for the more experienced user.
+        The Developer Guide contains documentation on how to develop and contribute changes back to pandablocks.
 
 .. toctree::
-    :caption: How-to Guides
     :hidden:
 
-    how-to/library-hdf
-    how-to/poll-changes
-    how-to/introspect-panda
-
-.. rst-class:: columns
-
-Explanations
-~~~~~~~~~~~~
-
-Explanation of how the library works and why it works that way.
-
-.. toctree::
-    :caption: Explanations
-    :hidden:
-
-    explanations/sans-io
-    explanations/performance
-
-.. rst-class:: columns
-
-Reference
-~~~~~~~~~
-
-Technical reference material, for classes, methods, APIs, commands, and contributing to the project.
-
-.. toctree::
-    :caption: Reference
-    :hidden:
-
-    reference/api
-    reference/changelog
-    reference/contributing
-
-.. rst-class:: endcolumns
-
-About the documentation
-~~~~~~~~~~~~~~~~~~~~~~~
-
-`Why is the documentation structured this way? <https://documentation.divio.com>`_
+    user/index
+    developer/index

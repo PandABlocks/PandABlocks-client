@@ -231,7 +231,6 @@ def fast_dump_expected():
 
 
 class DummyServer:
-
     # Flag for useful debug output when writing tests
     # for diagnosing mismatching sent data.
     debug = False

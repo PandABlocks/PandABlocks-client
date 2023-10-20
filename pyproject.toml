@@ -1,4 +1,115 @@
 [build-system]
-# Pin versions compatible with dls-python3 for reproducible wheels
-requires = ["setuptools==44.1.1", "wheel==0.33.1"]
+requires = ["setuptools>=64", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+description = "A Python client to control and data ports of the PandABlocks TCP server"
+name = "pandablocks"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = ["typing-extensions;python_version<'3.8'", "numpy", "click"]
+dynamic = ["version"]
+license.file = "Apache License 2.0"
+readme = "README.rst"
+requires-python = ">=3.7"
+
+[project.optional-dependencies]
+h5py = ["h5py", "matplotlib"]
+dev = [
+    # A dev install will require [h5py] packages too
+    "pandablocks[h5py]",
+    "black",
+    "mypy",
+    "mock",
+    "types-mock",
+    "atomicwrites",
+    "typed-ast",
+    "pipdeptree",
+    "pre-commit",
+    "pydata-sphinx-theme>=0.12",
+    "pytest-cov",
+    "pytest-asyncio",
+    "ruff",
+    "sphinx-autobuild",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "tox-direct",
+    "types-mock",
+]
+
+[project.scripts]
+pandablocks = "pandablocks.cli:cli"
+
+[project.urls]
+GitHub = "https://github.com/PandABlocks/Pandablocks-client"
+
+[[project.authors]] # Further authors may be added by duplicating this section
+email = "tom.cobb@diamond.ac.uk"
+name = "Tom Cobb"
+
+
+[tool.setuptools_scm]
+write_to = "src/pandablocks/_version.py"
+
+[tool.mypy]
+ignore_missing_imports = true # Ignore missing stubs in imported modules
+
+[tool.pytest.ini_options]
+# Run pytest with all our checkers, and don't spam us with massive tracebacks on error
+addopts = """
+    --tb=native -vv --doctest-modules --doctest-glob="*.rst"
+    --cov=src/pandablocks --cov-report term --cov-report xml:cov.xml 
+    """
+asyncio_mode = "auto"
+# Doctest python code in docs, python code in src docstrings, test functions in tests
+testpaths = "docs src tests"
+
+[tool.coverage.run]
+data_file = "/tmp/pandablocks.coverage"
+
+[tool.coverage.paths]
+# Tests are run from installed location, map back to the src directory
+source = ["src", "**/site-packages/"]
+
+# tox must currently be configured via an embedded ini string
+# See: https://github.com/tox-dev/tox/issues/999
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+skipsdist=True
+
+[testenv:{pre-commit,mypy,pytest,docs}]
+# Don't create a virtualenv for the command, requires tox-direct plugin
+direct = True
+passenv = *
+allowlist_externals =
+    pytest
+    pre-commit
+    mypy
+    sphinx-build
+    sphinx-autobuild
+commands =
+    pytest: pytest {posargs}
+    mypy: mypy src tests {posargs}
+    pre-commit: pre-commit run --all-files {posargs}
+    docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
+"""
+
+
+[tool.ruff]
+src = ["src", "tests"]
+line-length = 88
+select = [
+    "C4",   # flake8-comprehensions - https://beta.ruff.rs/docs/rules/#flake8-comprehensions-c4
+    "E",    # pycodestyle errors - https://beta.ruff.rs/docs/rules/#error-e
+    "F",    # pyflakes rules - https://beta.ruff.rs/docs/rules/#pyflakes-f
+    "W",    # pycodestyle warnings - https://beta.ruff.rs/docs/rules/#warning-w
+    "I001", # isort
+]
