@@ -4,15 +4,19 @@
     "url": "https://PandABlocks.github.io/PandABlocks-client/master/"
   },
   {
-    "version": "0.2.0",
-    "url": "https://PandABlocks.github.io/PandABlocks-client/0.2.0/"
-  },
-  {
     "version": "0.2.1",
     "url": "https://PandABlocks.github.io/PandABlocks-client/0.2.1/"
   },
   {
+    "version": "0.2.0",
+    "url": "https://PandABlocks.github.io/PandABlocks-client/0.2.0/"
+  },
+  {
     "version": "skeleton-merge-branch",
     "url": "https://PandABlocks.github.io/PandABlocks-client/skeleton-merge-branch/"
+  },
+  {
+    "version": "skeletonified-client",
+    "url": "https://PandABlocks.github.io/PandABlocks-client/skeletonified-client/"
   }
 ]

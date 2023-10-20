@@ -1,79 +1,29 @@
+:html_theme.sidebar_secondary.remove:
+
 .. include:: ../README.rst
     :end-before: when included in index.rst
 
 How the documentation is structured
 -----------------------------------
 
-.. rst-class:: columns
+The documentation is split into 2 sections:
 
-:ref:`tutorials`
-~~~~~~~~~~~~~~~~
+.. grid:: 2
 
-Tutorials for installation, library and commandline usage. New users start here.
+    .. grid-item-card:: :material-regular:`person;4em`
+        :link: user/index
+        :link-type: doc
 
-.. rst-class:: columns
+        The User Guide contains documentation on how to install and use pandablocks.
 
-:ref:`how-to`
-~~~~~~~~~~~~~
+    .. grid-item-card:: :material-regular:`code;4em`
+        :link: developer/index
+        :link-type: doc
 
-Practical step-by-step guides for the more experienced user.
-
-.. rst-class:: columns
-
-:ref:`explanations`
-~~~~~~~~~~~~~~~~~~~
-
-Explanation of how the library works and why it works that way.
-
-.. rst-class:: columns
-
-:ref:`reference`
-~~~~~~~~~~~~~~~~
-
-Technical reference material, for classes, methods, APIs, commands, and contributing to the project.
-
-.. rst-class:: endcolumns
-
-About the documentation
-~~~~~~~~~~~~~~~~~~~~~~~
-
-`Why is the documentation structured this way? <https://documentation.divio.com>`_
+        The Developer Guide contains documentation on how to develop and contribute changes back to pandablocks.
 
 .. toctree::
-    :caption: Tutorials
-    :name: tutorials
-    :maxdepth: 1
+    :hidden:
 
-    tutorials/installation
-    tutorials/load-save
-    tutorials/control
-    tutorials/commandline-hdf
-
-.. toctree::
-    :caption: How-to Guides
-    :name: how-to
-    :maxdepth: 1
-
-    how-to/library-hdf
-    how-to/poll-changes
-
-.. toctree::
-    :caption: Explanations
-    :name: explanations
-    :maxdepth: 1
-
-    explanations/sans-io
-    explanations/performance
-
-.. rst-class:: no-margin-after-ul
-
-.. toctree::
-    :caption: Reference
-    :name: reference
-    :maxdepth: 1
-
-    reference/api
-    reference/changelog
-    reference/contributing
-
-* :ref:`genindex`
+    user/index
+    developer/index
