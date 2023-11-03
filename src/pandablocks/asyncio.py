@@ -2,8 +2,7 @@ import asyncio
 import logging
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import suppress
-from typing import AsyncGenerator, Dict, Iterable, Optional
-
+from typing import AsyncGenerator, Dict, Iterable, Optional, Sequence
 from .commands import Command, T
 from .connections import ControlConnection, DataConnection
 from .responses import Data
@@ -183,3 +182,12 @@ class AsyncioClient:
             await stream.close()
             with suppress(asyncio.CancelledError):
                 await fut
+
+    async def flush_now(self) -> Sequence[Data]:
+        stream = _StreamHelper()
+        connection = DataConnection()
+        await stream.connect(self._host, 8889)
+        await stream.write_and_drain(connection.connect(False))
+        frame_data = list(connection.flush())
+        await stream.close()
+        return frame_data
