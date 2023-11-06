@@ -2,7 +2,7 @@ import asyncio
 import sys
 import time
 
-from pandablocks.asyncio import AsyncioClient
+from pandablocks.asyncio import AsyncioClient, FlushMode
 from pandablocks.commands import Arm, Put
 from pandablocks.hdf import FrameProcessor, HDFWriter, create_pipeline, stop_pipeline
 from pandablocks.responses import EndData, EndReason, FrameData, ReadyData
@@ -28,7 +28,9 @@ async def hdf_queue_reporting():
                 client.send(Put("SEQ1.PRESCALE", 0.5)),
             )
             progress = 0
-            async for data in client.data(scaled=False, flush_period=1):
+            async for data in client.data(
+                scaled=False, flush_period=1, flush_mode=FlushMode.PERIODIC
+            ):
                 # Always pass the data down the pipeline
                 pipeline[0].queue.put_nowait(data)
                 if isinstance(data, ReadyData):
