@@ -8,7 +8,7 @@ import numpy as np
 
 from pandablocks.commands import Arm
 
-from .asyncio import AsyncioClient
+from .asyncio import AsyncioClient, FlushMode
 from .connections import SAMPLES_FIELD
 from .responses import EndData, EndReason, FieldCapture, FrameData, ReadyData, StartData
 
@@ -223,7 +223,9 @@ async def write_hdf_files(
     end_data = None
     pipeline = create_default_pipeline(file_names)
     try:
-        async for data in client.data(scaled=False, flush_period=flush_period):
+        async for data in client.data(
+            scaled=False, flush_period=flush_period, flush_mode=FlushMode.PERIODIC
+        ):
             pipeline[0].queue.put_nowait(data)
             if type(data) == EndData:
                 end_data = data

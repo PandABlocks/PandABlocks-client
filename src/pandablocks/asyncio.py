@@ -2,6 +2,7 @@ import asyncio
 import logging
 from asyncio.streams import StreamReader, StreamWriter
 from contextlib import suppress
+from enum import Enum
 from typing import AsyncGenerator, Dict, Iterable, Optional
 
 from .commands import Command, T
@@ -9,7 +10,7 @@ from .connections import ControlConnection, DataConnection
 from .responses import Data
 
 # Define the public API of this module
-__all__ = ["AsyncioClient"]
+__all__ = ["AsyncioClient", "FlushMode"]
 
 
 class _StreamHelper:
@@ -50,6 +51,21 @@ class _StreamHelper:
         await writer.wait_closed()
 
 
+class FlushMode(Enum):
+    """
+    The mode which `AsyncioClient.data()` uses when flushing data frames.
+    """
+
+    #: Flush all data frames immediately.
+    IMMEDIATE = 0
+
+    #: Flush data frames periodically.
+    PERIODIC = 1
+
+    #: Flush data frames when the user sets an `asyncio.Event`.
+    MANUAL = 2
+
+
 class AsyncioClient:
     """Asyncio implementation of a PandABlocks client.
     For example::
@@ -72,7 +88,7 @@ class AsyncioClient:
 
     async def connect(self):
         """Connect to the control port, and be ready to handle commands"""
-        await self._ctrl_stream.connect(self._host, 8888),
+        await self._ctrl_stream.connect(self._host, 8888)
 
         self._ctrl_task = asyncio.create_task(
             self._ctrl_read_forever(self._ctrl_stream.reader)
@@ -132,36 +148,84 @@ class AsyncioClient:
         scaled: bool = True,
         flush_period: Optional[float] = None,
         frame_timeout: Optional[float] = None,
+        flush_event: Optional[asyncio.Event] = None,
+        flush_mode: FlushMode = FlushMode.IMMEDIATE,
     ) -> AsyncGenerator[Data, None]:
-        """Connect to data port and yield data frames
+        """Connect to data port and yield data frames.
 
         Args:
             scaled: Whether to scale and average data frames, reduces throughput
-            flush_period: How often to flush partial data frames, None is on every
-                chunk of data from the server
+            flush_period: How often to flush partial data frames when ``flush_mode``
+                is ``PERIODIC``.
             frame_timeout: If no data is received for this amount of time, raise
-                `asyncio.TimeoutError`
+                `asyncio.TimeoutError`.
+            flush_event: An `asyncio.Event` to manually flush. When set while
+                ``flush_mode`` is ``MANUAL`` a flush will be performed and the event
+                will be unset.
+            flush_mode: Which mode of the `FlushMode` values.
         """
+
+        # Check input
+        if flush_mode == FlushMode.MANUAL:
+            if not flush_event:
+                raise ValueError(
+                    f"flush_event cannot be {flush_event} if flush_mode is 'MANUAL'"
+                )
+            if flush_period:
+                raise ValueError(
+                    f"Unused flush_period={flush_period} "
+                    "inputted during `MANUAL` flush mode"
+                )
+        elif flush_mode == FlushMode.PERIODIC:
+            if not flush_period:
+                raise ValueError(
+                    f"flush_period cannot be {flush_period} "
+                    "if flush_mode is 'PERIODIC', use `MANUAL` "
+                    "flush_mode to make flushing exclusively "
+                    "manual"
+                )
+        elif flush_mode == FlushMode.IMMEDIATE:
+            if flush_event:
+                raise ValueError(
+                    f"Unused flush_event={flush_event} "
+                    "inputted during `IMMEDIATE` flush mode"
+                )
+            if flush_period:
+                raise ValueError(
+                    f"Unused flush_period={flush_period} "
+                    "inputted during `IMMEDIATE` flush mode"
+                )
+        else:
+            raise ValueError(
+                "flush_mode must be one of 'IMMEDIATE', 'PERIODIC', 'MANUAL'"
+            )
 
         stream = _StreamHelper()
         connection = DataConnection()
         queue: asyncio.Queue[Iterable[Data]] = asyncio.Queue()
+        flush_every_frame = flush_mode == FlushMode.IMMEDIATE
+        flush_event = flush_event or asyncio.Event()
 
         def raise_timeouterror():
             raise asyncio.TimeoutError(f"No data received for {frame_timeout}s")
             yield
 
-        async def periodic_flush():
-            if flush_period is not None:
-                while True:
-                    # Every flush_period seconds flush and queue data
-                    await asyncio.sleep(flush_period)
-                    queue.put_nowait(connection.flush())
+        async def flush_loop():
+            if flush_every_frame:
+                # If flush mode is `IMMEDIATE` flushing will be performed
+                # whenever possible
+                return
+            while True:
+                try:
+                    await asyncio.wait_for(flush_event.wait(), flush_period)
+                except asyncio.TimeoutError:
+                    pass
+                else:
+                    flush_event.clear()
+                queue.put_nowait(connection.flush())
 
         async def read_from_stream():
             reader = stream.reader
-            # Should we flush every FrameData?
-            flush_every_frame = flush_period is None
             while True:
                 try:
                     recv = await asyncio.wait_for(reader.read(4096), frame_timeout)
@@ -169,11 +233,15 @@ class AsyncioClient:
                     queue.put_nowait(raise_timeouterror())
                     break
                 else:
-                    queue.put_nowait(connection.receive_bytes(recv, flush_every_frame))
+                    queue.put_nowait(
+                        connection.receive_bytes(
+                            recv, flush_every_frame=flush_every_frame
+                        )
+                    )
 
         await stream.connect(self._host, 8889)
         await stream.write_and_drain(connection.connect(scaled))
-        fut = asyncio.gather(periodic_flush(), read_from_stream())
+        fut = asyncio.gather(read_from_stream(), flush_loop())
         try:
             while True:
                 for data in await queue.get():
