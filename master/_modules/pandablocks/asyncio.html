@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks.asyncio &#8212; PandABlocks-client 0.5.4.dev80+g7117d68 documentation</title>
+    <title>pandablocks.asyncio &#8212; PandABlocks-client 0.5.4.dev83+gc6ab247 documentation</title>
   
   
   
@@ -17,12 +17,12 @@
   </script>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
-<link href="../../_static/styles/bootstrap.css?digest=ac02cc09edc035673794" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
 
   
-  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
   <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
@@ -34,11 +34,11 @@
     <link rel="stylesheet" type="text/css" href="../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
-  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6" />
+  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=365ca57ee442770a23c6"></script>
 
-    <script src="../../_static/documentation_options.js?v=52a54c9b"></script>
+    <script src="../../_static/documentation_options.js?v=0e8dbb5e"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -46,7 +46,7 @@
     <script src="../../_static/design-tabs.js?v=36754332"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pandablocks/asyncio';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.14.1';
+        DOCUMENTATION_OPTIONS.theme_version = '0.14.3';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'master';
         DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
@@ -124,13 +124,14 @@
   
   
   
+  
     
     
       
     
     
-    <img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-light" alt="Logo image"/>
-    <script>document.write(`<img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-dark" alt="Logo image"/>`);</script>
+    <img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-light" alt=""/>
+    <script>document.write(`<img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-dark" alt=""/>`);</script>
   
   
     <p class="title logo__title">PandABlocks-client</p>
@@ -237,12 +238,21 @@ document.write(`
 <script>
 document.write(`
   <div class="version-switcher__container dropdown">
-    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+    <button id="pst-version-switcher-button-2"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-2"
+      aria-label="Version switcher list"
+    >
       Choose version  <!-- this text may get changed later by javascript -->
       <span class="caret"></span>
     </button>
-    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
-    <!-- dropdown will be populated by javascript on page load -->
+    <div id="pst-version-switcher-list-2"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-2">
+      <!-- dropdown will be populated by javascript on page load -->
     </div>
   </div>
 `);
@@ -364,12 +374,21 @@ document.write(`
 <script>
 document.write(`
   <div class="version-switcher__container dropdown">
-    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+    <button id="pst-version-switcher-button-3"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-3"
+      aria-label="Version switcher list"
+    >
       Choose version  <!-- this text may get changed later by javascript -->
       <span class="caret"></span>
     </button>
-    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
-    <!-- dropdown will be populated by javascript on page load -->
+    <div id="pst-version-switcher-list-3"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-3">
+      <!-- dropdown will be populated by javascript on page load -->
     </div>
   </div>
 `);
@@ -436,6 +455,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">asyncio.streams</span> <span class="kn">import</span> <span class="n">StreamReader</span><span class="p">,</span> <span class="n">StreamWriter</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">suppress</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">AsyncGenerator</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">.commands</span> <span class="kn">import</span> <span class="n">Command</span><span class="p">,</span> <span class="n">T</span>
@@ -443,7 +463,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">.responses</span> <span class="kn">import</span> <span class="n">Data</span>
 
 <span class="c1"># Define the public API of this module</span>
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;AsyncioClient&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;AsyncioClient&quot;</span><span class="p">,</span> <span class="s2">&quot;FlushMode&quot;</span><span class="p">]</span>
 
 
 <span class="k">class</span> <span class="nc">_StreamHelper</span><span class="p">:</span>
@@ -484,6 +504,24 @@ document.write(`
         <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">wait_closed</span><span class="p">()</span>
 
 
+<div class="viewcode-block" id="FlushMode">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.asyncio.FlushMode">[docs]</a>
+<span class="k">class</span> <span class="nc">FlushMode</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The mode which `AsyncioClient.data()` uses when flushing data frames.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: Flush all data frames immediately.</span>
+    <span class="n">IMMEDIATE</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1">#: Flush data frames periodically.</span>
+    <span class="n">PERIODIC</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1">#: Flush data frames when the user sets an `asyncio.Event`.</span>
+    <span class="n">MANUAL</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+
 <div class="viewcode-block" id="AsyncioClient">
 <a class="viewcode-back" href="../../user/reference/api.html#pandablocks.asyncio.AsyncioClient">[docs]</a>
 <span class="k">class</span> <span class="nc">AsyncioClient</span><span class="p">:</span>
@@ -510,7 +548,7 @@ document.write(`
 <a class="viewcode-back" href="../../user/reference/api.html#pandablocks.asyncio.AsyncioClient.connect">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to the control port, and be ready to handle commands&quot;&quot;&quot;</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_stream</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_host</span><span class="p">,</span> <span class="mi">8888</span><span class="p">),</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_stream</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_host</span><span class="p">,</span> <span class="mi">8888</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_read_forever</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ctrl_stream</span><span class="o">.</span><span class="n">reader</span><span class="p">)</span>
@@ -582,36 +620,84 @@ document.write(`
         <span class="n">scaled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">flush_period</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">frame_timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">flush_event</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">flush_mode</span><span class="p">:</span> <span class="n">FlushMode</span> <span class="o">=</span> <span class="n">FlushMode</span><span class="o">.</span><span class="n">IMMEDIATE</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncGenerator</span><span class="p">[</span><span class="n">Data</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to data port and yield data frames</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to data port and yield data frames.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            scaled: Whether to scale and average data frames, reduces throughput</span>
-<span class="sd">            flush_period: How often to flush partial data frames, None is on every</span>
-<span class="sd">                chunk of data from the server</span>
+<span class="sd">            flush_period: How often to flush partial data frames when ``flush_mode``</span>
+<span class="sd">                is ``PERIODIC``.</span>
 <span class="sd">            frame_timeout: If no data is received for this amount of time, raise</span>
-<span class="sd">                `asyncio.TimeoutError`</span>
+<span class="sd">                `asyncio.TimeoutError`.</span>
+<span class="sd">            flush_event: An `asyncio.Event` to manually flush. When set while</span>
+<span class="sd">                ``flush_mode`` is ``MANUAL`` a flush will be performed and the event</span>
+<span class="sd">                will be unset.</span>
+<span class="sd">            flush_mode: Which mode of the `FlushMode` values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check input</span>
+        <span class="k">if</span> <span class="n">flush_mode</span> <span class="o">==</span> <span class="n">FlushMode</span><span class="o">.</span><span class="n">MANUAL</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">flush_event</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;flush_event cannot be </span><span class="si">{</span><span class="n">flush_event</span><span class="si">}</span><span class="s2"> if flush_mode is &#39;MANUAL&#39;&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">flush_period</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unused flush_period=</span><span class="si">{</span><span class="n">flush_period</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;inputted during `MANUAL` flush mode&quot;</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">flush_mode</span> <span class="o">==</span> <span class="n">FlushMode</span><span class="o">.</span><span class="n">PERIODIC</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">flush_period</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;flush_period cannot be </span><span class="si">{</span><span class="n">flush_period</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;if flush_mode is &#39;PERIODIC&#39;, use `MANUAL` &quot;</span>
+                    <span class="s2">&quot;flush_mode to make flushing exclusively &quot;</span>
+                    <span class="s2">&quot;manual&quot;</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">flush_mode</span> <span class="o">==</span> <span class="n">FlushMode</span><span class="o">.</span><span class="n">IMMEDIATE</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">flush_event</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unused flush_event=</span><span class="si">{</span><span class="n">flush_event</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;inputted during `IMMEDIATE` flush mode&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">flush_period</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unused flush_period=</span><span class="si">{</span><span class="n">flush_period</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;inputted during `IMMEDIATE` flush mode&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;flush_mode must be one of &#39;IMMEDIATE&#39;, &#39;PERIODIC&#39;, &#39;MANUAL&#39;&quot;</span>
+            <span class="p">)</span>
 
         <span class="n">stream</span> <span class="o">=</span> <span class="n">_StreamHelper</span><span class="p">()</span>
         <span class="n">connection</span> <span class="o">=</span> <span class="n">DataConnection</span><span class="p">()</span>
         <span class="n">queue</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Data</span><span class="p">]]</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+        <span class="n">flush_every_frame</span> <span class="o">=</span> <span class="n">flush_mode</span> <span class="o">==</span> <span class="n">FlushMode</span><span class="o">.</span><span class="n">IMMEDIATE</span>
+        <span class="n">flush_event</span> <span class="o">=</span> <span class="n">flush_event</span> <span class="ow">or</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
 
         <span class="k">def</span> <span class="nf">raise_timeouterror</span><span class="p">():</span>
             <span class="k">raise</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No data received for </span><span class="si">{</span><span class="n">frame_timeout</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
             <span class="k">yield</span>
 
-        <span class="k">async</span> <span class="k">def</span> <span class="nf">periodic_flush</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">flush_period</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="c1"># Every flush_period seconds flush and queue data</span>
-                    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">flush_period</span><span class="p">)</span>
-                    <span class="n">queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">flush</span><span class="p">())</span>
+        <span class="k">async</span> <span class="k">def</span> <span class="nf">flush_loop</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">flush_every_frame</span><span class="p">:</span>
+                <span class="c1"># If flush mode is `IMMEDIATE` flushing will be performed</span>
+                <span class="c1"># whenever possible</span>
+                <span class="k">return</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">flush_event</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">flush_period</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">flush_event</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="n">queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">flush</span><span class="p">())</span>
 
         <span class="k">async</span> <span class="k">def</span> <span class="nf">read_from_stream</span><span class="p">():</span>
             <span class="n">reader</span> <span class="o">=</span> <span class="n">stream</span><span class="o">.</span><span class="n">reader</span>
-            <span class="c1"># Should we flush every FrameData?</span>
-            <span class="n">flush_every_frame</span> <span class="o">=</span> <span class="n">flush_period</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">recv</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4096</span><span class="p">),</span> <span class="n">frame_timeout</span><span class="p">)</span>
@@ -619,11 +705,15 @@ document.write(`
                     <span class="n">queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">raise_timeouterror</span><span class="p">())</span>
                     <span class="k">break</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span><span class="n">recv</span><span class="p">,</span> <span class="n">flush_every_frame</span><span class="p">))</span>
+                    <span class="n">queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span>
+                        <span class="n">connection</span><span class="o">.</span><span class="n">receive_bytes</span><span class="p">(</span>
+                            <span class="n">recv</span><span class="p">,</span> <span class="n">flush_every_frame</span><span class="o">=</span><span class="n">flush_every_frame</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
 
         <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_host</span><span class="p">,</span> <span class="mi">8889</span><span class="p">)</span>
         <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">write_and_drain</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">scaled</span><span class="p">))</span>
-        <span class="n">fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">periodic_flush</span><span class="p">(),</span> <span class="n">read_from_stream</span><span class="p">())</span>
+        <span class="n">fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">read_from_stream</span><span class="p">(),</span> <span class="n">flush_loop</span><span class="p">())</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="k">await</span> <span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
@@ -664,8 +754,8 @@ document.write(`
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794"></script>
-<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794"></script>
+  <script src="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -688,7 +778,7 @@ document.write(`
     <div class="footer-items__end">
       
         <div class="footer-item"><p class="theme-version">
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.3.
 </p></div>
       
     </div>

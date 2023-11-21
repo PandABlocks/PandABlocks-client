@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API &#8212; PandABlocks-client 0.5.4.dev80+g7117d68 documentation</title>
+    <title>API &#8212; PandABlocks-client 0.5.4.dev83+gc6ab247 documentation</title>
   
   
   
@@ -18,12 +18,12 @@
   </script>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
-<link href="../../_static/styles/bootstrap.css?digest=ac02cc09edc035673794" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
 
   
-  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
   <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
@@ -35,11 +35,11 @@
     <link rel="stylesheet" type="text/css" href="../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
-  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6" />
+  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=365ca57ee442770a23c6"></script>
 
-    <script src="../../_static/documentation_options.js?v=52a54c9b"></script>
+    <script src="../../_static/documentation_options.js?v=0e8dbb5e"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -47,7 +47,7 @@
     <script src="../../_static/design-tabs.js?v=36754332"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'user/reference/api';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.14.1';
+        DOCUMENTATION_OPTIONS.theme_version = '0.14.3';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'master';
         DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
@@ -127,13 +127,14 @@
   
   
   
+  
     
     
       
     
     
-    <img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-light" alt="Logo image"/>
-    <script>document.write(`<img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-dark" alt="Logo image"/>`);</script>
+    <img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-light" alt=""/>
+    <script>document.write(`<img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-dark" alt=""/>`);</script>
   
   
     <p class="title logo__title">PandABlocks-client</p>
@@ -240,12 +241,21 @@ document.write(`
 <script>
 document.write(`
   <div class="version-switcher__container dropdown">
-    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+    <button id="pst-version-switcher-button-2"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-2"
+      aria-label="Version switcher list"
+    >
       Choose version  <!-- this text may get changed later by javascript -->
       <span class="caret"></span>
     </button>
-    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
-    <!-- dropdown will be populated by javascript on page load -->
+    <div id="pst-version-switcher-list-2"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-2">
+      <!-- dropdown will be populated by javascript on page load -->
     </div>
   </div>
 `);
@@ -371,12 +381,21 @@ document.write(`
 <script>
 document.write(`
   <div class="version-switcher__container dropdown">
-    <button id="versionswitcherbutton" type="button" role="button" class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="listbox" aria-controls="versionswitcherlist" aria-label="Version switcher list">
+    <button id="pst-version-switcher-button-3"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-3"
+      aria-label="Version switcher list"
+    >
       Choose version  <!-- this text may get changed later by javascript -->
       <span class="caret"></span>
     </button>
-    <div id="versionswitcherlist" class="version-switcher__menu dropdown-menu list-group-flush py-0" role="listbox" aria-labelledby="versionswitcherbutton">
-    <!-- dropdown will be populated by javascript on page load -->
+    <div id="pst-version-switcher-list-3"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-3">
+      <!-- dropdown will be populated by javascript on page load -->
     </div>
   </div>
 `);
@@ -687,7 +706,7 @@ If <a class="reference external" href="https://docs.python.org/3/library/constan
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pandablocks.commands.ChangeGroup">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.commands.</span></span><span class="sig-name descname"><span class="pre">ChangeGroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pandablocks/commands.html#ChangeGroup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.commands.ChangeGroup" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.commands.</span></span><span class="sig-name descname"><span class="pre">ChangeGroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pandablocks/commands.html#ChangeGroup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.commands.ChangeGroup" title="Link to this definition">#</a></dt>
 <dd><p>Which group of values to ask for <code class="docutils literal notranslate"><span class="pre">*CHANGES</span></code> on:
 <a class="reference external" href="https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands">https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands</a></p>
 <dl class="py attribute">
@@ -1011,7 +1030,7 @@ or “samples</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pandablocks.responses.EndReason">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.responses.</span></span><span class="sig-name descname"><span class="pre">EndReason</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pandablocks/responses.html#EndReason"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.responses.EndReason" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.responses.</span></span><span class="sig-name descname"><span class="pre">EndReason</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pandablocks/responses.html#EndReason"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.responses.EndReason" title="Link to this definition">#</a></dt>
 <dd><p>The reason that a PCAP acquisition completed</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pandablocks.responses.EndReason.OK">
@@ -1484,19 +1503,47 @@ NOTE: This does not indicate if the remote end is still connected.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pandablocks.asyncio.AsyncioClient.data">
-<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scaled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.AsyncGenerator" title="(in Python v3.12)"><span class="pre">AsyncGenerator</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data"><span class="pre">Data</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/pandablocks/asyncio.html#AsyncioClient.data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.data" title="Link to this definition">#</a></dt>
-<dd><p>Connect to data port and yield data frames</p>
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scaled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Event</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pandablocks.asyncio.FlushMode" title="pandablocks.asyncio.FlushMode"><span class="pre">FlushMode</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">FlushMode.IMMEDIATE</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.AsyncGenerator" title="(in Python v3.12)"><span class="pre">AsyncGenerator</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pandablocks.responses.Data" title="pandablocks.responses.Data"><span class="pre">Data</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/pandablocks/asyncio.html#AsyncioClient.data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.asyncio.AsyncioClient.data" title="Link to this definition">#</a></dt>
+<dd><p>Connect to data port and yield data frames.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>scaled</strong> – Whether to scale and average data frames, reduces throughput</p></li>
-<li><p><strong>flush_period</strong> – How often to flush partial data frames, None is on every
-chunk of data from the server</p></li>
+<li><p><strong>flush_period</strong> – How often to flush partial data frames when <code class="docutils literal notranslate"><span class="pre">flush_mode</span></code>
+is <code class="docutils literal notranslate"><span class="pre">PERIODIC</span></code>.</p></li>
 <li><p><strong>frame_timeout</strong> – If no data is received for this amount of time, raise
-<a class="reference external" href="https://docs.python.org/3/library/asyncio-exceptions.html#asyncio.TimeoutError" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">asyncio.TimeoutError</span></code></a></p></li>
+<a class="reference external" href="https://docs.python.org/3/library/asyncio-exceptions.html#asyncio.TimeoutError" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">asyncio.TimeoutError</span></code></a>.</p></li>
+<li><p><strong>flush_event</strong> – An <a class="reference external" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">asyncio.Event</span></code></a> to manually flush. When set while
+<code class="docutils literal notranslate"><span class="pre">flush_mode</span></code> is <code class="docutils literal notranslate"><span class="pre">MANUAL</span></code> a flush will be performed and the event
+will be unset.</p></li>
+<li><p><strong>flush_mode</strong> – Which mode of the <a class="reference internal" href="#pandablocks.asyncio.FlushMode" title="pandablocks.asyncio.FlushMode"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FlushMode</span></code></a> values.</p></li>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pandablocks.asyncio.FlushMode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.asyncio.</span></span><span class="sig-name descname"><span class="pre">FlushMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pandablocks/asyncio.html#FlushMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.asyncio.FlushMode" title="Link to this definition">#</a></dt>
+<dd><p>The mode which <a class="reference internal" href="#pandablocks.asyncio.AsyncioClient.data" title="pandablocks.asyncio.AsyncioClient.data"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">AsyncioClient.data()</span></code></a> uses when flushing data frames.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pandablocks.asyncio.FlushMode.IMMEDIATE">
+<span class="sig-name descname"><span class="pre">IMMEDIATE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#pandablocks.asyncio.FlushMode.IMMEDIATE" title="Link to this definition">#</a></dt>
+<dd><p>Flush all data frames immediately.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pandablocks.asyncio.FlushMode.PERIODIC">
+<span class="sig-name descname"><span class="pre">PERIODIC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pandablocks.asyncio.FlushMode.PERIODIC" title="Link to this definition">#</a></dt>
+<dd><p>Flush data frames periodically.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pandablocks.asyncio.FlushMode.MANUAL">
+<span class="sig-name descname"><span class="pre">MANUAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#pandablocks.asyncio.FlushMode.MANUAL" title="Link to this definition">#</a></dt>
+<dd><p>Flush data frames when the user sets an <a class="reference external" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">asyncio.Event</span></code></a>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1862,6 +1909,12 @@ per file created.</p></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.asyncio.AsyncioClient.data"><code class="docutils literal notranslate"><span class="pre">AsyncioClient.data()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.asyncio.FlushMode"><code class="docutils literal notranslate"><span class="pre">FlushMode</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.asyncio.FlushMode.IMMEDIATE"><code class="docutils literal notranslate"><span class="pre">FlushMode.IMMEDIATE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.asyncio.FlushMode.PERIODIC"><code class="docutils literal notranslate"><span class="pre">FlushMode.PERIODIC</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.asyncio.FlushMode.MANUAL"><code class="docutils literal notranslate"><span class="pre">FlushMode.MANUAL</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#blocking-client">Blocking Client</a><ul class="nav section-nav flex-column">
@@ -1929,8 +1982,8 @@ per file created.</p></li>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../../_static/scripts/bootstrap.js?digest=ac02cc09edc035673794"></script>
-<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794"></script>
+  <script src="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -1953,7 +2006,7 @@ per file created.</p></li>
     <div class="footer-items__end">
       
         <div class="footer-item"><p class="theme-version">
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.3.
 </p></div>
       
     </div>
