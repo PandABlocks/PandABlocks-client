@@ -1,0 +1,1509 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandablocks.commands &#8212; PandABlocks-client 0.6.2.dev4+g51f5fd9 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.1/css/all.min.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.1/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.1/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.1/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
+  <script src="../../_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
+
+    <script src="../../_static/documentation_options.js?v=731e5d45"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=30646c52"></script>
+    <script src="../../_static/design-tabs.js?v=36754332"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pandablocks/commands';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.15.2';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'rerun_black_3.11';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
+        </script>
+    <link rel="icon" href="../../_static/PandA-logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a id="pst-skip-link" class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-light" alt=""/>
+    <script>document.write(`<img src="../../_static/PandA-logo-for-black-background.svg" class="logo__image only-dark" alt=""/>`);</script>
+  
+  
+    <p class="title logo__title">PandABlocks-client</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../user/index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="pst-version-switcher-button-2"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-2"
+      aria-label="Version switcher list"
+    >
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="pst-version-switcher-list-2"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-2">
+      <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../user/index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="pst-version-switcher-button-3"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-3"
+      aria-label="Version switcher list"
+    >
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="pst-version-switcher-list-3"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-3">
+      <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pandablocks.commands</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pandablocks.commands</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">Generator</span><span class="p">,</span>
+    <span class="n">Generic</span><span class="p">,</span>
+    <span class="n">List</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">,</span>
+    <span class="n">Tuple</span><span class="p">,</span>
+    <span class="n">TypeVar</span><span class="p">,</span>
+    <span class="n">Union</span><span class="p">,</span>
+    <span class="n">overload</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">._exchange</span> <span class="kn">import</span> <span class="n">Exchange</span><span class="p">,</span> <span class="n">ExchangeGenerator</span>
+<span class="kn">from</span> <span class="nn">.responses</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BitMuxFieldInfo</span><span class="p">,</span>
+    <span class="n">BitOutFieldInfo</span><span class="p">,</span>
+    <span class="n">BlockInfo</span><span class="p">,</span>
+    <span class="n">Changes</span><span class="p">,</span>
+    <span class="n">EnumFieldInfo</span><span class="p">,</span>
+    <span class="n">ExtOutBitsFieldInfo</span><span class="p">,</span>
+    <span class="n">ExtOutFieldInfo</span><span class="p">,</span>
+    <span class="n">FieldInfo</span><span class="p">,</span>
+    <span class="n">PosMuxFieldInfo</span><span class="p">,</span>
+    <span class="n">PosOutFieldInfo</span><span class="p">,</span>
+    <span class="n">ScalarFieldInfo</span><span class="p">,</span>
+    <span class="n">SubtypeTimeFieldInfo</span><span class="p">,</span>
+    <span class="n">TableFieldDetails</span><span class="p">,</span>
+    <span class="n">TableFieldInfo</span><span class="p">,</span>
+    <span class="n">TimeFieldInfo</span><span class="p">,</span>
+    <span class="n">UintFieldInfo</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Define the public API of this module</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Command&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CommandException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Raw&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Get&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GetLine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GetMultiline&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Put&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Append&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Arm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Disarm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GetBlockInfo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GetFieldInfo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GetPcapBitsLabels&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ChangeGroup&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GetChanges&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GetState&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SetState&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)</span>
+<span class="n">T2</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T2&quot;</span><span class="p">)</span>
+<span class="n">T3</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T3&quot;</span><span class="p">)</span>
+<span class="n">T4</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T4&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Checks whether the server will interpret cmd as a table command: search for</span>
+<span class="c1"># first of &#39;?&#39;, &#39;=&#39;, &#39;&lt;&#39;, if &#39;&lt;&#39; found first then it&#39;s a multiline command.</span>
+<span class="n">MULTILINE_COMMAND</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[^?=]*&lt;&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">is_multiline_command</span><span class="p">(</span><span class="n">cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">MULTILINE_COMMAND</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="Command">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.Command">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Command</span><span class="p">(</span><span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract baseclass for all ControlConnection commands to be inherited from&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+        <span class="c1"># A generator that sends lines to the PandA, gets lines back, and returns a</span>
+        <span class="c1"># response</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="CommandException">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.CommandException">[docs]</a>
+<span class="k">class</span> <span class="nc">CommandException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised if a `Command` receives a mal-formed response&quot;&quot;&quot;</span></div>
+
+
+
+<span class="c1"># `execute_commands()` actually returns a list with length equal to the number</span>
+<span class="c1"># of tasks passed; however, Tuple is used similar to the annotation for</span>
+<span class="c1"># zip() because typing does not support variadic type variables.  See</span>
+<span class="c1"># typeshed PR #1550 for discussion.</span>
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">]]:</span> <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">]]:</span> <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">],</span> <span class="n">c3</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T3</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">]]:</span> <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">],</span> <span class="n">c3</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T3</span><span class="p">],</span> <span class="n">c4</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T4</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">,</span> <span class="n">T4</span><span class="p">]]:</span> <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="o">*</span><span class="n">commands</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span> <span class="o">...</span>
+
+
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Call the `Command.execute` method on each of the commands to produce</span>
+<span class="sd">    some `Exchange` generators, which are yielded back to the connection,</span>
+<span class="sd">    then zip together the responses to those exchanges into a tuple&quot;&quot;&quot;</span>
+    <span class="c1"># If we add type annotations to this function then mypy complains:</span>
+    <span class="c1"># Overloaded function implementation does not accept all possible arguments</span>
+    <span class="c1"># As we want to type check this, we put the logic in _zip_with_return</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_zip_with_return</span><span class="p">([</span><span class="n">command</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span> <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">def</span> <span class="nf">_zip_with_return</span><span class="p">(</span>
+    <span class="n">generators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+    <span class="c1"># Sentinel to show what generators are not yet exhausted</span>
+    <span class="n">pending</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="n">returns</span> <span class="o">=</span> <span class="p">[</span><span class="n">pending</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">generators</span><span class="p">)</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">yields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Exchange</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">generators</span><span class="p">):</span>
+            <span class="c1"># If we haven&#39;t exhausted the generator</span>
+            <span class="k">if</span> <span class="n">returns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="n">pending</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Get the exchanges that it wants to fill in</span>
+                    <span class="n">exchanges</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c1"># Generator is exhausted, store its return value</span>
+                    <span class="n">returns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Add the exchanges to the list</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exchanges</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">yields</span> <span class="o">+=</span> <span class="n">exchanges</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">yields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exchanges</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">yields</span><span class="p">:</span>
+            <span class="c1"># There were some Exchanges yielded, so yield them all up</span>
+            <span class="c1"># for the Connection to fill in</span>
+            <span class="k">yield</span> <span class="n">yields</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># All the generators are exhausted, so return the tuple of all</span>
+            <span class="c1"># their return values</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">returns</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Raw">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.Raw">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Raw</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Send a raw command</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inp: The input lines to send</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        Raw([&quot;PCAP.ACTIVE?&quot;]) -&gt; [&quot;OK =1&quot;]</span>
+<span class="sd">        Raw([&quot;SEQ1.TABLE&gt;&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, &quot;&quot;]) -&gt; [&quot;OK&quot;]</span>
+<span class="sd">        Raw([&quot;SEQ1.TABLE?&quot;]) -&gt; [&quot;!1&quot;, &quot;!1&quot;, &quot;!0&quot;, &quot;!0&quot;, &quot;.&quot;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">inp</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inp</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">return</span> <span class="n">ex</span><span class="o">.</span><span class="n">received</span></div>
+
+
+
+<div class="viewcode-block" id="Get">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.Get">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Get</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the value of a field or star command.</span>
+
+<span class="sd">    If the form of the expected return is known, consider using `GetLine`</span>
+<span class="sd">    or `GetMultiline` instead.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field: The field, attribute, or star command to get</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        Get(&quot;PCAP.ACTIVE&quot;) -&gt; &quot;1&quot;</span>
+<span class="sd">        Get(&quot;SEQ1.TABLE&quot;) -&gt; [&quot;1048576&quot;, &quot;0&quot;, &quot;1000&quot;, &quot;1000&quot;]</span>
+<span class="sd">        Get(&quot;*IDN&quot;) -&gt; &quot;PandA 1.1...&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">if</span> <span class="n">ex</span><span class="o">.</span><span class="n">is_multiline</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># We got OK =value</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span>
+            <span class="k">assert</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;OK =&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">line</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="GetLine">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.GetLine">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetLine</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the value of a field or star command, when the result is expected to be a</span>
+<span class="sd">    single line.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field: The field, attribute, or star command to get</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetLine(&quot;PCAP.ACTIVE&quot;) -&gt; &quot;1&quot;</span>
+<span class="sd">        GetLine(&quot;*IDN&quot;) -&gt; &quot;PandA 1.1...&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="c1"># Expect &quot;OK =value&quot;</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span>
+        <span class="k">assert</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;OK =&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">line</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="GetMultiline">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.GetMultiline">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetMultiline</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the value of a field or star command, when the result is expected to be a</span>
+<span class="sd">    multiline response.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field: The field, attribute, or star command to get</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetMultiline(&quot;SEQ1.TABLE&quot;) -&gt; [&quot;1048576&quot;, &quot;0&quot;, &quot;1000&quot;, &quot;1000&quot;]</span>
+<span class="sd">        GetMultiline(&quot;*METADATA.*&quot;) -&gt; [&quot;LABEL_FILTER1&quot;, &quot;APPNAME&quot;, ...]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">return</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span></div>
+
+
+
+<div class="viewcode-block" id="Put">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.Put">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Put</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Put the value of a field.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field: The field, attribute, or star command to put</span>
+<span class="sd">        value: The value, either string or list of strings or empty, to put</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        Put(&quot;PCAP.TRIG&quot;, &quot;PULSE1.OUT&quot;)</span>
+<span class="sd">        Put(&quot;SEQ1.TABLE&quot;, [&quot;1048576&quot;, &quot;0&quot;, &quot;1000&quot;, &quot;1000&quot;])</span>
+<span class="sd">        Put(&quot;SFP3_SYNC_IN1.SYNC_RESET&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="c1"># Multiline table with blank line to terminate</span>
+            <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">&lt;&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">assert</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="Append">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.Append">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Append</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Append the value of a table field.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field: The field, attribute, or star command to append</span>
+<span class="sd">        value: The value, list of strings, to append</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        Append(&quot;SEQ1.TABLE&quot;, [&quot;1048576&quot;, &quot;0&quot;, &quot;1000&quot;, &quot;1000&quot;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="c1"># Multiline table with blank line to terminate</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="si">}</span><span class="s2">&lt;&lt;&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">])</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">assert</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="Arm">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.Arm">[docs]</a>
+<span class="k">class</span> <span class="nc">Arm</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Arm PCAP for an acquisition by sending ``*PCAP.ARM=``&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;*PCAP.ARM=&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">assert</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="Disarm">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.Disarm">[docs]</a>
+<span class="k">class</span> <span class="nc">Disarm</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Disarm PCAP, stopping acquisition by sending ``*PCAP.DISARM=``&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;*PCAP.DISARM=&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="k">assert</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="GetBlockInfo">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.GetBlockInfo">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetBlockInfo</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BlockInfo</span><span class="p">]]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the name, number, and description of each block type</span>
+<span class="sd">    in a dictionary, alphabetically ordered</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        skip_description: If `True`, prevents retrieving the description</span>
+<span class="sd">            for each Block. This will reduce network calls.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">         GetBlockInfo() -&gt;</span>
+<span class="sd">             {</span>
+<span class="sd">                 &quot;LUT&quot;: BlockInfo(number=8, description=&quot;Lookup table&quot;),</span>
+<span class="sd">                 &quot;PCAP&quot;: BlockInfo(number=1, description=&quot;Position capture control&quot;),</span>
+<span class="sd">                 ...</span>
+<span class="sd">             }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">skip_description</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BlockInfo</span><span class="p">]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;*BLOCKS?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+
+        <span class="n">blocks_list</span><span class="p">,</span> <span class="n">commands</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
+            <span class="n">block</span><span class="p">,</span> <span class="n">num</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">blocks_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">block</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span><span class="p">)))</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*DESC.</span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_description</span><span class="p">:</span>
+            <span class="c1"># Must use tuple() to match type returned by _execute_commands</span>
+            <span class="n">description_values</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">description_values</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">)</span>
+
+        <span class="n">block_infos</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">block</span><span class="p">:</span> <span class="n">BlockInfo</span><span class="p">(</span><span class="n">number</span><span class="o">=</span><span class="n">num</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">desc</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">num</span><span class="p">),</span> <span class="n">desc</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">blocks_list</span><span class="p">,</span> <span class="n">description_values</span><span class="p">))</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">block_infos</span></div>
+
+
+
+<span class="c1"># The type of the generators used for creating the Get commands for each field</span>
+<span class="c1"># and setting the returned data into the FieldInfo structure</span>
+<span class="n">_FieldGeneratorType</span> <span class="o">=</span> <span class="n">Generator</span><span class="p">[</span>
+    <span class="n">Union</span><span class="p">[</span><span class="n">Exchange</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Exchange</span><span class="p">]],</span>
+    <span class="kc">None</span><span class="p">,</span>
+    <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="GetFieldInfo">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.GetFieldInfo">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetFieldInfo</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">]]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the fields of a block, returning a `FieldInfo` (or appropriate subclass) for</span>
+<span class="sd">    each one, ordered to match the definition order in the PandA</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        block: The name of the block type</span>
+<span class="sd">        extended_metadata: If `True`, retrieves detailed metadata about a field and</span>
+<span class="sd">            all of its attributes. This will cause an additional network round trip.</span>
+<span class="sd">            If `False` only the field names and types will be returned. Default `True`.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetFieldInfo(&quot;LUT&quot;) -&gt; {</span>
+<span class="sd">            &quot;INPA&quot;:</span>
+<span class="sd">                BitMuxFieldInfo(type=&#39;bit_mux&#39;,</span>
+<span class="sd">                                subtype=None,</span>
+<span class="sd">                                description=&#39;Input A&#39;,</span>
+<span class="sd">                                max_delay=5</span>
+<span class="sd">                                label=[&#39;TTLIN1.VAL&#39;, &#39;TTLIN2.VAL&#39;, ...]),</span>
+<span class="sd">            ...}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">block</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">extended_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">_commands_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span>
+        <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">Callable</span><span class="p">[</span>
+            <span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+            <span class="n">_FieldGeneratorType</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Map a (type, subtype) to a method that returns the appropriate</span>
+        <span class="c1"># subclasss of FieldInfo, and a list of all the Commands to request.</span>
+        <span class="c1"># Note that fields that do not have additional attributes are not listed.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_commands_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1"># Order matches that of PandA server&#39;s Field Types docs</span>
+            <span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;bit_out&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bit_out</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;pos_out&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pos_out</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;ext_out&quot;</span><span class="p">,</span> <span class="s2">&quot;timestamp&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ext_out</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;ext_out&quot;</span><span class="p">,</span> <span class="s2">&quot;samples&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ext_out</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;ext_out&quot;</span><span class="p">,</span> <span class="s2">&quot;bits&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ext_out_bits</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;bit_mux&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bit_mux</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;pos_mux&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pos_mux</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;table&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;uint&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uint</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;uint&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uint</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;uint&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uint</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;int&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;int&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;int&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;scalar&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scalar</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;scalar&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scalar</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;scalar&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scalar</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;bit&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;bit&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;bit&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;lut&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;lut&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;lut&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;enum&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enum</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;enum&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enum</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;enum&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enum</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;param&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subtype_time</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subtype_time</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subtype_time</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_get_desc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GetLine</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create the Command to retrieve the description&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*DESC.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_uint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">maximum</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.MAX&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">UintFieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">maximum</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_scalar</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.UNITS&quot;</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.SCALE&quot;</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.OFFSET&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">ScalarFieldInfo</span><span class="p">(</span>
+            <span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">scale</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_subtype_time</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">units_labels</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.UNITS&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">SubtypeTimeFieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">units_labels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_enum</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">EnumFieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_time</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.UNITS&quot;</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.MIN&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">TimeFieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="nb">min</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_bit_out</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">capture_word</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.CAPTURE_WORD&quot;</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.OFFSET&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">BitOutFieldInfo</span><span class="p">(</span>
+            <span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">capture_word</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_bit_mux</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">max_delay</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.MAX_DELAY&quot;</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">BitMuxFieldInfo</span><span class="p">(</span>
+            <span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_delay</span><span class="p">),</span> <span class="n">labels</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_pos_mux</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">PosMuxFieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_table</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="c1"># Ignore the ROW_WORDS attribute as it&#39;s new and won&#39;t be present on all PandAs,</span>
+        <span class="c1"># and there&#39;s no easy way to try it and catch an error while also running other</span>
+        <span class="c1"># Get commands at the same time</span>
+        <span class="n">table_desc</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">fields</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.MAX_LENGTH&quot;</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.FIELDS&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Keep track of highest bit index</span>
+        <span class="n">max_bit_offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">desc_gets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GetLine</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">enum_field_gets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GetMultiline</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">enum_field_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">fields_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TableFieldDetails</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">field_details</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+            <span class="c1"># Fields are of the form &lt;bit_high&gt;:&lt;bit_low&gt; &lt;name&gt; &lt;subtype&gt;</span>
+            <span class="n">bit_range</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">subtype</span> <span class="o">=</span> <span class="n">field_details</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">bit_high_str</span><span class="p">,</span> <span class="n">bit_low_str</span> <span class="o">=</span> <span class="n">bit_range</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+            <span class="n">bit_high</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bit_high_str</span><span class="p">)</span>
+            <span class="n">bit_low</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bit_low_str</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">bit_high</span> <span class="o">&gt;</span> <span class="n">max_bit_offset</span><span class="p">:</span>
+                <span class="n">max_bit_offset</span> <span class="o">=</span> <span class="n">bit_high</span>
+
+            <span class="k">if</span> <span class="n">subtype</span> <span class="o">==</span> <span class="s2">&quot;enum&quot;</span><span class="p">:</span>
+                <span class="n">enum_field_gets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">[].</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">enum_field_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="n">fields_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">TableFieldDetails</span><span class="p">(</span><span class="n">subtype</span><span class="p">,</span> <span class="n">bit_low</span><span class="p">,</span> <span class="n">bit_high</span><span class="p">)</span>
+
+            <span class="n">desc_gets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetLine</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*DESC.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">[].</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Calculate the number of 32 bit words that comprises one table row</span>
+        <span class="n">row_words</span> <span class="o">=</span> <span class="n">max_bit_offset</span> <span class="o">//</span> <span class="mi">32</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="c1"># The first len(enum_field_gets) items are enum labels, type List[str]</span>
+        <span class="c1"># The second part of the list are descriptions, type str</span>
+        <span class="n">labels_and_descriptions</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">enum_field_gets</span><span class="p">,</span> <span class="o">*</span><span class="n">desc_gets</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">enum_field_names</span><span class="p">,</span> <span class="n">labels_and_descriptions</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">enum_field_gets</span><span class="p">)]</span>
+        <span class="p">):</span>
+            <span class="n">fields_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">fields_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">labels_and_descriptions</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">enum_field_gets</span><span class="p">)</span> <span class="p">:]</span>
+        <span class="p">):</span>
+            <span class="n">fields_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">desc</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">TableFieldInfo</span><span class="p">(</span>
+            <span class="n">field_type</span><span class="p">,</span>
+            <span class="n">field_subtype</span><span class="p">,</span>
+            <span class="n">table_desc</span><span class="p">,</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">max_length</span><span class="p">),</span>
+            <span class="n">fields_dict</span><span class="p">,</span>
+            <span class="n">row_words</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_pos_out</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">capture_labels</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.CAPTURE&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">PosOutFieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">capture_labels</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_ext_out</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">capture_labels</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.CAPTURE&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">ExtOutFieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">capture_labels</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_ext_out_bits</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="n">capture_labels</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.BITS&quot;</span><span class="p">),</span>
+            <span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*ENUMS.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.CAPTURE&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">field_info</span> <span class="o">=</span> <span class="n">ExtOutBitsFieldInfo</span><span class="p">(</span>
+            <span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">capture_labels</span><span class="p">,</span> <span class="n">bits</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span>
+
+    <span class="k">def</span> <span class="nf">_no_attributes</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FieldGeneratorType</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calling this method indicates type-subtype pair is known and</span>
+<span class="sd">        has no attributes, so only a description needs to be retrieved&quot;&quot;&quot;</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_desc</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span><span class="p">,</span> <span class="n">desc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="si">}</span><span class="s2">.*?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="n">unsorted</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">field_generators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ExchangeGenerator</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
+            <span class="n">field_name</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">type_subtype</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="n">field_type</span><span class="p">:</span> <span class="nb">str</span>
+            <span class="n">subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+            <span class="c1"># Append &quot;None&quot; to list below so there are always at least 2 elements</span>
+            <span class="c1"># so we can always unpack into subtype, even if no split occurs.</span>
+            <span class="n">field_type</span><span class="p">,</span> <span class="n">subtype</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">type_subtype</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="kc">None</span><span class="p">]</span>
+
+            <span class="c1"># Always create default FieldInfo. If necessary we will replace it later</span>
+            <span class="c1"># with a more type-specific version.</span>
+            <span class="n">field_info</span> <span class="o">=</span> <span class="n">FieldInfo</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">subtype</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extended_metadata</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Construct the list of type-specific generators</span>
+                    <span class="n">field_generators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_commands_map</span><span class="p">[(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">subtype</span><span class="p">)](</span>
+                            <span class="n">field_name</span><span class="p">,</span> <span class="n">field_type</span><span class="p">,</span> <span class="n">subtype</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="c1"># This exception will be hit if PandA ever defines new types</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Unknown type </span><span class="si">{</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span><span class="w"> </span><span class="n">subtype</span><span class="p">)</span><span class="si">}</span><span class="s2"> detected for &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">, cannot retrieve extended information for it.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="c1"># We can assume the new field will have a description though</span>
+                    <span class="n">field_generators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_no_attributes</span><span class="p">(</span><span class="n">field_name</span><span class="p">,</span> <span class="n">field_type</span><span class="p">,</span> <span class="n">subtype</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># Keep track of order of fields as returned by PandA. Important for later</span>
+            <span class="c1"># matching descriptions back to their field.</span>
+            <span class="n">unsorted</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span><span class="p">)</span>
+
+        <span class="c1"># Dict keeps insertion order, so insert in the order the server said</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">field</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unsorted</span><span class="o">.</span><span class="n">items</span><span class="p">())}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extended_metadata</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="c1"># Asked to not perform the requests for extra metadata.</span>
+            <span class="k">return</span> <span class="n">fields</span>
+
+        <span class="n">field_name_info</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+        <span class="n">field_name_info</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_zip_with_return</span><span class="p">(</span><span class="n">field_generators</span><span class="p">)</span>
+
+        <span class="n">fields</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">field_name_info</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fields</span></div>
+
+
+
+<div class="viewcode-block" id="GetPcapBitsLabels">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.GetPcapBitsLabels">[docs]</a>
+<span class="k">class</span> <span class="nc">GetPcapBitsLabels</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the labels for the bit fields in PCAP.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetPcapBitsLabels() -&gt; {&quot;BITS0&quot; : [&quot;TTLIN1.VAL&quot;, &quot;TTLIN2.VAL&quot;, ...], ...}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;PCAP.*?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="n">bits_fields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
+            <span class="n">split</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">split</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">field_name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">field_type</span><span class="p">,</span> <span class="n">field_subtype</span> <span class="o">=</span> <span class="n">split</span>
+
+                <span class="k">if</span> <span class="n">field_type</span> <span class="o">==</span> <span class="s2">&quot;ext_out&quot;</span> <span class="ow">and</span> <span class="n">field_subtype</span> <span class="o">==</span> <span class="s2">&quot;bits&quot;</span><span class="p">:</span>
+                    <span class="n">bits_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PCAP.</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">exchanges</span> <span class="o">=</span> <span class="p">[</span><span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">.BITS?&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">bits_fields</span><span class="p">]</span>
+        <span class="k">yield</span> <span class="n">exchanges</span>
+        <span class="n">bits</span> <span class="o">=</span> <span class="p">{</span><span class="n">field</span><span class="p">:</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span> <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">ex</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bits_fields</span><span class="p">,</span> <span class="n">exchanges</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="n">bits</span></div>
+
+
+
+<div class="viewcode-block" id="ChangeGroup">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.ChangeGroup">[docs]</a>
+<span class="k">class</span> <span class="nc">ChangeGroup</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Which group of values to ask for ``*CHANGES`` on:</span>
+<span class="sd">    https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: All the groups below</span>
+    <span class="n">ALL</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="c1">#: Configuration settings</span>
+    <span class="n">CONFIG</span> <span class="o">=</span> <span class="s2">&quot;.CONFIG&quot;</span>
+    <span class="c1">#: Bits on the system bus</span>
+    <span class="n">BITS</span> <span class="o">=</span> <span class="s2">&quot;.BITS&quot;</span>
+    <span class="c1">#: Positions</span>
+    <span class="n">POSN</span> <span class="o">=</span> <span class="s2">&quot;.POSN&quot;</span>
+    <span class="c1">#: Polled read values</span>
+    <span class="n">READ</span> <span class="o">=</span> <span class="s2">&quot;.READ&quot;</span>
+    <span class="c1">#: Attributes (included capture enable flags)</span>
+    <span class="n">ATTR</span> <span class="o">=</span> <span class="s2">&quot;.ATTR&quot;</span>
+    <span class="c1">#: Table changes</span>
+    <span class="n">TABLE</span> <span class="o">=</span> <span class="s2">&quot;.TABLE&quot;</span>
+    <span class="c1">#: Table changes</span>
+    <span class="n">METADATA</span> <span class="o">=</span> <span class="s2">&quot;.METADATA&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="GetChanges">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.GetChanges">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetChanges</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">Changes</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get a `Changes` object showing which fields have changed since the last</span>
+<span class="sd">    time this was called</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        group: Restrict to a particular `ChangeGroup`</span>
+<span class="sd">        get_multiline: If `True`, return values of multiline fields in the</span>
+<span class="sd">            `multiline_values` attribute. Note that this will invoke additional network</span>
+<span class="sd">            requests.</span>
+<span class="sd">            If `False` these fields will instead be returned in the `no_value`</span>
+<span class="sd">            attribute. Default value is `False`.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetChanges() -&gt; Changes(</span>
+<span class="sd">            value={&quot;PCAP.TRIG&quot;: &quot;PULSE1.OUT&quot;},</span>
+<span class="sd">            no_value=[&quot;SEQ1.TABLE&quot;],</span>
+<span class="sd">            in_error=[&quot;BAD.ENUM&quot;],</span>
+<span class="sd">            multiline_values={}</span>
+<span class="sd">        )</span>
+
+<span class="sd">        GetChanges(ChangeGroup.ALL, True) -&gt; Changes(</span>
+<span class="sd">            values={&quot;PCAP.TRIG&quot;: &quot;PULSE1.OUT&quot;},</span>
+<span class="sd">            no_value=[],</span>
+<span class="sd">            in_error=[&quot;BAD.ENUM&quot;],</span>
+<span class="sd">            multiline_values={&quot;SEQ1.TABLE&quot; : [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;,...]}</span>
+<span class="sd">        )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">group</span><span class="p">:</span> <span class="n">ChangeGroup</span> <span class="o">=</span> <span class="n">ChangeGroup</span><span class="o">.</span><span class="n">ALL</span>
+    <span class="n">get_multiline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Changes</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*CHANGES</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="n">Changes</span><span class="p">({},</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">{})</span>
+        <span class="n">multivalue_get_commands</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">GetMultiline</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ex</span><span class="o">.</span><span class="n">multiline</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_multiline</span><span class="p">:</span>
+                    <span class="n">field</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">multivalue_get_commands</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">field</span><span class="p">,</span> <span class="n">GetMultiline</span><span class="p">(</span><span class="n">field</span><span class="p">)))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">changes</span><span class="o">.</span><span class="n">no_value</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;(error)&quot;</span><span class="p">):</span>
+                <span class="n">changes</span><span class="o">.</span><span class="n">in_error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">changes</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_multiline</span><span class="p">:</span>
+            <span class="n">multiline_vals</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+                <span class="o">*</span><span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">multivalue_get_commands</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">multivalue_get_commands</span><span class="p">],</span> <span class="n">multiline_vals</span>
+            <span class="p">):</span>
+                <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+                <span class="n">changes</span><span class="o">.</span><span class="n">multiline_values</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">changes</span></div>
+
+
+
+<div class="viewcode-block" id="GetState">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.GetState">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GetState</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the state of all the fields in a PandA that should be saved as a</span>
+<span class="sd">    list of raw lines that could be sent with `SetState`.</span>
+
+<span class="sd">    NOTE: `GetState` may behave unexpectedly if `GetChanges` has previously been</span>
+<span class="sd">    called using the same client. The caller should use separate clients to avoid</span>
+<span class="sd">    potential issues.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        GetState() -&gt; [</span>
+<span class="sd">            &quot;SEQ1.TABLE&lt;B&quot;</span>
+<span class="sd">            &quot;234fds0SDklnmnr&quot;</span>
+<span class="sd">            &quot;&quot;</span>
+<span class="sd">            &quot;PCAP.TRIG=PULSE1.OUT&quot;,</span>
+<span class="sd">        ]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="c1"># TODO: explain in detail how this works</span>
+        <span class="c1"># See: references/how-it-works</span>
+        <span class="n">attr</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">ATTR</span><span class="p">),</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">CONFIG</span><span class="p">),</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">TABLE</span><span class="p">),</span>
+            <span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">METADATA</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="c1"># Add the single line values</span>
+        <span class="n">line_values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="o">**</span><span class="n">metadata</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">line_values</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="c1"># Get the multiline values</span>
+        <span class="n">multiline_keys</span><span class="p">,</span> <span class="n">commands</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">no_value</span><span class="p">:</span>
+            <span class="c1"># Get tables as base64</span>
+            <span class="n">multiline_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&lt;B&quot;</span><span class="p">)</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">.B&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">no_value</span><span class="p">:</span>
+            <span class="c1"># Get metadata as string list</span>
+            <span class="n">multiline_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&lt;&quot;</span><span class="p">)</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetMultiline</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+        <span class="n">multiline_values</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">multiline_keys</span><span class="p">,</span> <span class="n">multiline_values</span><span class="p">):</span>
+            <span class="n">state</span> <span class="o">+=</span> <span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+
+<div class="viewcode-block" id="SetState">
+<a class="viewcode-back" href="../../user/reference/api.html#pandablocks.commands.SetState">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">SetState</span><span class="p">(</span><span class="n">Command</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the state of all the fields in a PandA</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        state: A list of raw lines as produced by `GetState`</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        SetState([</span>
+<span class="sd">            &quot;SEQ1.TABLE&lt;B&quot;</span>
+<span class="sd">            &quot;234fds0SDklnmnr&quot;</span>
+<span class="sd">            &quot;&quot;</span>
+<span class="sd">            &quot;PCAP.TRIG=PULSE1.OUT&quot;,</span>
+<span class="sd">        ])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+        <span class="n">commands</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Raw</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">command_lines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span>
+            <span class="n">command_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">first_line</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">command_lines</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">first_line</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_multiline_command</span><span class="p">(</span><span class="n">line</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                <span class="c1"># If not a multiline command</span>
+                <span class="c1"># Or blank line at the end of a multiline command</span>
+                <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Raw</span><span class="p">(</span><span class="n">command_lines</span><span class="p">))</span>
+                <span class="n">command_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">returns</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">ret</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">returns</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">ret</span> <span class="o">!=</span> <span class="p">[</span><span class="s2">&quot;OK&quot;</span><span class="p">]:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;command </span><span class="si">{</span><span class="n">command</span><span class="o">.</span><span class="n">inp</span><span class="si">}</span><span class="s2"> failed with </span><span class="si">{</span><span class="n">ret</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2020, Diamond Light Source.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.2.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
