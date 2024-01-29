@@ -64,12 +64,12 @@ class BlockingClient:
         self.close()
 
     @overload
-    def send(self, commands: Command[T], timeout: Optional[int] = None) -> T:
-        ...
+    def send(self, commands: Command[T], timeout: Optional[int] = None) -> T: ...
 
     @overload
-    def send(self, commands: Iterable[Command], timeout: Optional[int] = None) -> List:
-        ...
+    def send(
+        self, commands: Iterable[Command], timeout: Optional[int] = None
+    ) -> List: ...
 
     def send(
         self,
