@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks.commands &#8212; PandABlocks-client 0.6.2.dev3+g37233d9 documentation</title>
+    <title>pandablocks.commands &#8212; PandABlocks-client 0.6.2.dev5+geafd86f documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
   <script src="../../_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
 
-    <script src="../../_static/documentation_options.js?v=f05331b7"></script>
+    <script src="../../_static/documentation_options.js?v=5914685a"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -550,34 +550,31 @@ document.write(`
 <span class="c1"># zip() because typing does not support variadic type variables.  See</span>
 <span class="c1"># typeshed PR #1550 for discussion.</span>
 <span class="nd">@overload</span>
-<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">]]:</span>
-    <span class="o">...</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">]]:</span> <span class="o">...</span>
 
 
 <span class="nd">@overload</span>
 <span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
     <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">]]:</span>
-    <span class="o">...</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">]]:</span> <span class="o">...</span>
 
 
 <span class="nd">@overload</span>
 <span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
     <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">],</span> <span class="n">c3</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T3</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">]]:</span>
-    <span class="o">...</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">]]:</span> <span class="o">...</span>
 
 
 <span class="nd">@overload</span>
 <span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
     <span class="n">c1</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T2</span><span class="p">],</span> <span class="n">c3</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T3</span><span class="p">],</span> <span class="n">c4</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">T4</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">,</span> <span class="n">T4</span><span class="p">]]:</span>
-    <span class="o">...</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">,</span> <span class="n">T4</span><span class="p">]]:</span> <span class="o">...</span>
 
 
 <span class="nd">@overload</span>
-<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
-    <span class="o">...</span>
+<span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span>
+    <span class="o">*</span><span class="n">commands</span><span class="p">:</span> <span class="n">Command</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span> <span class="o">...</span>
 
 
 <span class="k">def</span> <span class="nf">_execute_commands</span><span class="p">(</span><span class="o">*</span><span class="n">commands</span><span class="p">):</span>

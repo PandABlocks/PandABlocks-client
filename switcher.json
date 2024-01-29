@@ -4,24 +4,28 @@
     "url": "https://PandABlocks.github.io/PandABlocks-client/master/"
   },
   {
-    "version": "0.2.0",
-    "url": "https://PandABlocks.github.io/PandABlocks-client/0.2.0/"
-  },
-  {
-    "version": "0.2.1",
-    "url": "https://PandABlocks.github.io/PandABlocks-client/0.2.1/"
+    "version": "0.6.1",
+    "url": "https://PandABlocks.github.io/PandABlocks-client/0.6.1/"
   },
   {
     "version": "0.5.4",
     "url": "https://PandABlocks.github.io/PandABlocks-client/0.5.4/"
   },
   {
+    "version": "0.2.1",
+    "url": "https://PandABlocks.github.io/PandABlocks-client/0.2.1/"
+  },
+  {
+    "version": "0.2.0",
+    "url": "https://PandABlocks.github.io/PandABlocks-client/0.2.0/"
+  },
+  {
     "version": "0.6",
     "url": "https://PandABlocks.github.io/PandABlocks-client/0.6/"
   },
   {
-    "version": "0.6.1",
-    "url": "https://PandABlocks.github.io/PandABlocks-client/0.6.1/"
+    "version": "rerun_black_3.11",
+    "url": "https://PandABlocks.github.io/PandABlocks-client/rerun_black_3.11/"
   },
   {
     "version": "skeleton-merge-branch",
