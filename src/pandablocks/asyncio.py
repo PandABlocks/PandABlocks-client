@@ -72,7 +72,7 @@ class AsyncioClient:
 
     async def connect(self):
         """Connect to the control port, and be ready to handle commands"""
-        await self._ctrl_stream.connect(self._host, 8888),
+        await self._ctrl_stream.connect(self._host, 8888)
 
         self._ctrl_task = asyncio.create_task(
             self._ctrl_read_forever(self._ctrl_stream.reader)

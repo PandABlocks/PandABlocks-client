@@ -29,6 +29,16 @@ class HDFDataOverrunException(Exception):
     """Raised if `DATA_OVERRUN` occurs while receiving data for HDF file"""
 
 
+class Stop:
+    def __str__(self) -> "str":
+        return "<Stop>"
+
+    __repr__ = __str__
+
+
+STOP = Stop()
+
+
 class Pipeline(threading.Thread):
     """Helper class that runs a pipeline consumer process in its own thread"""
 
@@ -44,7 +54,7 @@ class Pipeline(threading.Thread):
     def run(self):
         while True:
             data = self.queue.get()
-            if data is None:
+            if data is STOP:
                 # stop() called below
                 break
             else:
@@ -52,13 +62,13 @@ class Pipeline(threading.Thread):
                 if func:
                     # If we have a handler, use it to transform the data
                     data = func(data)
-                if self.downstream:
+                if self.downstream and data is not None:
                     # Pass the (possibly transformed) data downstream
                     self.downstream.queue.put_nowait(data)
 
     def stop(self):
         """Stop the processing after the current queue has been emptied"""
-        self.queue.put(None)
+        self.queue.put(STOP)
 
 
 class HDFWriter(Pipeline):
@@ -122,12 +132,15 @@ class HDFWriter(Pipeline):
             dataset[written:] = column
             dataset.flush()
 
+        # Return the number of samples written
+        return dataset.shape[0]
+
     def close_file(self, data: EndData):
         assert self.hdf_file, "File not open yet"
         self.hdf_file.close()
         self.hdf_file = None
         logging.info(
-            f"Closed '{self.file_path}' after writing {data.samples} "
+            f"Closed '{self.file_path}' after receiving {data.samples} "
             f"samples. End reason is '{data.reason.value}'"
         )
         self.file_path = ""
@@ -166,15 +179,21 @@ class FrameProcessor(Pipeline):
 
 
 def create_default_pipeline(
-    file_names: Iterator[str],
+    file_names: Iterator[str], *additional_downstream_pipelines: Pipeline
 ) -> List[Pipeline]:
     """Create the default processing pipeline consisting of one `FrameProcessor` and
     one `HDFWriter`. See `create_pipeline` for more details.
 
     Args:
         file_names: Iterator of file names. Must be full file paths. Will be called once
-            per file created. As required by `HDFWriter`."""
-    return create_pipeline(FrameProcessor(), HDFWriter(file_names))
+            per file created. As required by `HDFWriter`.
+        additional_downstream_pipelines: Any number of additional pipelines to add
+            downstream.
+    """
+
+    return create_pipeline(
+        FrameProcessor(), HDFWriter(file_names), *additional_downstream_pipelines
+    )
 
 
 def create_pipeline(*elements: Pipeline) -> List[Pipeline]:

@@ -196,8 +196,6 @@ class EndReason(Enum):
 
     #: Experiment completed by falling edge of ``PCAP.ENABLE```
     OK = "Ok"
-    #: Experiment manually completed by ``*PCAP.DISARM=`` command
-    DISARMED = "Disarmed"
     #: Client disconnect detected
     EARLY_DISCONNECT = "Early disconnect"
     #: Client not taking data quickly or network congestion, internal buffer overflow.
@@ -210,12 +208,15 @@ class EndReason(Enum):
     DRIVER_DATA_OVERRUN = "Driver data overrun"
     #: Data capture too fast for memory bandwidth
     DMA_DATA_ERROR = "DMA data error"
-
     # Reasons below this point are not from the server, they are generated in code
     #: An unknown exception occurred during HDF5 file processing
     UNKNOWN_EXCEPTION = "Unknown exception"
     #: StartData packets did not match when trying to continue printing to a file
     START_DATA_MISMATCH = "Start Data mismatched"
+    #: Experiment manually completed by ``DATA:CAPTURE``
+    MANUALLY_STOPPED = "Manually stopped"
+    #: Experiment manually completed by ``*PCAP.DISARM=`` command
+    DISARMED = "Disarmed"
 
 
 @dataclass
