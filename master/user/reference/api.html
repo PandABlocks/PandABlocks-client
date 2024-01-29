@@ -2,13 +2,13 @@
 <!DOCTYPE html>
 
 
-<html lang="en" >
+<html lang="en" data-content_root="../../" >
 
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API &#8212; PandABlocks-client 0.5.5.dev1+g3638f0d documentation</title>
+    <title>API &#8212; PandABlocks-client 0.6.2.dev3+g37233d9 documentation</title>
   
   
   
@@ -18,15 +18,15 @@
   </script>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
-<link href="../../_static/styles/bootstrap.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
 
   
-  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+  <link href="../../_static/vendor/fontawesome/6.5.1/css/all.min.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.1/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.1/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.1/webfonts/fa-regular-400.woff2" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
@@ -35,11 +35,11 @@
     <link rel="stylesheet" type="text/css" href="../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6" />
-  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=365ca57ee442770a23c6"></script>
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
+  <script src="../../_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
 
-    <script src="../../_static/documentation_options.js?v=34161f25"></script>
+    <script src="../../_static/documentation_options.js?v=f05331b7"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -47,7 +47,7 @@
     <script src="../../_static/design-tabs.js?v=36754332"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'user/reference/api';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.14.3';
+        DOCUMENTATION_OPTIONS.theme_version = '0.15.2';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'master';
         DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
@@ -66,10 +66,9 @@
 
   
   
-  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <a id="pst-skip-link" class="skip-link" href="#main-content">Skip to main content</a>
   
   <div id="pst-scroll-pixel-helper"></div>
-
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>
@@ -110,7 +109,7 @@
 </form></div>
   </div>
   
-    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    <header class="bd-header navbar navbar-expand-lg bd-navbar">
 <div class="bd-header__inner bd-page-width">
   <label class="sidebar-toggle primary-toggle" for="__primary">
     <span class="fa-solid fa-bars"></span>
@@ -120,6 +119,7 @@
   <div class="col-lg-3 navbar-header-items__start">
     
       <div class="navbar-item">
+
   
 
 <a class="navbar-brand logo" href="../../index.html">
@@ -147,13 +147,8 @@
     
     <div class="me-auto navbar-header-items__center">
       
-        <div class="navbar-item"><nav class="navbar-nav">
-  <p class="sidebar-header-items__title"
-     role="heading"
-     aria-level="1"
-     aria-label="Site Navigation">
-    Site Navigation
-  </p>
+        <div class="navbar-item">
+<nav class="navbar-nav">
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item current active">
@@ -186,6 +181,7 @@
       
         <div class="navbar-item navbar-persistent--container">
           
+
  <script>
  document.write(`
    <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
@@ -199,6 +195,7 @@
       
       
         <div class="navbar-item">
+
 <script>
 document.write(`
   <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
@@ -267,6 +264,7 @@ document.write(`
   
   
     <div class="navbar-persistent--mobile">
+
  <script>
  document.write(`
    <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
@@ -286,10 +284,13 @@ document.write(`
   
 </div>
 
-    </nav>
+    </header>
   
+
   <div class="bd-container">
     <div class="bd-container__inner bd-page-width">
+      
+      
       
       <div class="bd-sidebar-primary bd-sidebar">
         
@@ -300,13 +301,8 @@ document.write(`
     
       <div class="sidebar-header-items__center">
         
-          <div class="navbar-item"><nav class="navbar-nav">
-  <p class="sidebar-header-items__title"
-     role="heading"
-     aria-level="1"
-     aria-label="Site Navigation">
-    Site Navigation
-  </p>
+          <div class="navbar-item">
+<nav class="navbar-nav">
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item current active">
@@ -339,6 +335,7 @@ document.write(`
       <div class="sidebar-header-items__end">
         
           <div class="navbar-item">
+
 <script>
 document.write(`
   <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
@@ -406,7 +403,8 @@ document.write(`
   </div>
   
     <div class="sidebar-primary-items__start sidebar-primary__section">
-        <div class="sidebar-primary-item"><nav class="bd-docs-nav bd-links"
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -490,7 +488,7 @@ document.write(`
               
                 
 <div id="searchbox"></div>
-                <article class="bd-article" role="main">
+                <article class="bd-article">
                   
   <section id="api">
 <span id="id1"></span><h1>API<a class="headerlink" href="#api" title="Link to this heading">#</a></h1>
@@ -1039,12 +1037,6 @@ or “samples</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pandablocks.responses.EndReason.DISARMED">
-<span class="sig-name descname"><span class="pre">DISARMED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Disarmed'</span></em><a class="headerlink" href="#pandablocks.responses.EndReason.DISARMED" title="Link to this definition">#</a></dt>
-<dd><p>Experiment manually completed by <code class="docutils literal notranslate"><span class="pre">*PCAP.DISARM=</span></code> command</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="pandablocks.responses.EndReason.EARLY_DISCONNECT">
 <span class="sig-name descname"><span class="pre">EARLY_DISCONNECT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Early</span> <span class="pre">disconnect'</span></em><a class="headerlink" href="#pandablocks.responses.EndReason.EARLY_DISCONNECT" title="Link to this definition">#</a></dt>
 <dd><p>Client disconnect detected</p>
@@ -1086,6 +1078,18 @@ In raw unscaled mode (i.e., no server-side scaling), the most recent
 <dt class="sig sig-object py" id="pandablocks.responses.EndReason.START_DATA_MISMATCH">
 <span class="sig-name descname"><span class="pre">START_DATA_MISMATCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Start</span> <span class="pre">Data</span> <span class="pre">mismatched'</span></em><a class="headerlink" href="#pandablocks.responses.EndReason.START_DATA_MISMATCH" title="Link to this definition">#</a></dt>
 <dd><p>StartData packets did not match when trying to continue printing to a file</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pandablocks.responses.EndReason.MANUALLY_STOPPED">
+<span class="sig-name descname"><span class="pre">MANUALLY_STOPPED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Manually</span> <span class="pre">stopped'</span></em><a class="headerlink" href="#pandablocks.responses.EndReason.MANUALLY_STOPPED" title="Link to this definition">#</a></dt>
+<dd><p>Experiment manually completed by <code class="docutils literal notranslate"><span class="pre">DATA:CAPTURE</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pandablocks.responses.EndReason.DISARMED">
+<span class="sig-name descname"><span class="pre">DISARMED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Disarmed'</span></em><a class="headerlink" href="#pandablocks.responses.EndReason.DISARMED" title="Link to this definition">#</a></dt>
+<dd><p>Experiment manually completed by <code class="docutils literal notranslate"><span class="pre">*PCAP.DISARM=</span></code> command</p>
 </dd></dl>
 
 </dd></dl>
@@ -1655,13 +1659,17 @@ returning them</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pandablocks.hdf.create_default_pipeline">
-<span class="sig-prename descclassname"><span class="pre">pandablocks.hdf.</span></span><span class="sig-name descname"><span class="pre">create_default_pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterator" title="(in Python v3.12)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pandablocks.hdf.Pipeline" title="pandablocks.hdf.Pipeline"><span class="pre">Pipeline</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/pandablocks/hdf.html#create_default_pipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.hdf.create_default_pipeline" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pandablocks.hdf.</span></span><span class="sig-name descname"><span class="pre">create_default_pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterator" title="(in Python v3.12)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">additional_downstream_pipelines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pandablocks.hdf.Pipeline" title="pandablocks.hdf.Pipeline"><span class="pre">Pipeline</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pandablocks.hdf.Pipeline" title="pandablocks.hdf.Pipeline"><span class="pre">Pipeline</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/pandablocks/hdf.html#create_default_pipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.hdf.create_default_pipeline" title="Link to this definition">#</a></dt>
 <dd><p>Create the default processing pipeline consisting of one <a class="reference internal" href="#pandablocks.hdf.FrameProcessor" title="pandablocks.hdf.FrameProcessor"><code class="xref any py py-class docutils literal notranslate"><span class="pre">FrameProcessor</span></code></a> and
 one <a class="reference internal" href="#pandablocks.hdf.HDFWriter" title="pandablocks.hdf.HDFWriter"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HDFWriter</span></code></a>. See <a class="reference internal" href="#pandablocks.hdf.create_pipeline" title="pandablocks.hdf.create_pipeline"><code class="xref any py py-func docutils literal notranslate"><span class="pre">create_pipeline</span></code></a> for more details.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file_names</strong> – Iterator of file names. Must be full file paths. Will be called once
-per file created. As required by <a class="reference internal" href="#pandablocks.hdf.HDFWriter" title="pandablocks.hdf.HDFWriter"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HDFWriter</span></code></a>.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_names</strong> – Iterator of file names. Must be full file paths. Will be called once
+per file created. As required by <a class="reference internal" href="#pandablocks.hdf.HDFWriter" title="pandablocks.hdf.HDFWriter"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HDFWriter</span></code></a>.</p></li>
+<li><p><strong>additional_downstream_pipelines</strong> – Any number of additional pipelines to add
+downstream.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -1708,7 +1716,7 @@ per file created.</p></li>
               
               
                 <footer class="prev-next-footer">
-                  <!-- Previous / next buttons -->
+                  
 <div class="prev-next-area">
     <a class="left-prev"
        href="../explanations/sans-io.html"
@@ -1737,11 +1745,14 @@ per file created.</p></li>
               
                 <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
   <div class="sidebar-secondary-item">
-  <div class="page-toc tocsection onthispage">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
     <i class="fa-solid fa-list"></i> On this page
   </div>
-  <nav class="bd-toc-nav page-toc">
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#commands">Commands</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.commands.Command"><code class="docutils literal notranslate"><span class="pre">Command</span></code></a></li>
@@ -1808,7 +1819,6 @@ per file created.</p></li>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason"><code class="docutils literal notranslate"><span class="pre">EndReason</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.OK"><code class="docutils literal notranslate"><span class="pre">EndReason.OK</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.DISARMED"><code class="docutils literal notranslate"><span class="pre">EndReason.DISARMED</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.EARLY_DISCONNECT"><code class="docutils literal notranslate"><span class="pre">EndReason.EARLY_DISCONNECT</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.DATA_OVERRUN"><code class="docutils literal notranslate"><span class="pre">EndReason.DATA_OVERRUN</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.FRAMING_ERROR"><code class="docutils literal notranslate"><span class="pre">EndReason.FRAMING_ERROR</span></code></a></li>
@@ -1816,6 +1826,8 @@ per file created.</p></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.DMA_DATA_ERROR"><code class="docutils literal notranslate"><span class="pre">EndReason.DMA_DATA_ERROR</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.UNKNOWN_EXCEPTION"><code class="docutils literal notranslate"><span class="pre">EndReason.UNKNOWN_EXCEPTION</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.START_DATA_MISMATCH"><code class="docutils literal notranslate"><span class="pre">EndReason.START_DATA_MISMATCH</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.MANUALLY_STOPPED"><code class="docutils literal notranslate"><span class="pre">EndReason.MANUALLY_STOPPED</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.EndReason.DISARMED"><code class="docutils literal notranslate"><span class="pre">EndReason.DISARMED</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.responses.FieldCapture"><code class="docutils literal notranslate"><span class="pre">FieldCapture</span></code></a><ul class="nav section-nav flex-column">
@@ -1913,6 +1925,7 @@ per file created.</p></li>
   </nav></div>
 
   <div class="sidebar-secondary-item">
+
   
   <div class="tocsection editthispage">
     <a href="https://github.com/PandABlocks/PandABlocks-client/edit/master/docs/user/reference/api.rst">
@@ -1928,6 +1941,7 @@ per file created.</p></li>
 </div>
 
   <div class="sidebar-secondary-item">
+
   <div class="tocsection sourcelink">
     <a href="../../_sources/user/reference/api.rst.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
@@ -1948,8 +1962,8 @@ per file created.</p></li>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6"></script>
-<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6"></script>
+  <script src="../../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -1957,6 +1971,7 @@ per file created.</p></li>
     <div class="footer-items__start">
       
         <div class="footer-item">
+
   <p class="copyright">
     
       © Copyright 2020, Diamond Light Source.
@@ -1971,8 +1986,9 @@ per file created.</p></li>
   
     <div class="footer-items__end">
       
-        <div class="footer-item"><p class="theme-version">
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.3.
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.2.
 </p></div>
       
     </div>
