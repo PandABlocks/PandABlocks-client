@@ -28,6 +28,10 @@
     "url": "https://PandABlocks.github.io/PandABlocks-client/0.6/"
   },
   {
+    "version": "fix_conflicting_artifact",
+    "url": "https://PandABlocks.github.io/PandABlocks-client/fix_conflicting_artifact/"
+  },
+  {
     "version": "skeleton-merge-branch",
     "url": "https://PandABlocks.github.io/PandABlocks-client/skeleton-merge-branch/"
   },
