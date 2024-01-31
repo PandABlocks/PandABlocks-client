@@ -1,0 +1,1027 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Index &#8212; PandABlocks-client 0.7.1.dev16+gfd2d462 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.1/css/all.min.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
+  <script src="_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
+
+    <script src="_static/documentation_options.js?v=ae006875"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=30646c52"></script>
+    <script src="_static/design-tabs.js?v=36754332"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.15.2';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'apply_copier_template';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
+        </script>
+    <link rel="icon" href="_static/PandA-logo.ico"/>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a id="pst-skip-link" class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/PandA-logo-for-black-background.svg" class="logo__image only-light" alt=""/>
+    <script>document.write(`<img src="_static/PandA-logo-for-black-background.svg" class="logo__image only-dark" alt=""/>`);</script>
+  
+  
+    <p class="title logo__title">PandABlocks-client</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="user/index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="pst-version-switcher-button-2"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-2"
+      aria-label="Version switcher list"
+    >
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="pst-version-switcher-list-2"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-2">
+      <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="user/index.html">
+                        User Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="developer/index.html">
+                        Developer Guide
+                      </a>
+                    </li>
+                
+
+                <li class="nav-item">
+                  <a class="nav-link nav-external" href="https://github.com/PandABlocks/PandABlocks-client/releases">
+                    Release Notes
+                  </a>
+                </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fas fa-cube fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <div class="version-switcher__container dropdown">
+    <button id="pst-version-switcher-button-3"
+      type="button"
+      class="version-switcher__button btn btn-sm navbar-btn dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-haspopup="listbox"
+      aria-controls="pst-version-switcher-list-3"
+      aria-label="Version switcher list"
+    >
+      Choose version  <!-- this text may get changed later by javascript -->
+      <span class="caret"></span>
+    </button>
+    <div id="pst-version-switcher-list-3"
+      class="version-switcher__menu dropdown-menu list-group-flush py-0"
+      role="listbox" aria-labelledby="pst-version-switcher-button-3">
+      <!-- dropdown will be populated by javascript on page load -->
+    </div>
+  </div>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user/tutorials/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/tutorials/commandline-hdf.html">Commandline Capture of HDF Files Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/tutorials/control.html">Interactive Control Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/tutorials/load-save.html">Commandline Load/Save Tutorial</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">How-to Guides</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user/how-to/run-container.html">Run in a container</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/how-to/introspect-panda.html">How to introspect a PandA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/how-to/library-hdf.html">How to use the library to capture HDF files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/how-to/poll-changes.html">How to efficiently poll for changes</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Explanations</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user/explanations/docs-structure.html">About the documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/explanations/performance.html">How fast can we write HDF files?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/explanations/sans-io.html">Why write a Sans-IO library?</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user/reference/api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/reference/changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/reference/contributing.html">Contributing</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Index</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article"></div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
+ 
+</div>
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.ALL">ALL (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.Append">Append (class in pandablocks.commands)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.commands.Arm">Arm (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.asyncio.AsyncioClient">AsyncioClient (class in pandablocks.asyncio)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.ATTR">ATTR (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.BitMuxFieldInfo">BitMuxFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.BitOutFieldInfo">BitOutFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.BITS">BITS (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.BlockInfo">BlockInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.blocking.BlockingClient">BlockingClient (class in pandablocks.blocking)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.Buffer">Buffer (class in pandablocks.connections)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldCapture.capture">capture (pandablocks.responses.FieldCapture attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup">ChangeGroup (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.Changes">Changes (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.asyncio.AsyncioClient.close">close() (pandablocks.asyncio.AsyncioClient method)</a>
+
+      <ul>
+        <li><a href="user/reference/api.html#pandablocks.blocking.BlockingClient.close">(pandablocks.blocking.BlockingClient method)</a>
+</li>
+      </ul></li>
+      <li><a href="user/reference/api.html#pandablocks.responses.FrameData.column_names">column_names (pandablocks.responses.FrameData property)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.Command">Command (class in pandablocks.commands)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.commands.CommandException">CommandException</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.CONFIG">CONFIG (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.asyncio.AsyncioClient.connect">connect() (pandablocks.asyncio.AsyncioClient method)</a>
+
+      <ul>
+        <li><a href="user/reference/api.html#pandablocks.blocking.BlockingClient.connect">(pandablocks.blocking.BlockingClient method)</a>
+</li>
+        <li><a href="user/reference/api.html#pandablocks.connections.DataConnection.connect">(pandablocks.connections.DataConnection method)</a>
+</li>
+      </ul></li>
+      <li><a href="user/reference/api.html#pandablocks.connections.ControlConnection">ControlConnection (class in pandablocks.connections)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.hdf.create_default_pipeline">create_default_pipeline() (in module pandablocks.hdf)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.hdf.create_pipeline">create_pipeline() (in module pandablocks.hdf)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.Data">Data (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.FrameData.data">data (pandablocks.responses.FrameData attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.asyncio.AsyncioClient.data">data() (pandablocks.asyncio.AsyncioClient method)</a>
+
+      <ul>
+        <li><a href="user/reference/api.html#pandablocks.blocking.BlockingClient.data">(pandablocks.blocking.BlockingClient method)</a>
+</li>
+      </ul></li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.DATA_OVERRUN">DATA_OVERRUN (pandablocks.responses.EndReason attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.DataConnection">DataConnection (class in pandablocks.connections)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.BlockInfo.description">description (pandablocks.responses.BlockInfo attribute)</a>
+
+      <ul>
+        <li><a href="user/reference/api.html#pandablocks.responses.FieldInfo.description">(pandablocks.responses.FieldInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="user/reference/api.html#pandablocks.commands.Disarm">Disarm (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.DISARMED">DISARMED (pandablocks.responses.EndReason attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.DMA_DATA_ERROR">DMA_DATA_ERROR (pandablocks.responses.EndReason attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.DRIVER_DATA_OVERRUN">DRIVER_DATA_OVERRUN (pandablocks.responses.EndReason attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.EARLY_DISCONNECT">EARLY_DISCONNECT (pandablocks.responses.EndReason attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndData">EndData (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason">EndReason (class in pandablocks.responses)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.EnumFieldInfo">EnumFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.ExtOutBitsFieldInfo">ExtOutBitsFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.ExtOutFieldInfo">ExtOutFieldInfo (class in pandablocks.responses)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldCapture">FieldCapture (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldInfo">FieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.StartData.fields">fields (pandablocks.responses.StartData attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.DataConnection.flush">flush() (pandablocks.connections.DataConnection method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.StartData.format">format (pandablocks.responses.StartData attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.FrameData">FrameData (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.hdf.FrameProcessor">FrameProcessor (class in pandablocks.hdf)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.FRAMING_ERROR">FRAMING_ERROR (pandablocks.responses.EndReason attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.commands.Get">Get (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.GetBlockInfo">GetBlockInfo (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.GetChanges">GetChanges (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.GetFieldInfo">GetFieldInfo (class in pandablocks.commands)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.commands.GetLine">GetLine (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.GetMultiline">GetMultiline (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.GetPcapBitsLabels">GetPcapBitsLabels (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.GetState">GetState (class in pandablocks.commands)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.hdf.HDFDataOverrunException">HDFDataOverrunException</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.hdf.HDFWriter">HDFWriter (class in pandablocks.hdf)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.Changes.in_error">in_error (pandablocks.responses.Changes attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.asyncio.AsyncioClient.is_connected">is_connected() (pandablocks.asyncio.AsyncioClient method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldInfo.labels">labels (pandablocks.responses.FieldInfo attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.MANUALLY_STOPPED">MANUALLY_STOPPED (pandablocks.responses.EndReason attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.METADATA">METADATA (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.StartData.missed">missed (pandablocks.responses.StartData attribute)</a>
+</li>
+      <li>
+    module
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.asyncio">pandablocks.asyncio</a>
+</li>
+        <li><a href="user/reference/api.html#module-pandablocks.blocking">pandablocks.blocking</a>
+</li>
+        <li><a href="user/reference/api.html#module-pandablocks.commands">pandablocks.commands</a>
+</li>
+        <li><a href="user/reference/api.html#module-pandablocks.connections">pandablocks.connections</a>
+</li>
+        <li><a href="user/reference/api.html#module-pandablocks.hdf">pandablocks.hdf</a>
+</li>
+        <li><a href="user/reference/api.html#module-pandablocks.responses">pandablocks.responses</a>
+</li>
+        <li><a href="user/reference/api.html#module-pandablocks.utils">pandablocks.utils</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.Changes.multiline_values">multiline_values (pandablocks.responses.Changes attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldCapture.name">name (pandablocks.responses.FieldCapture attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.NeedMoreData">NeedMoreData</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.Changes.no_value">no_value (pandablocks.responses.Changes attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.NoContextAvailable">NoContextAvailable</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.BlockInfo.number">number (pandablocks.responses.BlockInfo attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldCapture.offset">offset (pandablocks.responses.FieldCapture attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.OK">OK (pandablocks.responses.EndReason attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    pandablocks.asyncio
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.asyncio">module</a>
+</li>
+      </ul></li>
+      <li>
+    pandablocks.blocking
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.blocking">module</a>
+</li>
+      </ul></li>
+      <li>
+    pandablocks.commands
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.commands">module</a>
+</li>
+      </ul></li>
+      <li>
+    pandablocks.connections
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.connections">module</a>
+</li>
+      </ul></li>
+      <li>
+    pandablocks.hdf
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.hdf">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    pandablocks.responses
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.responses">module</a>
+</li>
+      </ul></li>
+      <li>
+    pandablocks.utils
+
+      <ul>
+        <li><a href="user/reference/api.html#module-pandablocks.utils">module</a>
+</li>
+      </ul></li>
+      <li><a href="user/reference/api.html#pandablocks.connections.Buffer.peek_bytes">peek_bytes() (pandablocks.connections.Buffer method)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.hdf.Pipeline">Pipeline (class in pandablocks.hdf)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.PosMuxFieldInfo">PosMuxFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.POSN">POSN (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.PosOutFieldInfo">PosOutFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.StartData.process">process (pandablocks.responses.StartData attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.Put">Put (class in pandablocks.commands)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.commands.Raw">Raw (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.READ">READ (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.Buffer.read_bytes">read_bytes() (pandablocks.connections.Buffer method)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.Buffer.read_line">read_line() (pandablocks.connections.Buffer method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.ReadyData">ReadyData (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndData.reason">reason (pandablocks.responses.EndData attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.connections.ControlConnection.receive_bytes">receive_bytes() (pandablocks.connections.ControlConnection method)</a>
+
+      <ul>
+        <li><a href="user/reference/api.html#pandablocks.connections.DataConnection.receive_bytes">(pandablocks.connections.DataConnection method)</a>
+</li>
+      </ul></li>
+      <li><a href="user/reference/api.html#pandablocks.connections.ControlConnection.responses">responses() (pandablocks.connections.ControlConnection method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.StartData.sample_bytes">sample_bytes (pandablocks.responses.StartData attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndData.samples">samples (pandablocks.responses.EndData attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.ScalarFieldInfo">ScalarFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldCapture.scale">scale (pandablocks.responses.FieldCapture attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.asyncio.AsyncioClient.send">send() (pandablocks.asyncio.AsyncioClient method)</a>
+
+      <ul>
+        <li><a href="user/reference/api.html#pandablocks.blocking.BlockingClient.send">(pandablocks.blocking.BlockingClient method)</a>
+</li>
+        <li><a href="user/reference/api.html#pandablocks.connections.ControlConnection.send">(pandablocks.connections.ControlConnection method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.commands.SetState">SetState (class in pandablocks.commands)</a>
+</li>
+      <li><a href="user/reference/appendix.html#socket.socket">socket.socket (built-in class)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.START_DATA_MISMATCH">START_DATA_MISMATCH (pandablocks.responses.EndReason attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.StartData">StartData (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.hdf.Pipeline.stop">stop() (pandablocks.hdf.Pipeline method)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.hdf.stop_pipeline">stop_pipeline() (in module pandablocks.hdf)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldInfo.subtype">subtype (pandablocks.responses.FieldInfo attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.SubtypeTimeFieldInfo">SubtypeTimeFieldInfo (class in pandablocks.responses)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/appendix.html#T">T (built-in class)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.commands.ChangeGroup.TABLE">TABLE (pandablocks.commands.ChangeGroup attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.TableFieldDetails">TableFieldDetails (class in pandablocks.responses)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.TableFieldInfo">TableFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.TimeFieldInfo">TimeFieldInfo (class in pandablocks.responses)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldCapture.type">type (pandablocks.responses.FieldCapture attribute)</a>
+
+      <ul>
+        <li><a href="user/reference/api.html#pandablocks.responses.FieldInfo.type">(pandablocks.responses.FieldInfo attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.UintFieldInfo">UintFieldInfo (class in pandablocks.responses)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.FieldCapture.units">units (pandablocks.responses.FieldCapture attribute)</a>
+</li>
+      <li><a href="user/reference/api.html#pandablocks.responses.EndReason.UNKNOWN_EXCEPTION">UNKNOWN_EXCEPTION (pandablocks.responses.EndReason attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.responses.Changes.values">values (pandablocks.responses.Changes attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.hdf.Pipeline.what_to_do">what_to_do (pandablocks.hdf.Pipeline attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/reference/api.html#pandablocks.hdf.write_hdf_files">write_hdf_files() (in module pandablocks.hdf)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2020, Diamond Light Source.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.2.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
