@@ -27,7 +27,7 @@
             "env": {
                 // Cannot have coverage and debugging at the same time,
                 // and the default config in setup.cfg adds coverage
-                //https://github.com/microsoft/vscode-python/issues/693
+                // https://github.com/microsoft/vscode-python/issues/693
                 "PYTEST_ADDOPTS": "--no-cov"
             },
             "justMyCode": false

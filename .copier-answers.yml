@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier
+_commit: 1.0.0
+_src_path: gh:DiamondLightSource/python-copier-template
+author_email: tom.cobb@diamond.ac.uk
+author_name: Tom Cobb
+component_owner: user:default/tmc43
+description: A Python client to control and data ports of the PandABlocks TCP server
+distribution_name: pandablocks
+docker: true
+docs_type: sphinx
+git_platform: github.com
+github_org: PandABlocks
+package_name: pandablocks
+repo_name: PandABlocks-client

@@ -3,7 +3,6 @@ requires = ["setuptools>=64", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-description = "A Python client to control and data ports of the PandABlocks TCP server"
 name = "pandablocks"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -14,6 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
+description = "A Python client to control and data ports of the PandABlocks TCP server"
 dependencies = ["typing-extensions;python_version<'3.8'", "numpy", "click"]
 dynamic = ["version"]
 license.file = "Apache License 2.0"
@@ -34,6 +34,7 @@ dev = [
     "pipdeptree",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
+    "pytest",
     "pytest-cov",
     "pytest-asyncio",
     "ruff",
@@ -48,7 +49,7 @@ dev = [
 pandablocks = "pandablocks.cli:cli"
 
 [project.urls]
-GitHub = "https://github.com/PandABlocks/Pandablocks-client"
+GitHub = "https://github.com/PandABlocks/PandABlocks-client"
 
 [[project.authors]] # Further authors may be added by duplicating this section
 email = "tom.cobb@diamond.ac.uk"
@@ -68,6 +69,8 @@ addopts = """
     --cov=src/pandablocks --cov-report term --cov-report xml:cov.xml 
     """
 asyncio_mode = "auto"
+# https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
+filterwarnings = "error"
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs src tests"
 
@@ -96,7 +99,7 @@ allowlist_externals =
     sphinx-build
     sphinx-autobuild
 commands =
-    pytest: pytest {posargs}
+    pytest: pytest --cov=pandablocks --cov-report term --cov-report xml:cov.xml {posargs}
     mypy: mypy src tests {posargs}
     pre-commit: pre-commit run --all-files {posargs}
     docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
