@@ -1,8 +1,6 @@
 1. Record architecture decisions
 ================================
 
-Date: 2023-10-18
-
 Status
 ------
 
