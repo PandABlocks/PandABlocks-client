@@ -71,4 +71,4 @@ Library features a Sans-IO core with both asyncio and blocking wrappers:
     Anything below this line is used when viewing README.rst and will be replaced
     when included in index.rst
 
-See https://PandABlocks.github.io/PandABlocks-client for more detailed documentation.
+See https://pandablocks.github.io/PandABlocks-client for more detailed documentation.
