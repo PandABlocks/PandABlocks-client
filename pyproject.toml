@@ -16,7 +16,7 @@ classifiers = [
 description = "A Python client to control and data ports of the PandABlocks TCP server"
 dependencies = ["typing-extensions;python_version<'3.8'", "numpy", "click"]
 dynamic = ["version"]
-license.file = "Apache License 2.0"
+license.file = "LICENSE"
 readme = "README.rst"
 requires-python = ">=3.7"
 
