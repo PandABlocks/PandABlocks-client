@@ -137,9 +137,9 @@ copybutton_prompt_is_regexp = True
 # a list of builtin themes.
 #
 html_theme = "pydata_sphinx_theme"
-github_repo = project
+github_repo = "PandABlocks-client"
 github_user = "PandABlocks"
-switcher_json = f"https://{github_user}.github.io/{github_repo}/switcher.json"
+switcher_json = "https://PandABlocks.github.io/PandABlocks-client/switcher.json"
 switcher_exists = requests.get(switcher_json).ok
 if not switcher_exists:
     print(
@@ -157,8 +157,8 @@ if not switcher_exists:
 # 3. Existing project with old skeleton that makes broken switcher,
 #    switcher exists but is broken
 # Point 3 makes checking switcher difficult, because the updated skeleton
-# will fix the switcher at the end of the docs workflow, but never gets a chance
-# to complete as the docs build warns and fails.
+# will fix the switcher at the end of the docs workflow, but never gets a
+# chance to complete as the docs build warns and fails.
 html_theme_options = {
     "logo": {
         "text": project,

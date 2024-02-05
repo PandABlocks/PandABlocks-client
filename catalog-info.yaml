@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: pandablocks
+  title: PandABlocks-client
+  description: A Python client to control and data ports of the PandABlocks TCP server
+spec:
+  type: documentation
+  lifecycle: experimental
+  owner: group:default/sscc

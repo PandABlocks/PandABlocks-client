@@ -109,7 +109,7 @@ jobs:
 
       - name: Test module --version works using the installed wheel
         # If more than one module in src/ replace with module name to test
-        run: python -m $(ls src | head -1) --version
+        run: python -m $(ls --hide='*.egg-info' src | head -1) --version
 
   container:
     needs: [lint, dist, test]
@@ -216,6 +216,7 @@ jobs:
       - name: Download wheel and lockfiles
         uses: actions/download-artifact@v4.1.0
         with:
+          path: artifacts/
           pattern: "*dist*"
 
       - name: Rename lockfiles and dist
@@ -225,7 +226,7 @@ jobs:
 
       - name: Fixup blank lockfiles
         # Github release artifacts can't be blank
-        run: for f in lockfiles/*; do [ -s $f ] || echo '# No requirements' >> $f; done
+        run: for f in ${{ env.DIST_LOCKFILE_PATH }}/*; do [ -s $f ] || echo '# No requirements' >> $f; done
 
       - name: Github Release
         # We pin to the SHA, not the tag, for security reasons.
@@ -234,8 +235,8 @@ jobs:
         with:
           prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
           files: |
-            dist/*
-            lockfiles/*
+            ${{ env.DIST_WHEEL_PATH }}/*
+            ${{ env.DIST_LOCKFILE_PATH }}/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
