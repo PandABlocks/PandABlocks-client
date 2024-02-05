@@ -3,7 +3,7 @@ _commit: 1.0.0
 _src_path: gh:DiamondLightSource/python-copier-template
 author_email: tom.cobb@diamond.ac.uk
 author_name: Tom Cobb
-component_owner: user:default/tmc43
+component_owner: group:default/sscc
 description: A Python client to control and data ports of the PandABlocks TCP server
 distribution_name: pandablocks
 docker: true
