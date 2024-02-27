@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier
-_commit: 1.0.2-5-g9018420
+_commit: 1.3.0
 _src_path: gh:DiamondLightSource/python-copier-template
 author_email: tom.cobb@diamond.ac.uk
 author_name: Tom Cobb
@@ -12,3 +12,4 @@ git_platform: github.com
 github_org: PandABlocks
 package_name: pandablocks
 repo_name: PandABlocks-client
+type_checker: mypy
