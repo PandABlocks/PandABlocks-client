@@ -344,7 +344,8 @@ def test_get_fields():
     ]
 
 
-def test_get_fields_type_ext_out():
+@pytest.mark.parametrize("gate_duration_name", ["GATE_DURATION", "SAMPLES"])
+def test_get_fields_type_ext_out(gate_duration_name):
     """Test for field type == ext_out, ensuring we add .CAPTURE to the end of the
     *ENUMS command"""
     conn = ControlConnection()
@@ -352,10 +353,12 @@ def test_get_fields_type_ext_out():
     assert conn.send(cmd) == b"PCAP.*?\n"
 
     # First yield, the response to "PCAP.*?"
-    assert (
-        conn.receive_bytes(b"!SAMPLES 9 ext_out samples\n.\n")
-        == b"*DESC.PCAP.SAMPLES?\n*ENUMS.PCAP.SAMPLES.CAPTURE?\n"
+    request_str = bytes(f"!{gate_duration_name} 9 ext_out samples\n.\n", "utf-8")
+    response_str = bytes(
+        f"*DESC.PCAP.{gate_duration_name}?\n*ENUMS.PCAP.{gate_duration_name}.CAPTURE?\n",
+        "utf-8",
     )
+    assert conn.receive_bytes(request_str) == response_str
 
     # Responses to the *DESC and *ENUM commands
     responses = [
@@ -371,7 +374,7 @@ def test_get_fields_type_ext_out():
         (
             cmd,
             {
-                "SAMPLES": ExtOutFieldInfo(
+                gate_duration_name: ExtOutFieldInfo(
                     type="ext_out",
                     subtype="samples",
                     description="Number of gated samples in the current capture",
