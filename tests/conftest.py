@@ -30,28 +30,35 @@ def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
 
 @pytest_asyncio.fixture
 def slow_dump():
-    with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
+    with open(Path(__file__).parent / "data_dumps/slow_dump.bin", "rb") as f:
         # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
         yield chunked_read(f, 44)
 
 
 @pytest_asyncio.fixture
 def fast_dump():
-    with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
+    with open(Path(__file__).parent / "data_dumps/fast_dump.bin", "rb") as f:
         # Simulate larger chunked read
         yield chunked_read(f, 500)
 
 
 @pytest_asyncio.fixture
 def raw_dump():
-    with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
+    with open(Path(__file__).parent / "data_dumps/raw_dump.bin", "rb") as f:
+        # Simulate largest chunked read
+        yield chunked_read(f, 200000)
+
+
+@pytest_asyncio.fixture
+def raw_dump_no_duration():
+    with open(Path(__file__).parent / "data_dumps/raw_dump_no_duration.bin", "rb") as f:
         # Simulate largest chunked read
         yield chunked_read(f, 200000)
 
 
 @pytest.fixture
 def overrun_dump():
-    with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
+    with open(Path(__file__).parent / "data_dumps/raw_dump.bin", "rb") as f:
         # All in one go
         return f.read().replace(b"Disarmed", b"Data overrun")
 
@@ -114,6 +121,20 @@ DUMP_FIELDS = [
         units="",
     ),
 ]
+
+
+def assert_all_data_in_hdf_file(hdf_file, samples_name):
+    def multiples(num, offset=0):
+        return pytest.approx(np.arange(1, 10001) * num + offset)
+
+    assert hdf_file["/COUNTER1.OUT.Max"][:] == multiples(1)
+    assert hdf_file["/COUNTER1.OUT.Mean"][:] == multiples(1)
+    assert hdf_file["/COUNTER1.OUT.Min"][:] == multiples(1)
+    assert hdf_file["/COUNTER2.OUT.Mean"][:] == multiples(2)
+    assert hdf_file["/COUNTER3.OUT.Value"][:] == multiples(3)
+    assert hdf_file["/PCAP.BITS2.Value"][:] == multiples(0)
+    assert hdf_file[f"/{samples_name}"][:] == multiples(0, offset=125)
+    assert hdf_file["/PCAP.TS_START.Value"][:] == multiples(2e-6, offset=7.2e-8 - 2e-6)
 
 
 class Rows:
