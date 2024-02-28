@@ -28,7 +28,10 @@ __all__ = [
     "DataConnection",
 ]
 
-# The name of the samples field used for averaging unscaled fields
+# The names of the samples field used for averaging unscaled fields
+# In newer versions it's GATE_DURATION but we keep SAMPLES for backwards
+# compatibility
+GATE_DURATION_FIELD = "PCAP.GATE_DURATION.Value"
 SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 

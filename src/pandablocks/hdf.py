@@ -9,7 +9,7 @@ import numpy as np
 from pandablocks.commands import Arm
 
 from .asyncio import AsyncioClient
-from .connections import SAMPLES_FIELD
+from .connections import GATE_DURATION_FIELD, SAMPLES_FIELD
 from .responses import EndData, EndReason, FieldCapture, FrameData, ReadyData, StartData
 
 # Define the public API of this module
@@ -159,11 +159,18 @@ class FrameProcessor(Pipeline):
 
     def create_processor(self, field: FieldCapture, raw: bool):
         column_name = f"{field.name}.{field.capture}"
+
         if raw and field.capture == "Mean":
-            return (
-                lambda data: data[column_name] * field.scale / data[SAMPLES_FIELD]
-                + field.offset
-            )
+
+            def mean_callable(data):
+                if GATE_DURATION_FIELD in data.dtype.names:
+                    gate_duration = data[GATE_DURATION_FIELD]
+                else:
+                    gate_duration = data[SAMPLES_FIELD]
+
+                return (data[column_name] * field.scale / gate_duration) + field.offset
+
+            return mean_callable
         elif raw and (field.scale != 1 or field.offset != 0):
             return lambda data: data[column_name] * field.scale + field.offset
         else:

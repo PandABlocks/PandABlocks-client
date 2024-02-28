@@ -3,18 +3,33 @@ from pathlib import Path
 from unittest.mock import patch
 
 import h5py
-import numpy as np
 import pytest
 from click.testing import CliRunner
 
 from pandablocks import cli
-from pandablocks.hdf import HDFDataOverrunException
-from tests.conftest import STATE_RESPONSES, STATE_SAVEFILE, DummyServer
+from pandablocks.hdf import GATE_DURATION_FIELD, SAMPLES_FIELD, HDFDataOverrunException
+from tests.conftest import (
+    STATE_RESPONSES,
+    STATE_SAVEFILE,
+    DummyServer,
+    assert_all_data_in_hdf_file,
+)
 
 
-def test_writing_fast_hdf(dummy_server_in_thread: DummyServer, raw_dump, tmp_path):
+@pytest.mark.parametrize("samples_name", [GATE_DURATION_FIELD, SAMPLES_FIELD])
+def test_writing_fast_hdf(
+    samples_name,
+    dummy_server_in_thread: DummyServer,
+    raw_dump,
+    raw_dump_no_duration,
+    tmp_path,
+):
     dummy_server_in_thread.send.append("OK")
-    dummy_server_in_thread.data = raw_dump
+    if samples_name == GATE_DURATION_FIELD:
+        dummy_server_in_thread.data = raw_dump
+    else:
+        dummy_server_in_thread.data = raw_dump_no_duration
+
     runner = CliRunner()
     result = runner.invoke(
         cli.cli, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
@@ -28,11 +43,11 @@ def test_writing_fast_hdf(dummy_server_in_thread: DummyServer, raw_dump, tmp_pat
         "COUNTER2.OUT.Mean",
         "COUNTER3.OUT.Value",
         "PCAP.BITS2.Value",
-        "PCAP.SAMPLES.Value",
+        samples_name,
         "PCAP.TS_START.Value",
     ]
     assert dummy_server_in_thread.received == ["*PCAP.ARM="]
-    assert_all_data_in_hdf_file(hdf_file)
+    assert_all_data_in_hdf_file(hdf_file, samples_name)
 
 
 def test_writing_overrun_hdf(
@@ -47,21 +62,7 @@ def test_writing_overrun_hdf(
     assert result.exit_code == 1
     assert isinstance(result.exception, HDFDataOverrunException)
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
-    assert_all_data_in_hdf_file(hdf_file)
-
-
-def assert_all_data_in_hdf_file(hdf_file):
-    def multiples(num, offset=0):
-        return pytest.approx(np.arange(1, 10001) * num + offset)
-
-    assert hdf_file["/COUNTER1.OUT.Max"][:] == multiples(1)
-    assert hdf_file["/COUNTER1.OUT.Mean"][:] == multiples(1)
-    assert hdf_file["/COUNTER1.OUT.Min"][:] == multiples(1)
-    assert hdf_file["/COUNTER2.OUT.Mean"][:] == multiples(2)
-    assert hdf_file["/COUNTER3.OUT.Value"][:] == multiples(3)
-    assert hdf_file["/PCAP.BITS2.Value"][:] == multiples(0)
-    assert hdf_file["/PCAP.SAMPLES.Value"][:] == multiples(0, offset=125)
-    assert hdf_file["/PCAP.TS_START.Value"][:] == multiples(2e-6, offset=7.2e-8 - 2e-6)
+    assert_all_data_in_hdf_file(hdf_file, "PCAP.GATE_DURATION.Value")
 
 
 class MockInput:
