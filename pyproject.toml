@@ -25,7 +25,6 @@ h5py = ["h5py", "matplotlib"]
 dev = [
     # A dev install will require [h5py] packages too
     "pandablocks[h5py]",
-    "black",
     "mypy",
     "mock",
     "types-mock",
