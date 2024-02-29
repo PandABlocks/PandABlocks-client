@@ -328,12 +328,16 @@ class DataConnection:
             self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]
             )
+
             yield StartData(
                 fields=fields,
                 missed=int(data.get("missed")),
                 process=str(data.get("process")),
                 format=str(data.get("format")),
                 sample_bytes=sample_bytes,
+                arm_time=data.get("arm_time", ""),
+                start_time=data.get("start_time", ""),
+                hw_time_offset_ns=data.get("hw_time_offset_ns", ""),
             )
             self._next_handler = self._handle_header_end
 

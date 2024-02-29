@@ -119,6 +119,12 @@ class HDFWriter(Pipeline):
         raw = data.process == "Raw"
         self.datasets = [self.create_dataset(field, raw) for field in data.fields]
         self.hdf_file.swmr_mode = True
+
+        # Save parameters
+        self.hdf_file.attrs["arm_time"] = data.arm_time
+        self.hdf_file.attrs["start_time"] = data.start_time
+        self.hdf_file.attrs["hw_time_offset_ns"] = data.hw_time_offset_ns
+        
         logging.info(
             f"Opened '{self.file_path}' with {data.sample_bytes} byte samples "
             f"stored in {len(self.datasets)} datasets"
