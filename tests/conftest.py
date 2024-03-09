@@ -150,7 +150,7 @@ class Rows:
 def slow_dump_expected():
     yield [
         ReadyData(),
-        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52),
+        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, "", "", 0),
         FrameData(Rows([0, 1, 1, 3, 5.6e-08, 1, 2])),
         FrameData(Rows([8, 2, 2, 6, 1.000000056, 2, 4])),
         FrameData(Rows([0, 3, 3, 9, 2.000000056, 3, 6])),
@@ -164,7 +164,7 @@ def slow_dump_expected():
 def fast_dump_expected():
     yield [
         ReadyData(),
-        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52),
+        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, "", "", 0),
         FrameData(
             Rows(
                 [0, 1, 1, 3, 5.6e-08, 1, 2],
