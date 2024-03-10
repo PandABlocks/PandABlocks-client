@@ -1,6 +1,7 @@
 import asyncio
 import os
 import threading
+
 from collections import deque
 from io import BufferedReader
 from pathlib import Path
@@ -40,6 +41,25 @@ def fast_dump():
     with open(Path(__file__).parent / "data_dumps/fast_dump.bin", "rb") as f:
         # Simulate larger chunked read
         yield chunked_read(f, 500)
+
+
+@pytest_asyncio.fixture
+def fast_dump_with_extra_header_params():
+    """
+    Add header parameters to `fast_dump.bin` binary stream. The fixture
+    is used for testing absolute timing parameters passed in the header.
+    """
+    def fast_dump(extra_header_params):
+        param_to_replace = "sample_bytes=\"52\""
+        params = " ".join(f"{k}=\"{v}\"" for k, v in extra_header_params.items())
+        params = " ".join([param_to_replace, params]) if params else param_to_replace
+        with open(Path(__file__).parent / "data_dumps/fast_dump.bin", "rb") as f:
+            # Simulate larger chunked read
+            data = chunked_read(f, 500)
+            for buffer in data:
+                yield buffer.replace(param_to_replace.encode(), params.encode())
+
+    return fast_dump
 
 
 @pytest_asyncio.fixture

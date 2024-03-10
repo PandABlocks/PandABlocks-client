@@ -1,4 +1,5 @@
 import asyncio
+import copy
 
 import pytest
 
@@ -47,6 +48,48 @@ async def test_asyncio_data(
             events.append(data)
             if len(events) == len(fast_dump_expected):
                 break
+    assert fast_dump_expected == events
+
+
+@pytest.mark.parametrize("timing_params",[
+    {},
+    {
+        "arm_time": "2024-03-05T20:27:12.607841574Z",
+        "start_time": "2024-03-05T20:27:12.608875498Z",
+    },
+    {
+        "arm_time": "2024-03-05T20:27:12.607841574Z",
+        "start_time": "2024-03-05T20:27:12.608875498Z",
+        "hw_time_offset_ns": 100555,
+    },
+])
+async def test_asyncio_data_with_abs_timing(
+    dummy_server_async,
+    fast_dump_with_extra_header_params,
+    fast_dump_expected,
+    timing_params,
+):
+    """
+    The test for handling of `arm_time`, `start_time` and `hw_time_offset_ns`
+    parameters passed in the header. The test is reusing the existing `fast_dump`
+    and `fast_dump_expected` by adding timing parameters to the header in
+    the binary stream and replacing the expected `StartData` attributes with
+    the expected values.
+    """
+    dummy_server_async.data = fast_dump_with_extra_header_params(timing_params)
+    events = []
+    async with AsyncioClient("localhost") as client:
+        async for data in client.data(frame_timeout=1):
+            events.append(data)
+            if len(events) == len(fast_dump_expected):
+                break
+    fast_dump_expected = list(fast_dump_expected)
+
+    # Replace attributes in `StartData` with the expected values
+    fast_dump_expected[1] = copy.deepcopy(fast_dump_expected[1])
+    for attr_name in timing_params:
+        setattr(fast_dump_expected[1], attr_name, timing_params[attr_name])
+
     assert fast_dump_expected == events
 
 

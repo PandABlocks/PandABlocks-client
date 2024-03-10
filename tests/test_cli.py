@@ -7,13 +7,10 @@ import pytest
 from click.testing import CliRunner
 
 from pandablocks import cli
-from pandablocks.hdf import GATE_DURATION_FIELD, SAMPLES_FIELD, HDFDataOverrunException
-from tests.conftest import (
-    STATE_RESPONSES,
-    STATE_SAVEFILE,
-    DummyServer,
-    assert_all_data_in_hdf_file,
-)
+from pandablocks.hdf import (GATE_DURATION_FIELD, SAMPLES_FIELD,
+                             HDFDataOverrunException)
+from tests.conftest import (STATE_RESPONSES, STATE_SAVEFILE, DummyServer,
+                            assert_all_data_in_hdf_file)
 
 
 @pytest.mark.parametrize("samples_name", [GATE_DURATION_FIELD, SAMPLES_FIELD])
