@@ -330,9 +330,9 @@ class DataConnection:
             )
 
             try:
-                hw_time_offset_ns = np.int64(data.get("hw_time_offset_ns", "0"))
+                hw_time_offset_ns = np.int64(data.get("hw_time_offset_ns", ""))
             except ValueError:
-                hw_time_offset_ns = -1
+                hw_time_offset_ns = None
 
             yield StartData(
                 fields=fields,
