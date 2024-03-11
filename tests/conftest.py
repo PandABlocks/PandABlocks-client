@@ -48,9 +48,10 @@ def fast_dump_with_extra_header_params():
     Add header parameters to `fast_dump.bin` binary stream. The fixture
     is used for testing absolute timing parameters passed in the header.
     """
+
     def fast_dump(extra_header_params):
-        param_to_replace = "sample_bytes=\"52\""
-        params = " ".join(f"{k}=\"{v}\"" for k, v in extra_header_params.items())
+        param_to_replace = 'sample_bytes="52"'
+        params = " ".join(f'{k}="{v}"' for k, v in extra_header_params.items())
         params = " ".join([param_to_replace, params]) if params else param_to_replace
         with open(Path(__file__).parent / "data_dumps/fast_dump.bin", "rb") as f:
             # Simulate larger chunked read
@@ -169,7 +170,7 @@ class Rows:
 def slow_dump_expected():
     yield [
         ReadyData(),
-        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, "", "", 0),
+        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, None, None, None),
         FrameData(Rows([0, 1, 1, 3, 5.6e-08, 1, 2])),
         FrameData(Rows([8, 2, 2, 6, 1.000000056, 2, 4])),
         FrameData(Rows([0, 3, 3, 9, 2.000000056, 3, 6])),
@@ -183,7 +184,7 @@ def slow_dump_expected():
 def fast_dump_expected():
     yield [
         ReadyData(),
-        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, "", "", 0),
+        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, None, None, None),
         FrameData(
             Rows(
                 [0, 1, 1, 3, 5.6e-08, 1, 2],
