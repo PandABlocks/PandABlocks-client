@@ -73,6 +73,7 @@ nitpick_ignore = [
     ("py:class", "'id'"),
     ("py:class", "typing_extensions.Literal"),
     ("py:func", "int"),
+    ("py:class", "pandablocks.commands.T"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and

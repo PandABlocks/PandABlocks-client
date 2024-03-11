@@ -54,7 +54,7 @@ async def test_asyncio_data_timeout(dummy_server_async, fast_dump):
     dummy_server_async.data = fast_dump
     async with AsyncioClient("localhost") as client:
         with pytest.raises(asyncio.TimeoutError, match="No data received for 0.1s"):
-            async for data in client.data(frame_timeout=0.1):
+            async for _ in client.data(frame_timeout=0.1):
                 "This goes forever, when it runs out of data we will get our timeout"
 
 

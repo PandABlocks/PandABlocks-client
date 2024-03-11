@@ -73,8 +73,8 @@ class MockInput:
         assert prompt == cli.PROMPT
         try:
             return self._commands.popleft()
-        except IndexError:
-            raise EOFError()
+        except IndexError as err:
+            raise EOFError() from err
 
 
 def test_interactive_simple(dummy_server_in_thread, capsys):
