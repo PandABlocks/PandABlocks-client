@@ -7,7 +7,7 @@
     -----------------------------------
 ```
 
-This is the internal API reference for {\{package_name}}
+This is the internal API reference for pandablocks
 
 ```{eval-rst}
 .. data:: pandablocks.__version__

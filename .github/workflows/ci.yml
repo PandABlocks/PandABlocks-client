@@ -57,8 +57,6 @@ jobs:
     uses: ./.github/workflows/_pypi.yml
     permissions:
       id-token: write
-    secrets:
-      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
   
   release:
     if: github.ref_type == 'tag'

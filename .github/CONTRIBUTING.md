@@ -24,14 +24,4 @@ It is recommended that developers use a [vscode devcontainer](https://code.visua
 
 This project was created using the [Diamond Light Source Copier Template](https://github.com/DiamondLightSource/python-copier-template) for Python projects.
 
-For more information on common tasks like setting up a developer environment, running the tests, and setting a pre-commit hook, see the template's [How-to guides](https://diamondlightsource.github.io/python-copier-template/1.3.0/how-to.html).
-
-## Release Checklist
-
-Before a new release, please go through the following checklist:
-
-- Choose a new PEP440 compliant release number
-- Add a release note in CHANGELOG.rst
-- Git tag the version with message from CHANGELOG
-- Push to github and the actions will make a release on pypi
-- Push to internal gitlab and do a dls-release.py of the tag
+For more information on common tasks like setting up a developer environment, running the tests, and setting a pre-commit hook, see the template's [How-to guides](https://diamondlightsource.github.io/python-copier-template/2.0.1/how-to.html).

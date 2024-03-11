@@ -10,6 +10,7 @@ A Python client to control and data ports of the PandABlocks TCP server
 Source          | <https://github.com/PandABlocks/PandABlocks-client>
 :---:           | :---:
 PyPI            | `pip install pandablocks`
+Docker          | `docker run ghcr.io/pandablocks/PandABlocks-client:latest`
 Documentation   | <https://pandablocks.github.io/PandABlocks-client>
 Releases        | <https://github.com/PandABlocks/PandABlocks-client/releases>
 

@@ -8,7 +8,7 @@ installed are available on [Github Container Registry](https://ghcr.io/PandABloc
 To pull the container from github container registry and run:
 
 ```
-$ docker run ghcr.io/PandABlocks/PandABlocks-client:main --version
+$ docker run ghcr.io/pandablocks/PandABlocks-client:latest --version
 ```
 
-To get a released version, use a numbered release instead of `main`.
+To get a released version, use a numbered release instead of `latest`.
