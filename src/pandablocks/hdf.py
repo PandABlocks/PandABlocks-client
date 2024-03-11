@@ -121,9 +121,12 @@ class HDFWriter(Pipeline):
         self.hdf_file.swmr_mode = True
 
         # Save parameters
-        self.hdf_file.attrs["arm_time"] = data.arm_time
-        self.hdf_file.attrs["start_time"] = data.start_time
-        self.hdf_file.attrs["hw_time_offset_ns"] = data.hw_time_offset_ns
+        if data.arm_time is not None:
+            self.hdf_file.attrs["arm_time"] = data.arm_time
+        if data.start_time is not None:
+            self.hdf_file.attrs["start_time"] = data.start_time
+        if data.hw_time_offset_ns is not None:
+            self.hdf_file.attrs["hw_time_offset_ns"] = data.hw_time_offset_ns
 
         logging.info(
             f"Opened '{self.file_path}' with {data.sample_bytes} byte samples "
