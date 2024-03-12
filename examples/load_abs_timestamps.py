@@ -18,7 +18,7 @@ if __name__ == "__main__":
             ts_start = pd.Timestamp(start_time)
             if hw_time_offset_ns:
                 ts_start += pd.Timedelta(nanoseconds=hw_time_offset_ns)
-            print(f"Start TS including the offset: {ts_start}")
+            print(f"Start time using system clock instead of hardware clock: {ts_start}")
 
 
 # Expected output:
