@@ -105,8 +105,8 @@ class Buffer:
     def __next__(self) -> bytes:
         try:
             return self.read_line()
-        except NeedMoreData:
-            raise StopIteration()
+        except NeedMoreData as err:
+            raise StopIteration() from err
 
 
 @dataclass

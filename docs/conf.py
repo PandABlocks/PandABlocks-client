@@ -48,7 +48,12 @@ extensions = [
     "sphinx_copybutton",
     # For the card element
     "sphinx_design",
+    # So we can write markdown files
+    "myst_parser",
 ]
+
+# So we can use the ::: syntax
+myst_enable_extensions = ["colon_fence"]
 
 # If true, Sphinx will warn about all references where the target cannot
 # be found.
@@ -68,6 +73,7 @@ nitpick_ignore = [
     ("py:class", "'id'"),
     ("py:class", "typing_extensions.Literal"),
     ("py:func", "int"),
+    ("py:class", "pandablocks.commands.T"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and
@@ -86,9 +92,6 @@ graphviz_output_format = "svg"
 # The name of a reST role (builtin or Sphinx extension) to use as the default
 # role, that is, for text marked up `like this`
 default_role = "any"
-
-# The suffix of source filenames.
-source_suffix = ".rst"
 
 # The master toctree document.
 master_doc = "index"
@@ -139,7 +142,7 @@ copybutton_prompt_is_regexp = True
 html_theme = "pydata_sphinx_theme"
 github_repo = "PandABlocks-client"
 github_user = "PandABlocks"
-switcher_json = "https://PandABlocks.github.io/PandABlocks-client/switcher.json"
+switcher_json = f"https://{github_user}.github.io/{github_repo}/switcher.json"
 switcher_exists = requests.get(switcher_json).ok
 if not switcher_exists:
     print(
@@ -178,12 +181,6 @@ html_theme_options = {
     },
     "check_switcher": False,
     "navbar_end": ["theme-switcher", "icon-links", "version-switcher"],
-    "external_links": [
-        {
-            "name": "Release Notes",
-            "url": f"https://github.com/{github_user}/{github_repo}/releases",
-        }
-    ],
     "navigation_with_keys": False,
 }
 
