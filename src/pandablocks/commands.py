@@ -92,36 +92,31 @@ class CommandException(Exception):
 # zip() because typing does not support variadic type variables.  See
 # typeshed PR #1550 for discussion.
 @overload
-def _execute_commands(c1: Command[T]) -> ExchangeGenerator[Tuple[T]]:
-    ...
+def _execute_commands(c1: Command[T]) -> ExchangeGenerator[Tuple[T]]: ...
 
 
 @overload
 def _execute_commands(
     c1: Command[T], c2: Command[T2]
-) -> ExchangeGenerator[Tuple[T, T2]]:
-    ...
+) -> ExchangeGenerator[Tuple[T, T2]]: ...
 
 
 @overload
 def _execute_commands(
     c1: Command[T], c2: Command[T2], c3: Command[T3]
-) -> ExchangeGenerator[Tuple[T, T2, T3]]:
-    ...
+) -> ExchangeGenerator[Tuple[T, T2, T3]]: ...
 
 
 @overload
 def _execute_commands(
     c1: Command[T], c2: Command[T2], c3: Command[T3], c4: Command[T4]
-) -> ExchangeGenerator[Tuple[T, T2, T3, T4]]:
-    ...
+) -> ExchangeGenerator[Tuple[T, T2, T3, T4]]: ...
 
 
 @overload
 def _execute_commands(
     *commands: Command[Any],
-) -> ExchangeGenerator[Tuple[Any, ...]]:
-    ...
+) -> ExchangeGenerator[Tuple[Any, ...]]: ...
 
 
 def _execute_commands(*commands):
