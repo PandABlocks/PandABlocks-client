@@ -105,11 +105,7 @@ attributes are used:
 
 - ``start_time`` - the start time (PCAP block is armed and enabled) of
   the measurement in seconds since the epoch, saved as a string in the
-<<<<<<< HEAD:docs/tutorials/commandline-hdf.md
   ISO 8601 UTC format. Uses hardware provided timestamp (e.g. PTP or MRF) if available,
-=======
-  ISO 8601 UTC format. Uses hardware provided timestamp (e.g. PTP or MRF) if available, 
->>>>>>> f22bc6d (Fixed the description of `start_time` parameter):docs/user/tutorials/commandline-hdf.rst
   falling back to the system timestamp.
 
 - ``hw_time_offset_ns`` - the offset in nanoseconds (*int64*) that should be added to
