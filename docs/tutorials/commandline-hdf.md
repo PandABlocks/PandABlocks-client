@@ -117,7 +117,8 @@ The following code may be used to read the absolute timestamp from the HDF5 file
 Use ``pandas.Timestamp`` object if nanosecond accuracy is required (standard
 ``dataframe`` object is limited to microsecond precision).
 
-.. literalinclude:: ../../../examples/load_abs_timestamps.py
+```{literalinclude} ../../examples/load_abs_timestamps.py
+```
 
 
 ## Collecting more data faster
