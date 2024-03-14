@@ -51,18 +51,21 @@ async def test_asyncio_data(
     assert fast_dump_expected == events
 
 
-@pytest.mark.parametrize("timing_params",[
-    {},
-    {
-        "arm_time": "2024-03-05T20:27:12.607841574Z",
-        "start_time": "2024-03-05T20:27:12.608875498Z",
-    },
-    {
-        "arm_time": "2024-03-05T20:27:12.607841574Z",
-        "start_time": "2024-03-05T20:27:12.608875498Z",
-        "hw_time_offset_ns": 100555,
-    },
-])
+@pytest.mark.parametrize(
+    "timing_params",
+    [
+        {},
+        {
+            "arm_time": "2024-03-05T20:27:12.607841574Z",
+            "start_time": "2024-03-05T20:27:12.608875498Z",
+        },
+        {
+            "arm_time": "2024-03-05T20:27:12.607841574Z",
+            "start_time": "2024-03-05T20:27:12.608875498Z",
+            "hw_time_offset_ns": 100555,
+        },
+    ],
+)
 async def test_asyncio_data_with_abs_timing(
     dummy_server_async,
     fast_dump_with_extra_header_params,
