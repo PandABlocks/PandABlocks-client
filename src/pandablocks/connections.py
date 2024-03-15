@@ -328,12 +328,21 @@ class DataConnection:
             self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]
             )
+
+            try:
+                hw_time_offset_ns = np.int64(data.get("hw_time_offset_ns", ""))
+            except ValueError:
+                hw_time_offset_ns = None
+
             yield StartData(
                 fields=fields,
                 missed=int(data.get("missed")),
                 process=str(data.get("process")),
                 format=str(data.get("format")),
                 sample_bytes=sample_bytes,
+                arm_time=data.get("arm_time", None),
+                start_time=data.get("start_time", None),
+                hw_time_offset_ns=hw_time_offset_ns,
             )
             self._next_handler = self._handle_header_end
 

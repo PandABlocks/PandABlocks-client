@@ -266,6 +266,9 @@ class StartData(Data):
     process: str
     format: str
     sample_bytes: int
+    arm_time: Optional[str]
+    start_time: Optional[str]
+    hw_time_offset_ns: Optional[int]
 
 
 @dataclass

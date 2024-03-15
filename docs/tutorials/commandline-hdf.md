@@ -86,6 +86,41 @@ $ h5diff /tmp/panda-capture-1.h5 /tmp/panda-capture-2.h5
 $ h5diff /tmp/panda-capture-1.h5 /tmp/panda-capture-3.h5
 ```
 
+## Absolute timestamps
+
+Starting with v3.0, PandABox firmware supports absolute timestamping of
+the collected data. PandA still collects relative timestamps for
+individual data points that are saved as arrays to HDF5 file. In addition,
+the absolute timestamp for the start of the measurement is saved to HDF5
+file and can be used to convert relative timestamps to absolute timestamps
+
+The absolute timestamp is saved as a set of attributes of the root group of
+the HDF5 file. The attributes are optional and set only if the respective
+parameters were captured by PandABox and received by the IOC. The following
+attributes are used:
+
+- ``arm_time`` - the time when the Panda (PCAP block) was armed, saved as
+  a string in the ISO 8601 UTC format. This parameter is mostly used for
+  debugging.
+
+- ``start_time`` - the start time (PCAP block is armed and enabled) of
+  the measurement in seconds since the epoch, saved as a string in the
+  ISO 8601 UTC format. Uses hardware provided timestamp (e.g. PTP or MRF) if available,
+  falling back to the system timestamp.
+
+- ``hw_time_offset_ns`` - the offset in nanoseconds (*int64*) that should be added to
+  to ``start_time`` to get back to the system timestamp. The attribute is
+  present only if Panda is configured to use hardware-based absolute timestamps
+  (PTP or MRF).
+
+The following code may be used to read the absolute timestamp from the HDF5 file.
+Use ``pandas.Timestamp`` object if nanosecond accuracy is required (standard
+``dataframe`` object is limited to microsecond precision).
+
+```{literalinclude} ../../examples/load_abs_timestamps.py
+```
+
+
 ## Collecting more data faster
 
 The test data is produced by a SEQ Block, configured to produce a high level

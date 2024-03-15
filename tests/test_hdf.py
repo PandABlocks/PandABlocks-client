@@ -3,11 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pandablocks.hdf import (
-    Pipeline,
-    create_default_pipeline,
-    stop_pipeline,
-)
+from pandablocks.hdf import Pipeline, create_default_pipeline, stop_pipeline
 from pandablocks.responses import EndData, EndReason, FieldCapture, FrameData, StartData
 
 
@@ -44,6 +40,9 @@ def test_pipeline_returns_number_written(tmp_path):
                 "Scaled",
                 "Framed",
                 52,
+                "2024-03-05T20:27:12.607841574Z",
+                "2024-03-05T20:27:12.608875498Z",
+                100555,
             ),
         )
         pipeline[0].queue.put_nowait(
