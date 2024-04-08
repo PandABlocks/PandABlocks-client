@@ -99,8 +99,21 @@ class AsyncioClient:
         await self.close()
 
     async def _ctrl_read_forever(self, reader: asyncio.StreamReader):
+        """Continually read data from the stream reader and add to the data queue.
+
+        Args:
+            reader: The `StreamReader` to read from
+        """
         while True:
             received = await reader.read(4096)
+            if received == b"":
+                error_str = (
+                    "Received an empty packet. Closing connection. "
+                    "Has the PandA disconnected?"
+                )
+                logging.error(error_str)
+                raise ConnectionError(error_str)
+
             try:
                 to_send = self._ctrl_connection.receive_bytes(received)
                 await self._ctrl_stream.write_and_drain(to_send)

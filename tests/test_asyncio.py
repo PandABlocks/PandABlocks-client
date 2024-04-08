@@ -104,6 +104,36 @@ async def test_asyncio_data_timeout(dummy_server_async, fast_dump):
                 "This goes forever, when it runs out of data we will get our timeout"
 
 
+async def test_asyncio_empty_frame_error():
+    dummy_data = [b"ABC"] * 10 + [b""]
+    dummy_data_iter = iter(dummy_data)
+
+    async def dummy_read(n):
+        return dummy_data_iter.__next__()
+
+    reader = asyncio.StreamReader()
+    reader.read = dummy_read
+
+    written = []
+
+    class DummyControlStream:
+        async def write_and_drain(self, data):
+            written.append(data)
+
+    class DummyControlConnection:
+        def receive_bytes(self, data):
+            return data
+
+    client = AsyncioClient("localhost")
+    client._ctrl_stream = DummyControlStream()
+    client._ctrl_connection = DummyControlConnection()
+    with pytest.raises(
+        ConnectionError, match="Received an empty packet. Closing connection."
+    ):
+        await client._ctrl_read_forever(reader)
+    assert written == dummy_data[:-1]
+
+
 @pytest.mark.asyncio
 async def test_asyncio_connects(dummy_server_async: DummyServer):
     async with AsyncioClient("localhost") as client:
