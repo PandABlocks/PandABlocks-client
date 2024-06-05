@@ -21,7 +21,7 @@ def test_pipeline_returns_number_written(tmp_path):
 
     try:
         pipeline = create_default_pipeline(
-            iter([Path(tmp_path / "1.h5")]), file_counter
+            iter([Path(tmp_path / "1.h5")]), {}, file_counter
         )
 
         pipeline[0].queue.put_nowait(
