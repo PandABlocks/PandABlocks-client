@@ -108,6 +108,7 @@ class HDFWriter(Pipeline):
         dataset_name = self.capture_record_hdf_names.get(field.name, {}).get(
             field.capture, f"{field.name}.{field.capture}"
         )
+
         return self.hdf_file.create_dataset(
             f"/{dataset_name}",
             dtype=dtype,
