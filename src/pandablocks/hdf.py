@@ -78,6 +78,11 @@ class HDFWriter(Pipeline):
     Args:
         file_names: Iterator of file names. Must be full file paths. Will be called once
             per file created.
+        capture_record_hdf_names: A dictionary of alternate dataset names to use for
+            each field. For example
+            ``{"COUNTER1.OUT":
+                {"Value": "name", "Min": "name-min", "Max": "name-max"}
+            }``
     """
 
     def __init__(
