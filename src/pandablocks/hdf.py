@@ -78,13 +78,30 @@ class HDFWriter(Pipeline):
     Args:
         file_names: Iterator of file names. Must be full file paths. Will be called once
             per file created.
+        capture_record_hdf_names: A dictionary of alternate dataset names to use for
+            each field. For example
+
+            .. code-block:: python
+
+                {
+                    "COUNTER1.OUT": {
+                        "Value": "name",
+                        "Min": "name-min",
+                        "Max": "name-max"
+                    }
+                }
     """
 
-    def __init__(self, file_names: Iterator[str]):
+    def __init__(
+        self,
+        file_names: Iterator[str],
+        capture_record_hdf_names: Dict[str, Dict[str, str]],
+    ):
         super().__init__()
         self.file_names = file_names
         self.hdf_file: Optional[h5py.File] = None
         self.datasets: List[h5py.Dataset] = []
+        self.capture_record_hdf_names = capture_record_hdf_names
         self.what_to_do = {
             StartData: self.open_file,
             list: self.write_frame,
@@ -100,8 +117,12 @@ class HDFWriter(Pipeline):
         else:
             # No processor, datatype passed through
             dtype = field.type
+        dataset_name = self.capture_record_hdf_names.get(field.name, {}).get(
+            field.capture, f"{field.name}.{field.capture}"
+        )
+
         return self.hdf_file.create_dataset(
-            f"/{field.name}.{field.capture}",
+            f"/{dataset_name}",
             dtype=dtype,
             shape=(0,),
             maxshape=(None,),
@@ -195,7 +216,9 @@ class FrameProcessor(Pipeline):
 
 
 def create_default_pipeline(
-    file_names: Iterator[str], *additional_downstream_pipelines: Pipeline
+    file_names: Iterator[str],
+    capture_record_hdf_names: Dict[str, Dict[str, str]],
+    *additional_downstream_pipelines: Pipeline,
 ) -> List[Pipeline]:
     """Create the default processing pipeline consisting of one `FrameProcessor` and
     one `HDFWriter`. See `create_pipeline` for more details.
@@ -203,12 +226,17 @@ def create_default_pipeline(
     Args:
         file_names: Iterator of file names. Must be full file paths. Will be called once
             per file created. As required by `HDFWriter`.
+        capture_record_hdf_names: A dictionary of dataset names to use for each field.
+            The keys are record names, the values are another dictionary of
+            capture type to dataset name.
         additional_downstream_pipelines: Any number of additional pipelines to add
             downstream.
     """
 
     return create_pipeline(
-        FrameProcessor(), HDFWriter(file_names), *additional_downstream_pipelines
+        FrameProcessor(),
+        HDFWriter(file_names, capture_record_hdf_names),
+        *additional_downstream_pipelines,
     )
 
 
@@ -255,8 +283,9 @@ async def write_hdf_files(
         HDFDataOverrunException: if there is a data overrun.
     """
     counter = 0
+
     end_data = None
-    pipeline = create_default_pipeline(file_names)
+    pipeline = create_default_pipeline(file_names, {})
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
