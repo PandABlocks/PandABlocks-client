@@ -244,9 +244,10 @@ class FieldCapture:
 
     @property
     def raw_mode_dataset_dtype(self) -> np.dtype:
-        """We use double for all dtypes, unless the field is a PCAP.BITS."""
+        """We use double for all dtypes,
+        unless the field is a PCAP.BITS or PCAP.SAMPLES."""
 
-        if self.is_pcap_bits:
+        if self.is_pcap_bits_or_samples:
             return self.type
 
         if None in (self.scale, self.offset, self.units):
@@ -257,8 +258,8 @@ class FieldCapture:
         return np.dtype("float64")
 
     @property
-    def is_pcap_bits(self) -> bool:
-        """Return True if this field is a PCAP.BITS field"""
+    def is_pcap_bits_or_samples(self) -> bool:
+        """Return True if this field is a PCAP.BITS or PCAP.SAMPLES field"""
         return self.scale is None and self.offset is None and self.units is None
 
 

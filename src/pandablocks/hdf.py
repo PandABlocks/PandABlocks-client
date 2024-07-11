@@ -198,7 +198,11 @@ class FrameProcessor(Pipeline):
                 return (data[column_name] * field.scale / gate_duration) + field.offset
 
             return mean_callable
-        elif raw and not field.is_pcap_bits and (field.scale != 1 or field.offset != 0):
+        elif (
+            raw
+            and not field.is_pcap_bits_or_samples
+            and (field.scale != 1 or field.offset != 0)
+        ):
             return lambda data: data[column_name] * field.scale + field.offset
         else:
             return lambda data: data[column_name]

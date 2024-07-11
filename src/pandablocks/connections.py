@@ -330,7 +330,14 @@ class DataConnection:
                 name, capture = SAMPLES_FIELD.rsplit(".", maxsplit=1)
                 fields.insert(
                     0,
-                    FieldCapture(name, np.dtype("uint32"), capture, 1.0, 0.0, ""),
+                    FieldCapture(
+                        name=name,
+                        type=np.dtype("uint32"),
+                        capture=capture,
+                        scale=None,
+                        offset=None,
+                        units=None,
+                    ),
                 )
             self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]

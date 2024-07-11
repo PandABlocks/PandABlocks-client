@@ -71,7 +71,7 @@ def test_field_capture_pcap_bits():
         units=None,
     )
 
-    assert pcap_bits_frame_data.is_pcap_bits
+    assert pcap_bits_frame_data.is_pcap_bits_or_samples
     assert pcap_bits_frame_data.raw_mode_dataset_dtype is np.dtype("uint32")
 
     some_other_frame_data = FieldCapture(
@@ -83,7 +83,7 @@ def test_field_capture_pcap_bits():
         units="",
     )
 
-    assert not some_other_frame_data.is_pcap_bits
+    assert not some_other_frame_data.is_pcap_bits_or_samples
     assert some_other_frame_data.raw_mode_dataset_dtype is np.dtype("float64")
 
     malformed_frame_data = FieldCapture(
@@ -95,7 +95,7 @@ def test_field_capture_pcap_bits():
         units="",
     )
 
-    assert not some_other_frame_data.is_pcap_bits
+    assert not some_other_frame_data.is_pcap_bits_or_samples
     with pytest.raises(
         ValueError,
         match="If any of `scale`, `offset`, or `units` is set, all must be set",
