@@ -88,9 +88,9 @@ DUMP_FIELDS = [
         name="PCAP.BITS2",
         type=np.dtype("uint32"),
         capture="Value",
-        scale=1,
-        offset=0,
-        units="",
+        scale=None,
+        offset=None,
+        units=None,
     ),
     FieldCapture(
         name="COUNTER1.OUT",

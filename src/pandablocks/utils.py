@@ -62,7 +62,9 @@ def words_to_table(
 
         if field_info.subtype == "int":
             # First convert from 2's complement to offset, then add in offset.
-            temp = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
+            temp = (value.astype(np.int64) ^ (1 << (bit_length - 1))) + (
+                -1 << (bit_length - 1)
+            )
             packing_value = temp.astype(np.int32)
         elif field_info.subtype == "enum" and convert_enum_indices:
             assert field_info.labels, f"Enum field {field_name} has no labels"

@@ -303,15 +303,22 @@ class DataConnection:
         if line == b"</header>":
             fields = []
             root = ET.fromstring(self._header)
+
             for field in root.find("fields"):
                 fields.append(
                     FieldCapture(
                         name=str(field.get("name")),
                         type=np.dtype(field.get("type")),
                         capture=str(field.get("capture")),
-                        scale=float(field.get("scale", 1)),
-                        offset=float(field.get("offset", 0)),
-                        units=str(field.get("units", "")),
+                        scale=float(scale)
+                        if (scale := field.get("scale")) is not None
+                        else None,
+                        offset=float(offset)
+                        if (offset := field.get("offset")) is not None
+                        else None,
+                        units=str(units)
+                        if (units := field.get("units")) is not None
+                        else None,
                     )
                 )
             data = root.find("data")
@@ -323,7 +330,7 @@ class DataConnection:
                 name, capture = SAMPLES_FIELD.rsplit(".", maxsplit=1)
                 fields.insert(
                     0,
-                    FieldCapture(name, np.dtype("uint32"), capture),
+                    FieldCapture(name, np.dtype("uint32"), capture, 1.0, 0.0, ""),
                 )
             self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]

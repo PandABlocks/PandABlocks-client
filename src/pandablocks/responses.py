@@ -223,21 +223,43 @@ class EndReason(Enum):
 class FieldCapture:
     """Information about a field that is being captured
 
+    If scale, offset, and units are all `None`, then the field is a
+    ``PCAP.BITS``.
+
     Attributes:
         name: Name of captured field
         type: Numpy data type of the field as transmitted
         capture: Value of CAPTURE field used to enable this field
-        scale: Scaling factor, default 1.0
-        offset: Offset, default 0.0
-        units: Units string, default ""
+        scale: Scaling factor
+        offset: Offset
+        units: Units string
     """
 
     name: str
     type: np.dtype
     capture: str
-    scale: float = 1.0
-    offset: float = 0.0
-    units: str = ""
+    scale: Optional[float]
+    offset: Optional[float]
+    units: Optional[str]
+
+    @property
+    def raw_mode_dataset_dtype(self) -> np.dtype:
+        """We use double for all dtypes, unless the field is a PCAP.BITS."""
+
+        if self.is_pcap_bits:
+            return self.type
+
+        if None in (self.scale, self.offset, self.units):
+            raise ValueError(
+                "If any of `scale`, `offset`, or `units` is set, all must be set"
+            )
+
+        return np.dtype("float64")
+
+    @property
+    def is_pcap_bits(self) -> bool:
+        """Return True if this field is a PCAP.BITS field"""
+        return self.scale is None and self.offset is None and self.units is None
 
 
 class Data:

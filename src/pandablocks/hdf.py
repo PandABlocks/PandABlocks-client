@@ -111,15 +111,12 @@ class HDFWriter(Pipeline):
     def create_dataset(self, field: FieldCapture, raw: bool):
         # Data written in a big stack, growing in that dimension
         assert self.hdf_file, "File not open yet"
-        if raw and (field.capture == "Mean" or field.scale != 1 or field.offset != 0):
-            # Processor outputs a float
-            dtype = np.dtype("float64")
-        else:
-            # No processor, datatype passed through
-            dtype = field.type
+
         dataset_name = self.capture_record_hdf_names.get(field.name, {}).get(
             field.capture, f"{field.name}.{field.capture}"
         )
+
+        dtype = field.raw_mode_dataset_dtype if raw else field.type
 
         return self.hdf_file.create_dataset(
             f"/{dataset_name}",
@@ -201,7 +198,7 @@ class FrameProcessor(Pipeline):
                 return (data[column_name] * field.scale / gate_duration) + field.offset
 
             return mean_callable
-        elif raw and (field.scale != 1 or field.offset != 0):
+        elif raw and not field.is_pcap_bits and (field.scale != 1 or field.offset != 0):
             return lambda data: data[column_name] * field.scale + field.offset
         else:
             return lambda data: data[column_name]
