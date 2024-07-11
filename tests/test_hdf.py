@@ -61,6 +61,48 @@ def test_pipeline_returns_number_written(tmp_path):
         stop_pipeline(pipeline)
 
 
+def test_field_capture_pcap_bits():
+    pcap_bits_frame_data = FieldCapture(
+        name="PCAP.BITS",
+        type=np.dtype("uint32"),
+        capture="Value",
+        scale=None,
+        offset=None,
+        units=None,
+    )
+
+    assert pcap_bits_frame_data.is_pcap_bits
+    assert pcap_bits_frame_data.raw_mode_dataset_dtype is np.dtype("uint32")
+
+    some_other_frame_data = FieldCapture(
+        name="some_other_frame_data",
+        type=np.dtype("uint32"),
+        capture="Value",
+        scale=1.0,
+        offset=0.0,
+        units="",
+    )
+
+    assert not some_other_frame_data.is_pcap_bits
+    assert some_other_frame_data.raw_mode_dataset_dtype is np.dtype("float64")
+
+    malformed_frame_data = FieldCapture(
+        name="malformed_frame_data",
+        type=np.dtype("uint32"),
+        capture="Value",
+        scale=None,
+        offset=0.0,
+        units="",
+    )
+
+    assert not some_other_frame_data.is_pcap_bits
+    with pytest.raises(
+        ValueError,
+        match="If any of `scale`, `offset`, or `units` is set, all must be set",
+    ):
+        assert malformed_frame_data.raw_mode_dataset_dtype is np.dtype("float64")
+
+
 @pytest.mark.parametrize(
     "capture_record_hdf_names,expected_names",
     [
