@@ -311,8 +311,8 @@ class FrameData(Data):
         ...       (2, 12)],
         ...      dtype=[('COUNTER1.OUT.Value', '<f8'), ('COUNTER2.OUT.Value', '<f8')])
         >>> fdata = FrameData(data)
-        >>> fdata.data[0] # Row view
-        (0., 10.)
+        >>> (fdata.data[0]['COUNTER1.OUT.Value'], fdata.data[0]['COUNTER2.OUT.Value'])
+        (np.float64(0.0), np.float64(10.0))
         >>> fdata.column_names # Column names
         ('COUNTER1.OUT.Value', 'COUNTER2.OUT.Value')
         >>> fdata.data['COUNTER1.OUT.Value'] # Column view
