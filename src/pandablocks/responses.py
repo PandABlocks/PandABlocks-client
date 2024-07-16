@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
@@ -238,29 +238,31 @@ class FieldCapture:
     name: str
     type: np.dtype
     capture: str
-    scale: Optional[float]
-    offset: Optional[float]
-    units: Optional[str]
+    scale: Optional[float] = field(default=None)
+    offset: Optional[float] = field(default=None)
+    units: Optional[str] = field(default=None)
+
+    def __post_init__(self):
+        sou = (self.scale, self.offset, self.units)
+        if sou != (None, None, None) and None in sou:
+            raise ValueError(
+                f"If any of `scale={self.scale}`, `offset={self.offset}`"
+                f", or `units={self.units}` is set, all must be set."
+            )
 
     @property
     def raw_mode_dataset_dtype(self) -> np.dtype:
-        """We use double for all dtypes,
-        unless the field is a PCAP.BITS or PCAP.SAMPLES."""
-
-        if self.is_pcap_bits_or_samples:
-            return self.type
-
-        if None in (self.scale, self.offset, self.units):
-            raise ValueError(
-                "If any of `scale`, `offset`, or `units` is set, all must be set"
-            )
-
-        return np.dtype("float64")
+        """We use double for all dtypes that have scale and offset."""
+        if self.scale is not None and self.offset is not None:
+            return np.dtype("float64")
+        return self.type
 
     @property
-    def is_pcap_bits_or_samples(self) -> bool:
+    def has_scale_or_offset(self) -> bool:
         """Return True if this field is a PCAP.BITS or PCAP.SAMPLES field"""
-        return self.scale is None and self.offset is None and self.units is None
+        return (self.scale is not None and self.offset is not None) and (
+            self.scale != 1 or self.offset != 0
+        )
 
 
 class Data:
