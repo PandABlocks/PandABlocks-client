@@ -286,7 +286,7 @@ async def write_hdf_files(
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
-            if type(data) == EndData:
+            if isinstance(data, EndData):
                 end_data = data
                 counter += 1
                 if counter == num:
