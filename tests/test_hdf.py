@@ -104,7 +104,7 @@ def test_field_capture_pcap_bits():
 
     frame_data_with_offset = FieldCapture(
         name="frame_data_with_offset",
-        type=np.dtype("uint32"),
+        type=np.dtype("float64"),
         capture="Value",
         scale=1.0,
         offset=1.0,
@@ -112,7 +112,7 @@ def test_field_capture_pcap_bits():
     )
     frame_data_with_scale = FieldCapture(
         name="frame_data_with_scale",
-        type=np.dtype("uint32"),
+        type=np.dtype("float64"),
         capture="Value",
         scale=1.1,
         offset=0.0,
@@ -126,7 +126,7 @@ def test_field_capture_pcap_bits():
 
     frame_data_with_scale_and_offset = FieldCapture(
         name="frame_data_with_scale_and_offset",
-        type=np.dtype("uint32"),
+        type=np.dtype("float64"),
         capture="Value",
         scale=1.1,
         offset=0.0,
