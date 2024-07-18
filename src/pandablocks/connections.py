@@ -2,8 +2,9 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 from collections import deque
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Callable, Deque, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import numpy as np
 
@@ -153,11 +154,11 @@ class ControlConnection:
 
     def __init__(self) -> None:
         self._buf = Buffer()
-        self._lines: List[str] = []
-        self._contexts: Deque[_ExchangeContext] = deque()
-        self._responses: Deque[Tuple[Command, Any]] = deque()
+        self._lines: list[str] = []
+        self._contexts: deque[_ExchangeContext] = deque()
+        self._responses: deque[tuple[Command, Any]] = deque()
 
-    def _update_contexts(self, lines: List[str], is_multiline=False) -> bytes:
+    def _update_contexts(self, lines: list[str], is_multiline=False) -> bytes:
         to_send = b""
         if len(self._contexts) == 0:
             raise NoContextAvailable()
@@ -234,7 +235,7 @@ class ControlConnection:
                 to_send += self._update_contexts([line])
         return to_send
 
-    def responses(self) -> Iterator[Tuple[Command, Any]]:
+    def responses(self) -> Iterator[tuple[Command, Any]]:
         """Get the (command, response) tuples generated as part of the last
         receive_bytes"""
         while self._responses:

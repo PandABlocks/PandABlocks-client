@@ -1,4 +1,4 @@
-from typing import Dict, List, OrderedDict
+from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -8,7 +8,7 @@ from pandablocks.utils import UnpackedArray, table_to_words, words_to_table
 
 
 @pytest.fixture
-def table_fields() -> Dict[str, TableFieldDetails]:
+def table_fields() -> dict[str, TableFieldDetails]:
     """Table field definitions, taken from a SEQ.TABLE instance.
     Associated with table_data and table_field_info fixtures"""
     return {
@@ -211,7 +211,7 @@ def table_1_np_arrays_int_enums() -> OrderedDict[str, UnpackedArray]:
 
 
 @pytest.fixture
-def table_data_1() -> List[str]:
+def table_data_1() -> list[str]:
     return [
         "2457862149",
         "4294967291",
@@ -229,8 +229,8 @@ def table_data_1() -> List[str]:
 
 
 @pytest.fixture
-def table_2_np_arrays() -> Dict[str, UnpackedArray]:
-    table: Dict[str, UnpackedArray] = {
+def table_2_np_arrays() -> dict[str, UnpackedArray]:
+    table: dict[str, UnpackedArray] = {
         "REPEATS": np.array([1, 0], dtype=np.uint32),
         "TRIGGER": ["Immediate", "Immediate"],
         "POSITION": np.array([-20, 2**31 - 1], dtype=np.int32),
@@ -247,7 +247,7 @@ def table_2_np_arrays() -> Dict[str, UnpackedArray]:
 
 
 @pytest.fixture
-def table_data_2() -> List[str]:
+def table_data_2() -> list[str]:
     return [
         "67108865",
         "4294967276",
@@ -288,8 +288,8 @@ def test_table_to_words_and_words_to_table(
     table_field_info: TableFieldInfo,
     request,
 ):
-    table: Dict[str, UnpackedArray] = request.getfixturevalue(table_fixture_name)
-    table_data: List[str] = request.getfixturevalue(table_data_fixture_name)
+    table: dict[str, UnpackedArray] = request.getfixturevalue(table_fixture_name)
+    table_data: list[str] = request.getfixturevalue(table_data_fixture_name)
 
     output_data = table_to_words(table, table_field_info)
     assert output_data == table_data
@@ -312,7 +312,7 @@ def test_table_to_words_and_words_to_table(
 def test_table_packing_unpack(
     table_1_np_arrays: OrderedDict[str, np.ndarray],
     table_field_info: TableFieldInfo,
-    table_data_1: List[str],
+    table_data_1: list[str],
 ):
     assert table_field_info.row_words
     output_table = words_to_table(
@@ -328,7 +328,7 @@ def test_table_packing_unpack(
 def test_table_packing_unpack_no_convert_enum(
     table_1_np_arrays_int_enums: OrderedDict[str, UnpackedArray],
     table_field_info: TableFieldInfo,
-    table_data_1: List[str],
+    table_data_1: list[str],
 ):
     assert table_field_info.row_words
     output_table = words_to_table(table_data_1, table_field_info)
@@ -340,9 +340,9 @@ def test_table_packing_unpack_no_convert_enum(
 
 
 def test_table_packing_pack(
-    table_1_np_arrays: Dict[str, UnpackedArray],
+    table_1_np_arrays: dict[str, UnpackedArray],
     table_field_info: TableFieldInfo,
-    table_data_1: List[str],
+    table_data_1: list[str],
 ):
     assert table_field_info.row_words
     unpacked = table_to_words(table_1_np_arrays, table_field_info)
@@ -352,7 +352,7 @@ def test_table_packing_pack(
 
 
 def test_table_packing_give_default_values(
-    table_1_np_arrays: Dict[str, UnpackedArray],
+    table_1_np_arrays: dict[str, UnpackedArray],
     table_field_info: TableFieldInfo,
 ):
     # We should have a complete table at the point of unpacking

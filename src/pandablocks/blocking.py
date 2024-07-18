@@ -1,5 +1,6 @@
 import socket
-from typing import Iterable, Iterator, List, Optional, Union, overload
+from collections.abc import Iterable, Iterator
+from typing import Optional, Union, overload
 
 from .commands import Command, T
 from .connections import ControlConnection, DataConnection
@@ -69,7 +70,7 @@ class BlockingClient:
     @overload
     def send(
         self, commands: Iterable[Command], timeout: Optional[int] = None
-    ) -> List: ...
+    ) -> list: ...
 
     def send(
         self,

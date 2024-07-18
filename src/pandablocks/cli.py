@@ -2,7 +2,7 @@ import asyncio
 import io
 import logging
 import pathlib
-from typing import Awaitable, List
+from collections.abc import Awaitable
 
 import click
 from click.exceptions import ClickException
@@ -69,7 +69,7 @@ def save(host: str, outfile: io.TextIOWrapper):
     Save the current blocks configuration of HOST to OUTFILE
     """
 
-    async def _save(host: str) -> List[str]:
+    async def _save(host: str) -> list[str]:
         async with AsyncioClient(host) as client:
             return await client.send(GetState())
 
@@ -93,7 +93,7 @@ def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
     else:
         state = infile.read().splitlines()
 
-    async def _load(host: str, state: List[str]):
+    async def _load(host: str, state: list[str]):
         async with AsyncioClient(host) as client:
             await client.send(SetState(state))
 
