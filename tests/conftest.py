@@ -2,9 +2,9 @@ import asyncio
 import os
 import threading
 from collections import deque
+from collections.abc import Iterable, Iterator
 from io import BufferedReader
 from pathlib import Path
-from typing import Deque, Dict, Iterable, Iterator, List
 
 import numpy as np
 import pytest
@@ -88,9 +88,9 @@ DUMP_FIELDS = [
         name="PCAP.BITS2",
         type=np.dtype("uint32"),
         capture="Value",
-        scale=1,
-        offset=0,
-        units="",
+        scale=None,
+        offset=None,
+        units=None,
     ),
     FieldCapture(
         name="COUNTER1.OUT",
@@ -281,13 +281,13 @@ class DummyServer:
     # when it sees an expected string. When the expected message is seen the
     # response will be left-appended to the send buffer so it is sent next.
     # Items are removed from the Dict when they are sent.
-    expected_message_responses: Dict[str, str] = {}
+    expected_message_responses: dict[str, str] = {}
 
     def __init__(self) -> None:
         # This will be added to whenever control port gets a message
-        self.received: List[str] = []
+        self.received: list[str] = []
         # Add to this to give the control port something to send back
-        self.send: Deque[str] = deque()
+        self.send: deque[str] = deque()
         # Add to this to give the data port something to send
         self.data: Iterable[bytes] = []
 

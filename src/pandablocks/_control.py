@@ -1,5 +1,5 @@
 from string import digits
-from typing import Dict, List, Optional
+from typing import Optional
 
 from .blocking import BlockingClient
 from .commands import FieldInfo, GetBlockInfo, GetFieldInfo, Raw, is_multiline_command
@@ -25,7 +25,7 @@ for suff in ("", ".CONFIG", ".BITS", ".POSN", ".READ", ".ATTR", ".TABLE"):
     STATIC_STAR_COMMANDS.append(f"*CHANGES{suff}=")  # Reset reported changes
 
 
-def _get_user_input(prompt) -> List[str]:
+def _get_user_input(prompt) -> list[str]:
     lines = [input(prompt)]
     if is_multiline_command(lines[0]):
         while lines[-1]:
@@ -39,7 +39,7 @@ def text_matches(t1, t2):
 
 class BlockCompleter:
     def __init__(self, client: BlockingClient):
-        self.matches: List[str] = []
+        self.matches: list[str] = []
         self._client = client
         self._blocks = self._client.send(
             GetBlockInfo(skip_description=True), timeout=TIMEOUT
@@ -47,14 +47,14 @@ class BlockCompleter:
         self._fields = self._get_fields(list(self._blocks))
         # TODO: Extend use of _fields now we have enum labels available?
 
-    def _get_fields(self, blocks: List[str]) -> Dict[str, Dict[str, FieldInfo]]:
+    def _get_fields(self, blocks: list[str]) -> dict[str, dict[str, FieldInfo]]:
         fields = self._client.send(
             [GetFieldInfo(block, extended_metadata=False) for block in blocks],
             timeout=TIMEOUT,
         )
         return dict(zip(blocks, fields))
 
-    def _with_suffixes(self, block: str, numbers: bool) -> List[str]:
+    def _with_suffixes(self, block: str, numbers: bool) -> list[str]:
         block_info = self._blocks[block]
         num = block_info.number
         if numbers and num > 1:
@@ -62,7 +62,7 @@ class BlockCompleter:
         else:
             return [block]
 
-    def _block_field_matches(self, text: str, prefix="") -> List[str]:
+    def _block_field_matches(self, text: str, prefix="") -> list[str]:
         matches = []
         text = text[len(prefix) :]
         split = text.split(".", maxsplit=1)

@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -89,7 +89,7 @@ class ScalarFieldInfo(FieldInfo):
 class TimeFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "time"""
 
-    units_labels: List[str]
+    units_labels: list[str]
     min_val: float
 
 
@@ -98,7 +98,7 @@ class SubtypeTimeFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
     "time"""
 
-    units_labels: List[str]
+    units_labels: list[str]
 
 
 @dataclass
@@ -106,7 +106,7 @@ class EnumFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "param","read", or "write" and subtype
     "enum"""
 
-    labels: List[str]
+    labels: list[str]
 
 
 @dataclass
@@ -122,14 +122,14 @@ class BitMuxFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "bit_mux"""
 
     max_delay: int
-    labels: List[str]
+    labels: list[str]
 
 
 @dataclass
 class PosMuxFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "pos_mux"""
 
-    labels: List[str]
+    labels: list[str]
 
 
 @dataclass
@@ -140,7 +140,7 @@ class TableFieldDetails:
     bit_low: int
     bit_high: int
     description: Optional[str] = None
-    labels: Optional[List[str]] = None
+    labels: Optional[list[str]] = None
 
 
 @dataclass
@@ -148,7 +148,7 @@ class TableFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "table"""
 
     max_length: int
-    fields: Dict[str, TableFieldDetails]
+    fields: dict[str, TableFieldDetails]
     row_words: int
 
 
@@ -156,7 +156,7 @@ class TableFieldInfo(FieldInfo):
 class PosOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "pos_out"""
 
-    capture_labels: List[str]
+    capture_labels: list[str]
 
 
 @dataclass
@@ -164,14 +164,14 @@ class ExtOutFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "ext_out" and subtypes "timestamp"
     or "samples"""
 
-    capture_labels: List[str]
+    capture_labels: list[str]
 
 
 @dataclass
 class ExtOutBitsFieldInfo(ExtOutFieldInfo):
     """Extended `ExtOutFieldInfo` for fields with type "ext_out" and subtype "bits"""
 
-    bits: List[str]
+    bits: list[str]
 
 
 @dataclass
@@ -179,13 +179,13 @@ class Changes:
     """The changes returned from a ``*CHANGES`` command"""
 
     #: Map field -> value for single-line values that were returned
-    values: Dict[str, str]
+    values: dict[str, str]
     #: The fields that were present but without value
-    no_value: List[str]
+    no_value: list[str]
     #: The fields that were in error
-    in_error: List[str]
+    in_error: list[str]
     #: Map field -> value for multi-line values that were returned
-    multiline_values: Dict[str, List[str]]
+    multiline_values: dict[str, list[str]]
 
 
 # Data
@@ -223,21 +223,46 @@ class EndReason(Enum):
 class FieldCapture:
     """Information about a field that is being captured
 
+    If scale, offset, and units are all `None`, then the field is a
+    ``PCAP.BITS``.
+
     Attributes:
         name: Name of captured field
         type: Numpy data type of the field as transmitted
         capture: Value of CAPTURE field used to enable this field
-        scale: Scaling factor, default 1.0
-        offset: Offset, default 0.0
-        units: Units string, default ""
+        scale: Scaling factor
+        offset: Offset
+        units: Units string
     """
 
     name: str
     type: np.dtype
     capture: str
-    scale: float = 1.0
-    offset: float = 0.0
-    units: str = ""
+    scale: Optional[float] = field(default=None)
+    offset: Optional[float] = field(default=None)
+    units: Optional[str] = field(default=None)
+
+    def __post_init__(self):
+        sou = (self.scale, self.offset, self.units)
+        if sou != (None, None, None) and None in sou:
+            raise ValueError(
+                f"If any of `scale={self.scale}`, `offset={self.offset}`"
+                f", or `units={self.units}` is set, all must be set."
+            )
+
+    @property
+    def raw_mode_dataset_dtype(self) -> np.dtype:
+        """We use double for all dtypes that have scale and offset."""
+        if self.scale is not None and self.offset is not None:
+            return np.dtype("float64")
+        return self.type
+
+    @property
+    def has_scale_or_offset(self) -> bool:
+        """Return True if this field is a PCAP.BITS or PCAP.SAMPLES field"""
+        return (self.scale is not None and self.offset is not None) and (
+            self.scale != 1 or self.offset != 0
+        )
 
 
 class Data:
@@ -261,7 +286,7 @@ class StartData(Data):
         sample_bytes: Number of bytes in one sample
     """
 
-    fields: List[FieldCapture]
+    fields: list[FieldCapture]
     missed: int
     process: str
     format: str
@@ -289,8 +314,8 @@ class FrameData(Data):
         ...       (2, 12)],
         ...      dtype=[('COUNTER1.OUT.Value', '<f8'), ('COUNTER2.OUT.Value', '<f8')])
         >>> fdata = FrameData(data)
-        >>> fdata.data[0] # Row view
-        (0., 10.)
+        >>> (fdata.data[0]['COUNTER1.OUT.Value'], fdata.data[0]['COUNTER2.OUT.Value'])
+        (np.float64(0.0), np.float64(10.0))
         >>> fdata.column_names # Column names
         ('COUNTER1.OUT.Value', 'COUNTER2.OUT.Value')
         >>> fdata.data['COUNTER1.OUT.Value'] # Column view
@@ -300,7 +325,7 @@ class FrameData(Data):
     data: np.ndarray
 
     @property
-    def column_names(self) -> Tuple[str, ...]:
+    def column_names(self) -> tuple[str, ...]:
         """Return all the column names"""
         names = self.data.dtype.names
         assert names, f"No column names for {self.data.dtype}"

@@ -1,7 +1,8 @@
 import logging
 import queue
 import threading
-from typing import Any, Callable, Dict, Iterator, List, Optional, Type
+from collections.abc import Iterator
+from typing import Any, Callable, Optional
 
 import h5py
 import numpy as np
@@ -44,7 +45,7 @@ class Pipeline(threading.Thread):
 
     #: Subclasses should create this dictionary with handlers for each data
     #: type, returning transformed data that should be passed downstream
-    what_to_do: Dict[Type, Callable]
+    what_to_do: dict[type, Callable]
     downstream: Optional["Pipeline"] = None
 
     def __init__(self):
@@ -95,12 +96,12 @@ class HDFWriter(Pipeline):
     def __init__(
         self,
         file_names: Iterator[str],
-        capture_record_hdf_names: Dict[str, Dict[str, str]],
+        capture_record_hdf_names: dict[str, dict[str, str]],
     ):
         super().__init__()
         self.file_names = file_names
         self.hdf_file: Optional[h5py.File] = None
-        self.datasets: List[h5py.Dataset] = []
+        self.datasets: list[h5py.Dataset] = []
         self.capture_record_hdf_names = capture_record_hdf_names
         self.what_to_do = {
             StartData: self.open_file,
@@ -111,15 +112,12 @@ class HDFWriter(Pipeline):
     def create_dataset(self, field: FieldCapture, raw: bool):
         # Data written in a big stack, growing in that dimension
         assert self.hdf_file, "File not open yet"
-        if raw and (field.capture == "Mean" or field.scale != 1 or field.offset != 0):
-            # Processor outputs a float
-            dtype = np.dtype("float64")
-        else:
-            # No processor, datatype passed through
-            dtype = field.type
+
         dataset_name = self.capture_record_hdf_names.get(field.name, {}).get(
             field.capture, f"{field.name}.{field.capture}"
         )
+
+        dtype = field.raw_mode_dataset_dtype if raw else field.type
 
         return self.hdf_file.create_dataset(
             f"/{dataset_name}",
@@ -154,7 +152,7 @@ class HDFWriter(Pipeline):
             f"stored in {len(self.datasets)} datasets"
         )
 
-    def write_frame(self, data: List[np.ndarray]):
+    def write_frame(self, data: list[np.ndarray]):
         for dataset, column in zip(self.datasets, data):
             # Append to the end, flush when done
             written = dataset.shape[0]
@@ -181,7 +179,7 @@ class FrameProcessor(Pipeline):
 
     def __init__(self) -> None:
         super().__init__()
-        self.processors: List[Callable] = []
+        self.processors: list[Callable] = []
         self.what_to_do = {
             StartData: self.create_processors,
             FrameData: self.scale_data,
@@ -201,7 +199,7 @@ class FrameProcessor(Pipeline):
                 return (data[column_name] * field.scale / gate_duration) + field.offset
 
             return mean_callable
-        elif raw and (field.scale != 1 or field.offset != 0):
+        elif raw and field.has_scale_or_offset:
             return lambda data: data[column_name] * field.scale + field.offset
         else:
             return lambda data: data[column_name]
@@ -211,15 +209,15 @@ class FrameProcessor(Pipeline):
         self.processors = [self.create_processor(field, raw) for field in data.fields]
         return data
 
-    def scale_data(self, data: FrameData) -> List[np.ndarray]:
+    def scale_data(self, data: FrameData) -> list[np.ndarray]:
         return [process(data.data) for process in self.processors]
 
 
 def create_default_pipeline(
     file_names: Iterator[str],
-    capture_record_hdf_names: Dict[str, Dict[str, str]],
+    capture_record_hdf_names: dict[str, dict[str, str]],
     *additional_downstream_pipelines: Pipeline,
-) -> List[Pipeline]:
+) -> list[Pipeline]:
     """Create the default processing pipeline consisting of one `FrameProcessor` and
     one `HDFWriter`. See `create_pipeline` for more details.
 
@@ -240,10 +238,10 @@ def create_default_pipeline(
     )
 
 
-def create_pipeline(*elements: Pipeline) -> List[Pipeline]:
+def create_pipeline(*elements: Pipeline) -> list[Pipeline]:
     """Create a pipeline of elements, wiring them and starting them before
     returning them"""
-    pipeline: List[Pipeline] = []
+    pipeline: list[Pipeline] = []
     for element in elements:
         if pipeline:
             pipeline[-1].downstream = element
@@ -252,7 +250,7 @@ def create_pipeline(*elements: Pipeline) -> List[Pipeline]:
     return pipeline
 
 
-def stop_pipeline(pipeline: List[Pipeline]):
+def stop_pipeline(pipeline: list[Pipeline]):
     """Stop and join each element of the pipeline"""
     for element in pipeline:
         # Note that we stop and join each element in turn.
@@ -289,7 +287,7 @@ async def write_hdf_files(
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
-            if type(data) == EndData:
+            if isinstance(data, EndData):
                 end_data = data
                 counter += 1
                 if counter == num:

@@ -2,8 +2,9 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 from collections import deque
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Callable, Deque, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import numpy as np
 
@@ -153,11 +154,11 @@ class ControlConnection:
 
     def __init__(self) -> None:
         self._buf = Buffer()
-        self._lines: List[str] = []
-        self._contexts: Deque[_ExchangeContext] = deque()
-        self._responses: Deque[Tuple[Command, Any]] = deque()
+        self._lines: list[str] = []
+        self._contexts: deque[_ExchangeContext] = deque()
+        self._responses: deque[tuple[Command, Any]] = deque()
 
-    def _update_contexts(self, lines: List[str], is_multiline=False) -> bytes:
+    def _update_contexts(self, lines: list[str], is_multiline=False) -> bytes:
         to_send = b""
         if len(self._contexts) == 0:
             raise NoContextAvailable()
@@ -234,7 +235,7 @@ class ControlConnection:
                 to_send += self._update_contexts([line])
         return to_send
 
-    def responses(self) -> Iterator[Tuple[Command, Any]]:
+    def responses(self) -> Iterator[tuple[Command, Any]]:
         """Get the (command, response) tuples generated as part of the last
         receive_bytes"""
         while self._responses:
@@ -303,15 +304,22 @@ class DataConnection:
         if line == b"</header>":
             fields = []
             root = ET.fromstring(self._header)
+
             for field in root.find("fields"):
                 fields.append(
                     FieldCapture(
                         name=str(field.get("name")),
                         type=np.dtype(field.get("type")),
                         capture=str(field.get("capture")),
-                        scale=float(field.get("scale", 1)),
-                        offset=float(field.get("offset", 0)),
-                        units=str(field.get("units", "")),
+                        scale=float(scale)
+                        if (scale := field.get("scale")) is not None
+                        else None,
+                        offset=float(offset)
+                        if (offset := field.get("offset")) is not None
+                        else None,
+                        units=str(units)
+                        if (units := field.get("units")) is not None
+                        else None,
                     )
                 )
             data = root.find("data")
@@ -323,7 +331,14 @@ class DataConnection:
                 name, capture = SAMPLES_FIELD.rsplit(".", maxsplit=1)
                 fields.insert(
                     0,
-                    FieldCapture(name, np.dtype("uint32"), capture),
+                    FieldCapture(
+                        name=name,
+                        type=np.dtype("uint32"),
+                        capture=capture,
+                        scale=None,
+                        offset=None,
+                        units=None,
+                    ),
                 )
             self._frame_dtype = np.dtype(
                 [(f"{f.name}.{f.capture}", f.type) for f in fields]

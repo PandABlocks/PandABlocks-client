@@ -61,6 +61,84 @@ def test_pipeline_returns_number_written(tmp_path):
         stop_pipeline(pipeline)
 
 
+def test_field_capture_pcap_bits():
+    pcap_bits_frame_data = FieldCapture(
+        name="PCAP.BITS",
+        type=np.dtype("uint32"),
+        capture="Value",
+        scale=None,
+        offset=None,
+        units=None,
+    )
+
+    assert not pcap_bits_frame_data.has_scale_or_offset
+    assert pcap_bits_frame_data.raw_mode_dataset_dtype is np.dtype("uint32")
+
+    frame_data_without_scale_offset = FieldCapture(
+        name="frame_data_without_scale_offset",
+        type=np.dtype("uint32"),
+        capture="Value",
+        scale=1.0,
+        offset=0.0,
+        units="",
+    )
+
+    assert not frame_data_without_scale_offset.has_scale_or_offset
+    assert frame_data_without_scale_offset.raw_mode_dataset_dtype is np.dtype("float64")
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "If any of `scale=None`, `offset=0.0`, or "
+            "`units=` is set, all must be set"
+        ),
+    ):
+        _ = FieldCapture(
+            name="malformed_frame_data",
+            type=np.dtype("uint32"),
+            capture="Value",
+            scale=None,
+            offset=0.0,
+            units="",
+        )
+
+    frame_data_with_offset = FieldCapture(
+        name="frame_data_with_offset",
+        type=np.dtype("float64"),
+        capture="Value",
+        scale=1.0,
+        offset=1.0,
+        units="",
+    )
+    frame_data_with_scale = FieldCapture(
+        name="frame_data_with_scale",
+        type=np.dtype("float64"),
+        capture="Value",
+        scale=1.1,
+        offset=0.0,
+        units="",
+    )
+
+    assert frame_data_with_offset.has_scale_or_offset
+    assert frame_data_with_offset.raw_mode_dataset_dtype is np.dtype("float64")
+    assert frame_data_with_scale.has_scale_or_offset
+    assert frame_data_with_scale.raw_mode_dataset_dtype is np.dtype("float64")
+
+    frame_data_with_scale_and_offset = FieldCapture(
+        name="frame_data_with_scale_and_offset",
+        type=np.dtype("float64"),
+        capture="Value",
+        scale=1.1,
+        offset=0.0,
+        units="",
+    )
+
+    assert frame_data_with_scale_and_offset.has_scale_or_offset
+    assert frame_data_with_scale_and_offset.raw_mode_dataset_dtype is np.dtype(
+        "float64"
+    )
+
+
 @pytest.mark.parametrize(
     "capture_record_hdf_names,expected_names",
     [

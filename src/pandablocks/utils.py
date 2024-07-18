@@ -1,4 +1,5 @@
-from typing import Dict, Iterable, List, Union, cast
+from collections.abc import Iterable
+from typing import Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -10,7 +11,7 @@ UnpackedArray = Union[
     npt.NDArray[np.uint16],
     npt.NDArray[np.int32],
     npt.NDArray[np.uint32],
-    List[str],
+    list[str],
 ]
 
 
@@ -18,7 +19,7 @@ def words_to_table(
     words: Iterable[str],
     table_field_info: TableFieldInfo,
     convert_enum_indices: bool = False,
-) -> Dict[str, UnpackedArray]:
+) -> dict[str, UnpackedArray]:
     """Unpacks the given `packed` data based on the fields provided.
     Returns the unpacked data in {column_name: column_data} column-indexed format
 
@@ -41,7 +42,7 @@ def words_to_table(
     data = data.reshape(len(data) // row_words, row_words)
     packed = data.T
 
-    unpacked: Dict[str, UnpackedArray] = {}
+    unpacked: dict[str, UnpackedArray] = {}
 
     for field_name, field_info in table_field_info.fields.items():
         offset = field_info.bit_low
@@ -62,7 +63,9 @@ def words_to_table(
 
         if field_info.subtype == "int":
             # First convert from 2's complement to offset, then add in offset.
-            temp = (value ^ (1 << (bit_length - 1))) + (-1 << (bit_length - 1))
+            temp = (value.astype(np.int64) ^ (1 << (bit_length - 1))) + (
+                -1 << (bit_length - 1)
+            )
             packing_value = temp.astype(np.int32)
         elif field_info.subtype == "enum" and convert_enum_indices:
             assert field_info.labels, f"Enum field {field_name} has no labels"
@@ -82,8 +85,8 @@ def words_to_table(
 
 
 def table_to_words(
-    table: Dict[str, UnpackedArray], table_field_info: TableFieldInfo
-) -> List[str]:
+    table: dict[str, UnpackedArray], table_field_info: TableFieldInfo
+) -> list[str]:
     """Convert records based on the field definitions into the format PandA expects
     for table writes.
 
@@ -93,7 +96,7 @@ def table_to_words(
         table_field_info: The info for tables, containing the dict `fields` for
             information on each field, and the number of words per row.
     Returns:
-        List[str]: The list of data ready to be sent to PandA
+        list[str]: The list of data ready to be sent to PandA
     """
     row_words = table_field_info.row_words
 

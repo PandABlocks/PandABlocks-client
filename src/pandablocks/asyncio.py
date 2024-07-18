@@ -1,8 +1,9 @@
 import asyncio
 import logging
 from asyncio.streams import StreamReader, StreamWriter
+from collections.abc import AsyncGenerator, Iterable
 from contextlib import suppress
-from typing import AsyncGenerator, Dict, Iterable, Optional
+from typing import Optional
 
 from .commands import Command, T
 from .connections import ControlConnection, DataConnection
@@ -67,7 +68,7 @@ class AsyncioClient:
         self._host = host
         self._ctrl_connection = ControlConnection()
         self._ctrl_task: Optional[asyncio.Task] = None
-        self._ctrl_queues: Dict[int, asyncio.Queue] = {}
+        self._ctrl_queues: dict[int, asyncio.Queue] = {}
         self._ctrl_stream = _StreamHelper()
 
     async def connect(self):

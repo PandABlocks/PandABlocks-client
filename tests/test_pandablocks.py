@@ -1,4 +1,5 @@
-from typing import Iterator, OrderedDict
+from collections import OrderedDict
+from collections.abc import Iterator
 
 import pytest
 
