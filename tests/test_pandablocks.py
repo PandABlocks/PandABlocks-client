@@ -83,7 +83,10 @@ def test_get_line_error_when_multiline():
     assert get_responses(conn, b"!ACTIVE 5 bit_out\n.\n") == [
         (
             cmd,
-            ACommandException("GetLine(field='PCAP.ACTIVE') ->\n    ACTIVE 5 bit_out"),
+            ACommandException(
+                "GetLine(field='PCAP.ACTIVE') raised error:\n"
+                "AssertionError: 'PCAP.ACTIVE?' -> '!ACTIVE 5 bit_out\\n.'"
+            ),
         )
     ]
 
@@ -95,7 +98,10 @@ def test_get_line_error_no_ok():
     assert get_responses(conn, b"NOT OK\n") == [
         (
             cmd,
-            ACommandException("GetLine(field='PCAP.ACTIVE') -> NOT OK"),
+            ACommandException(
+                "GetLine(field='PCAP.ACTIVE') raised error:\n"
+                "AssertionError: 'PCAP.ACTIVE?' -> 'NOT OK'"
+            ),
         )
     ]
 
@@ -117,7 +123,10 @@ def test_get_multiline_error_when_single_line():
     assert get_responses(conn, b"1\n") == [
         (
             cmd,
-            ACommandException("GetMultiline(field='PCAP.*') -> 1"),
+            ACommandException(
+                "GetMultiline(field='PCAP.*') raised error:\n"
+                "AssertionError: 'PCAP.*?' -> '1'"
+            ),
         )
     ]
 
@@ -143,7 +152,8 @@ def test_put_fails_with_single_line_exception():
         (
             cmd,
             ACommandException(
-                "Put(field='PCAP.blah', value='something') -> ERR No such field"
+                "Put(field='PCAP.blah', value='something') raised error:\n"
+                "AssertionError: 'PCAP.blah=something' -> 'ERR No such field'"
             ),
         )
     ]
@@ -157,11 +167,9 @@ def test_put_fails_with_multiline_exception():
         (
             cmd,
             ACommandException(
-                """\
-Put(field='PCAP.blah', value='something') ->
-    This is bad
-    Very bad
-    Don't do this"""
+                "Put(field='PCAP.blah', value='something') raised error:\n"
+                "AssertionError: 'PCAP.blah=something' -> "
+                '"!This is bad\\n!Very bad\\n!Don\'t do this\\n."'
             ),
         )
     ]
@@ -267,7 +275,8 @@ def test_get_block_info_error():
         (
             cmd,
             ACommandException(
-                "GetBlockInfo(skip_description=False) -> ERR Cannot read blocks"
+                "GetBlockInfo(skip_description=False) raised error:\n"
+                "AssertionError: '*BLOCKS?' -> 'ERR Cannot read blocks'"
             ),
         )
     ]
@@ -291,7 +300,8 @@ def test_get_block_info_desc_err():
         (
             cmd,
             ACommandException(
-                "GetBlockInfo(skip_description=False) -> ERR could not get description"
+                "GetBlockInfo(skip_description=False) raised error:\n"
+                "AssertionError: '*DESC.PCAP?' -> 'ERR could not get description'"
             ),
         )
     ]
@@ -416,7 +426,8 @@ def test_get_fields_non_existant_block():
         (
             cmd,
             ACommandException(
-                "GetFieldInfo(block='FOO', extended_metadata=True) -> ERR No such block"
+                "GetFieldInfo(block='FOO', extended_metadata=True) raised error:\n"
+                "AssertionError: 'FOO.*?' -> 'ERR No such block'"
             ),
         )
     ]

@@ -27,7 +27,10 @@ async def test_asyncio_bad_put_raises(dummy_server_async):
     async with AsyncioClient("localhost") as client:
         with pytest.raises(CommandException) as cm:
             await asyncio.wait_for(client.send(Put("PCAP.thing", 1)), timeout=1)
-        assert str(cm.value) == "Put(field='PCAP.thing', value=1) -> ERR no such field"
+        assert (
+            str(cm.value) == "Put(field='PCAP.thing', value=1) raised error:\n"
+            "AssertionError: 'PCAP.thing=1' -> 'ERR no such field'"
+        )
     assert dummy_server_async.received == ["PCAP.thing=1"]
 
 
