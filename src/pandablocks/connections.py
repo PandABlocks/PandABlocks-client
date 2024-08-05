@@ -120,16 +120,7 @@ class _ExchangeContext:
     generator: Optional[ExchangeGenerator[Any]] = None
 
     def exception(self, e: Exception) -> CommandException:
-        """Return a `CommandException` with the sent and received strings
-        in the text"""
-        msg = f"{self.command} ->"
-        if self.exchange.is_multiline:
-            for line in self.exchange.multiline:
-                msg += "\n    " + line
-        else:
-            msg += " " + self.exchange.line
-        if e.args:
-            msg += f"\n{type(e).__name__}:{e}"
+        msg = f"{self.command} raised error:\n{type(e).__name__}: {e}"
         return CommandException(msg).with_traceback(e.__traceback__)
 
 

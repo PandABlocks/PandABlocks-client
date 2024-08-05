@@ -207,10 +207,7 @@ class Get(Command[Union[str, list[str]]]):
         if ex.is_multiline:
             return ex.multiline
         else:
-            # We got OK =value
-            line = ex.line
-            assert line.startswith("OK =")
-            return line[4:]
+            return ex.line
 
 
 @dataclass
@@ -232,10 +229,7 @@ class GetLine(Command[str]):
     def execute(self) -> ExchangeGenerator[str]:
         ex = Exchange(f"{self.field}?")
         yield ex
-        # Expect "OK =value"
-        line = ex.line
-        assert line.startswith("OK =")
-        return line[4:]
+        return ex.line
 
 
 @dataclass
@@ -285,7 +279,7 @@ class Put(Command[None]):
         else:
             ex = Exchange(f"{self.field}={self.value}")
         yield ex
-        assert ex.line == "OK"
+        ex.check_ok()
 
 
 @dataclass
@@ -308,7 +302,7 @@ class Append(Command[None]):
         # Multiline table with blank line to terminate
         ex = Exchange([f"{self.field}<<"] + self.value + [""])
         yield ex
-        assert ex.line == "OK"
+        ex.check_ok()
 
 
 class Arm(Command[None]):
@@ -317,7 +311,7 @@ class Arm(Command[None]):
     def execute(self) -> ExchangeGenerator[None]:
         ex = Exchange("*PCAP.ARM=")
         yield ex
-        assert ex.line == "OK"
+        ex.check_ok()
 
 
 class Disarm(Command[None]):
@@ -326,7 +320,7 @@ class Disarm(Command[None]):
     def execute(self) -> ExchangeGenerator[None]:
         ex = Exchange("*PCAP.DISARM=")
         yield ex
-        assert ex.line == "OK"
+        ex.check_ok()
 
 
 @dataclass
