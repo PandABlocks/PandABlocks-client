@@ -752,14 +752,12 @@ def idfn(val):
             None,
             [
                 ("*ENUMS.TEST.TEST_FIELD.UNITS?", "!VAL1\n!VAL2\n."),
-                ("TEST1.TEST_FIELD.MIN?", "OK =5e-8"),
                 ("*DESC.TEST.TEST_FIELD?", "OK =Test Description"),
             ],
             TimeFieldInfo(
                 "time",
                 None,
                 units_labels=["VAL1", "VAL2"],
-                min_val=5e-8,
                 description="Test Description",
             ),
         ),
