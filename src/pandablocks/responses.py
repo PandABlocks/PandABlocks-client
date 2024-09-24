@@ -90,7 +90,6 @@ class TimeFieldInfo(FieldInfo):
     """Extended `FieldInfo` for fields with type "time"""
 
     units_labels: list[str]
-    min_val: float
 
 
 @dataclass

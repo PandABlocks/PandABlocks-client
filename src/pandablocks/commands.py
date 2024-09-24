@@ -510,13 +510,12 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
     def _time(
         self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
-        desc, units, min = yield from _execute_commands(
+        desc, units = yield from _execute_commands(
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
-            GetLine(f"{self.block}1.{field_name}.MIN"),
         )
 
-        field_info = TimeFieldInfo(field_type, field_subtype, desc, units, float(min))
+        field_info = TimeFieldInfo(field_type, field_subtype, desc, units)
 
         return field_name, field_info
 
