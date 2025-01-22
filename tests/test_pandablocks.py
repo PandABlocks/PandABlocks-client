@@ -897,9 +897,9 @@ def test_get_fields_parameterized_type(
         expected_requests.pop(idx)
         responses.pop(idx)
 
-    assert (
-        not expected_requests
-    ), f"Did not receive all expected requests: {expected_requests}"
+    assert not expected_requests, (
+        f"Did not receive all expected requests: {expected_requests}"
+    )
 
     assert get_responses(conn) == [
         (
