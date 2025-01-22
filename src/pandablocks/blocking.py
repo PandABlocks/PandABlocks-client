@@ -103,7 +103,7 @@ class BlockingClient:
                 to_send = self._ctrl_connection.receive_bytes(received)
                 s.sendall(to_send)
                 for command, response in self._ctrl_connection.responses():
-                    assert cr[id(command)] is ..., "Already got response for {command}"
+                    assert cr[id(command)] is ..., f"Already got response for {command}"
                     cr[id(command)] = response
         responses = list(cr.values())
         for response in responses:
