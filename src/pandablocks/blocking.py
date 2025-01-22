@@ -1,5 +1,6 @@
 import socket
 from collections.abc import Iterable, Iterator
+from threading import Lock
 from typing import Optional, Union, overload
 
 from .commands import Command, T
@@ -48,6 +49,7 @@ class BlockingClient:
         self._host = host
         self._ctrl_connection = ControlConnection()
         self._ctrl_socket = _SocketHelper()
+        self._ctrl_socket_lock = Lock()
 
     def connect(self):
         """Connect to the control port, and be ready to handle commands"""
@@ -84,24 +86,25 @@ class BlockingClient:
                 return a list of reponses
             timeout: If no reponse in this time, raise `socket.timeout`
         """
-        s = self._ctrl_socket.socket
-        s.settimeout(timeout)
-        if isinstance(commands, Command):
-            commands = [commands]
-        else:
-            commands = list(commands)
-        for command in commands:
-            to_send = self._ctrl_connection.send(command)
-            s.sendall(to_send)
-        # Rely on dicts being ordered, Ellipsis is shorthand for "no response yet"
-        cr = {id(command): ... for command in commands}
-        while ... in cr.values():
-            received = s.recv(4096)
-            to_send = self._ctrl_connection.receive_bytes(received)
-            s.sendall(to_send)
-            for command, response in self._ctrl_connection.responses():
-                assert cr[id(command)] is ..., "Already got response for {command}"
-                cr[id(command)] = response
+        with self._ctrl_socket_lock:
+            s = self._ctrl_socket.socket
+            s.settimeout(timeout)
+            if isinstance(commands, Command):
+                commands = [commands]
+            else:
+                commands = list(commands)
+            for command in commands:
+                to_send = self._ctrl_connection.send(command)
+                s.sendall(to_send)
+            # Rely on dicts being ordered, Ellipsis is shorthand for "no response yet"
+            cr = {id(command): ... for command in commands}
+            while ... in cr.values():
+                received = s.recv(4096)
+                to_send = self._ctrl_connection.receive_bytes(received)
+                s.sendall(to_send)
+                for command, response in self._ctrl_connection.responses():
+                    assert cr[id(command)] is ..., "Already got response for {command}"
+                    cr[id(command)] = response
         responses = list(cr.values())
         for response in responses:
             if isinstance(response, Exception):
