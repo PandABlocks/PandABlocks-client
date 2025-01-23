@@ -215,14 +215,14 @@ class ControlConnection:
                     is_multiline = False
                 else:
                     # Check a correctly formatted response
-                    assert line.startswith(
-                        "!"
-                    ), f"Multiline response {line} doesn't start with !"
+                    assert line.startswith("!"), (
+                        f"Multiline response {line} doesn't start with !"
+                    )
             else:
                 # Single line mode
-                assert (
-                    not self._lines
-                ), f"Multiline response {self._lines} not terminated"
+                assert not self._lines, (
+                    f"Multiline response {self._lines} not terminated"
+                )
                 to_send += self._update_contexts([line])
         return to_send
 

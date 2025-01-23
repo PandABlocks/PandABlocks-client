@@ -89,8 +89,7 @@ def test_field_capture_pcap_bits():
     with pytest.raises(
         ValueError,
         match=(
-            "If any of `scale=None`, `offset=0.0`, or "
-            "`units=` is set, all must be set"
+            "If any of `scale=None`, `offset=0.0`, or `units=` is set, all must be set"
         ),
     ):
         _ = FieldCapture(

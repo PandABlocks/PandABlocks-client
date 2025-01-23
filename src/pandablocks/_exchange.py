@@ -27,9 +27,9 @@ class Exchange:
     @property
     def line(self) -> str:
         """Check received is not multiline and return the line"""
-        assert not self.is_multiline and self.received[0].startswith(
-            "OK ="
-        ), self._error_message()
+        assert not self.is_multiline and self.received[0].startswith("OK ="), (
+            self._error_message()
+        )
         # Remove the OK= header
         return self.received[0][4:]
 
