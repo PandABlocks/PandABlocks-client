@@ -3,54 +3,48 @@ requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pandablocks"
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: Apache Software License",
-<<<<<<< before updating
-    "Programming Language :: Python :: 3.9",
-=======
->>>>>>> after updating
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
+
+name = "pandablocks"
 description = "A Python client to control and data ports of the PandABlocks TCP server"
 dependencies = ["typing-extensions;python_version<'3.8'", "numpy", "click"]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
-<<<<<<< before updating
 requires-python = ">=3.9"
-=======
-requires-python = ">=3.10"
->>>>>>> after updating
 
 [project.optional-dependencies]
 h5py = ["h5py", "matplotlib"]
 dev = [
-    # A dev install will require [h5py] packages too
-    "pandablocks[h5py]",
-    "mypy",
-    "mock",
-    "types-mock",
-    "atomicwrites",
-    "typed-ast",
-    "copier",
-    "mypy",
-    "myst-parser",
-    "pipdeptree",
-    "pre-commit",
-    "pydata-sphinx-theme>=0.12",
-    "pytest",
-    "pytest-cov",
-    "pytest-asyncio",
-    "ruff",
-    "sphinx-autobuild",
-    "sphinx-copybutton",
-    "sphinx-design",
-    "tox-direct",
-    "types-mock",
+  # A dev install will require [h5py] packages too
+  "pandablocks[h5py]",
+  "mypy",
+  "mock",
+  "types-mock",
+  "atomicwrites",
+  "typed-ast",
+  "copier",
+  "mypy",
+  "myst-parser",
+  "pipdeptree",
+  "pre-commit",
+  "pydata-sphinx-theme>=0.12",
+  "pytest",
+  "pytest-cov",
+  "pytest-asyncio",
+  "ruff",
+  "sphinx-autobuild",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "tox-direct",
+  "types-mock",
 ]
 
 [project.scripts]
@@ -104,11 +98,6 @@ allowlist_externals =
     sphinx-build
     sphinx-autobuild
 commands =
-<<<<<<< before updating
-    pytest: pytest --cov=src/pandablocks --cov-report term --cov-report xml:cov.xml {posargs}
-    mypy: mypy src tests {posargs}
-=======
->>>>>>> after updating
     pre-commit: pre-commit run --all-files --show-diff-on-failure {posargs}
     type-checking: mypy src tests {posargs}
     tests: pytest --cov=pandablocks --cov-report term --cov-report xml:cov.xml {posargs}
@@ -119,14 +108,14 @@ commands =
 src = ["src", "tests"]
 line-length = 88
 lint.select = [
-    "B",   # flake8-bugbear - https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
-    "C4",  # flake8-comprehensions - https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
-    "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
-    "F",   # pyflakes rules - https://docs.astral.sh/ruff/rules/#pyflakes-f
-    "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#warning-w
-    "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
-    "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
-    "SLF", # self - https://docs.astral.sh/ruff/settings/#lintflake8-self
+  "B",   # flake8-bugbear - https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+  "C4",  # flake8-comprehensions - https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+  "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+  "F",   # pyflakes rules - https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#warning-w
+  "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
+  "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "SLF", # self - https://docs.astral.sh/ruff/settings/#lintflake8-self
 ]
 
 [tool.ruff.lint.per-file-ignores]

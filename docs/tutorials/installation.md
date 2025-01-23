@@ -2,15 +2,10 @@
 
 ## Check your version of python
 
-<<<<<<< before updating
-You will need python 3.7 or later. You can check your version of python by
-=======
-You will need python 3.10 or later. You can check your version of python by
->>>>>>> after updating
-typing into a terminal:
+You will need python 3.9 or later. You can check your version of python by typing into a terminal:
 
 ```
-$ python3 --version
+python3 --version
 ```
 
 ## Create a virtual environment
@@ -19,8 +14,8 @@ It is recommended that you install into a “virtual environment” so this
 installation will not interfere with any existing Python software:
 
 ```
-$ python3 -m venv /path/to/venv
-$ source /path/to/venv/bin/activate
+python3 -m venv /path/to/venv
+source /path/to/venv/bin/activate
 ```
 
 ## Installing the library
@@ -28,25 +23,25 @@ $ source /path/to/venv/bin/activate
 You can now use `pip` to install the library and its dependencies:
 
 ```
-$ python3 -m pip install pandablocks
+python3 -m pip install pandablocks
 ```
 
 If you need to write HDF files you should install the hdf5 extra:
 
 ```
-$ python3 -m pip install pandablocks[hdf5]
+python3 -m pip install pandablocks[hdf5]
 ```
 
 If you require a feature that is not currently released you can also install
 from github:
 
 ```
-$ python3 -m pip install git+https://github.com/PandABlocks/PandABlocks-client.git
+python3 -m pip install git+https://github.com/PandABlocks/PandABlocks-client.git
 ```
 
 The library should now be installed and the commandline interface on your path.
 You can check the version that has been installed by typing:
 
 ```
-$ PandABlocks-client --version
+PandABlocks-client --version
 ```
