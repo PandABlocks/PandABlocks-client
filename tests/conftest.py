@@ -1,10 +1,14 @@
 import asyncio
 import os
+<<<<<<< before updating
 import threading
 from collections import deque
 from collections.abc import Iterable, Iterator
 from io import BufferedReader
 from pathlib import Path
+=======
+from typing import Any
+>>>>>>> after updating
 
 import numpy as np
 import pytest
@@ -20,6 +24,7 @@ from pandablocks.responses import (
     StartData,
 )
 
+<<<<<<< before updating
 
 def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
     data = f.read(size)
@@ -394,3 +399,17 @@ STATE_SAVEFILE = [
     "multimetadata2",
     "",
 ]
+=======
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_exception_interact(call: pytest.CallInfo[Any]):
+        if call.excinfo is not None:
+            raise call.excinfo.value
+        else:
+            raise RuntimeError(
+                f"{call} has no exception data, an unknown error has occurred"
+            )
+
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_internalerror(excinfo: pytest.ExceptionInfo[Any]):
+        raise excinfo.value
+>>>>>>> after updating
