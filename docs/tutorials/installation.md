@@ -2,7 +2,11 @@
 
 ## Check your version of python
 
+<<<<<<< before updating
 You will need python 3.7 or later. You can check your version of python by
+=======
+You will need python 3.10 or later. You can check your version of python by
+>>>>>>> after updating
 typing into a terminal:
 
 ```

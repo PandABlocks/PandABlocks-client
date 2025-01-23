@@ -1,12 +1,21 @@
+"""Make switcher.json to allow docs to switch between different versions."""
+
 import json
 import logging
 from argparse import ArgumentParser
 from pathlib import Path
 from subprocess import CalledProcessError, check_output
+<<<<<<< before updating
 from typing import Optional
 
 
 def report_output(stdout: bytes, label: str) -> list[str]:
+=======
+
+
+def report_output(stdout: bytes, label: str) -> list[str]:
+    """Print and return something received frm stdout."""
+>>>>>>> after updating
     ret = stdout.decode().strip().split("\n")
     print(f"{label}: {ret}")
     return ret
@@ -24,7 +33,11 @@ def get_sorted_tags_list() -> list[str]:
     return report_output(stdout, "Tags list")
 
 
+<<<<<<< before updating
 def get_versions(ref: str, add: Optional[str]) -> list[str]:
+=======
+def get_versions(ref: str, add: str | None) -> list[str]:
+>>>>>>> after updating
     """Generate the file containing the list of all GitHub Pages builds."""
     # Get the directories (i.e. builds) from the GitHub Pages branch
     try:
@@ -53,7 +66,8 @@ def get_versions(ref: str, add: Optional[str]) -> list[str]:
     return versions
 
 
-def write_json(path: Path, repository: str, versions: str):
+def write_json(path: Path, repository: str, versions: list[str]):
+    """Write the JSON switcher to path."""
     org, repo_name = repository.split("/")
     struct = [
         {"version": version, "url": f"https://{org}.github.io/{repo_name}/{version}/"}
@@ -65,6 +79,7 @@ def write_json(path: Path, repository: str, versions: str):
 
 
 def main(args=None):
+    """Parse args and write switcher."""
     parser = ArgumentParser(
         description="Make a versions.json file from gh-pages directories"
     )
