@@ -168,15 +168,9 @@ if not switcher_exists:
 # 2. Existing project with latest copier template, switcher exists and works
 # 3. Existing project with old copier template that makes broken switcher,
 #    switcher exists but is broken
-<<<<<<< before updating
-# Point 3 makes checking switcher difficult, because the updated skeleton
-# will fix the switcher at the end of the docs workflow, but never gets a
-# chance to complete as the docs build warns and fails.
-=======
 # Point 3 makes checking switcher difficult, because the updated copier template
 # will fix the switcher at the end of the docs workflow, but never gets a chance
 # to complete as the docs build warns and fails.
->>>>>>> after updating
 html_theme_options = {
     "logo": {
         "text": project,

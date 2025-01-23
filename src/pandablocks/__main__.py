@@ -1,9 +1,6 @@
-<<<<<<< before updating
-from pandablocks.cli import cli
 
 # test with:
 #     pipenv run python -m pandablocks
-=======
 """Interface for ``python -m pandablocks``."""
 
 from argparse import ArgumentParser
@@ -24,8 +21,3 @@ def main(args: Sequence[str] | None = None) -> None:
         version=__version__,
     )
     parser.parse_args(args)
-
-
->>>>>>> after updating
-if __name__ == "__main__":
-    cli()
