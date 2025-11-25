@@ -7,7 +7,7 @@ from typing import Any, Callable, Optional
 import h5py
 import numpy as np
 
-from pandablocks.commands import Arm
+from pandablocks.commands import Arm, Disarm
 
 from .asyncio import AsyncioClient
 from .connections import GATE_DURATION_FIELD, SAMPLES_FIELD
@@ -284,6 +284,10 @@ async def write_hdf_files(
 
     end_data = None
     pipeline = create_default_pipeline(file_names, {})
+
+    if arm:
+        await client.send(Disarm())
+
     try:
         async for data in client.data(scaled=False, flush_period=flush_period):
             pipeline[0].queue.put_nowait(data)
