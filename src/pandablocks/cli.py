@@ -2,29 +2,17 @@ import asyncio
 import io
 import logging
 import pathlib
-from collections.abc import Awaitable
 
 import click
 from click.exceptions import ClickException
 
 from pandablocks._control import interactive_control
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import GetState, SetState, T
+from pandablocks.commands import GetState, SetState
 
 # Default prompt
 PROMPT = "< "
 TUTORIAL = pathlib.Path(__file__).parent / "saves" / "tutorial.sav"
-
-
-def asyncio_run(coro: Awaitable[T]) -> T:
-    loop = asyncio.get_event_loop()
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        to_cancel = asyncio.tasks.all_tasks(loop)
-        for task in to_cancel:
-            task.cancel()
-        loop.run_until_complete(asyncio.gather(*to_cancel, return_exceptions=True))
 
 
 @click.group(invoke_without_command=True)
@@ -73,7 +61,7 @@ def save(host: str, outfile: io.TextIOWrapper):
         async with AsyncioClient(host) as client:
             return await client.send(GetState())
 
-    state = asyncio_run(_save(host))
+    state = asyncio.run(_save(host))
     outfile.write("\n".join(state) + "\n")
 
 
@@ -97,7 +85,7 @@ def load(host: str, infile: io.TextIOWrapper, tutorial: bool):
         async with AsyncioClient(host) as client:
             await client.send(SetState(state))
 
-    asyncio_run(_load(host, state))
+    asyncio.run(_load(host, state))
 
 
 try:
@@ -127,7 +115,7 @@ try:
         starting from 1
         """
 
-        async def _write_hdf_files(host: str, scheme: str, num: int, arm: bool):
+        async def _write_hdf_files():
             def file_name_generator(scheme: str):
                 """Yield incrementally numbered file names based on provided scheme"""
                 counter = 1
@@ -137,12 +125,13 @@ try:
 
             async with AsyncioClient(host) as client:
                 await write_hdf_files(
-                    client, file_names=file_name_generator(scheme), num=num, arm=arm
+                    client,
+                    file_names=file_name_generator(scheme),
+                    num=num,
+                    arm=arm,
                 )
 
-        # Don't use asyncio.run to workaround Python3.7 bug
-        # https://bugs.python.org/issue38013
-        asyncio_run(_write_hdf_files(host, scheme, num, arm))
+        asyncio.run(_write_hdf_files())
 
 except ImportError:
 
