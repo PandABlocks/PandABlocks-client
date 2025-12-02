@@ -1,7 +1,7 @@
 import socket
 from collections.abc import Iterable, Iterator
 from threading import Lock
-from typing import Optional, Union, overload
+from typing import overload
 
 from .commands import Command, T
 from .connections import ControlConnection, DataConnection
@@ -12,7 +12,7 @@ __all__ = ["BlockingClient"]
 
 
 class _SocketHelper:
-    _socket: Optional[socket.socket] = None
+    _socket: socket.socket | None = None
 
     def connect(self, host: str, port: int):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,17 +67,15 @@ class BlockingClient:
         self.close()
 
     @overload
-    def send(self, commands: Command[T], timeout: Optional[int] = None) -> T: ...
+    def send(self, commands: Command[T], timeout: int | None = None) -> T: ...
 
     @overload
-    def send(
-        self, commands: Iterable[Command], timeout: Optional[int] = None
-    ) -> list: ...
+    def send(self, commands: Iterable[Command], timeout: int | None = None) -> list: ...
 
     def send(
         self,
-        commands: Union[Command[T], Iterable[Command]],
-        timeout: Optional[int] = None,
+        commands: Command[T] | Iterable[Command],
+        timeout: int | None = None,
     ):
         """Send a command to control port of the PandA, returning its response.
 
@@ -115,7 +113,7 @@ class BlockingClient:
             return responses
 
     def data(
-        self, scaled: bool = True, frame_timeout: Optional[int] = None
+        self, scaled: bool = True, frame_timeout: int | None = None
     ) -> Iterator[Data]:
         """Connect to data port and yield data frames
 

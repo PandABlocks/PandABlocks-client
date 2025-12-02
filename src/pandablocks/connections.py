@@ -2,14 +2,14 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 from collections import deque
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any
 
 import numpy as np
 
 from ._exchange import Exchange, ExchangeGenerator, Exchanges
-from .commands import Command, CommandException
+from .commands import Command, CommandError
 from .responses import (
     Data,
     EndData,
@@ -22,8 +22,8 @@ from .responses import (
 
 # Define the public API of this module
 __all__ = [
-    "NeedMoreData",
-    "NoContextAvailable",
+    "NeedMoreDataError",
+    "NoContextAvailableError",
     "Buffer",
     "ControlConnection",
     "DataConnection",
@@ -36,11 +36,11 @@ GATE_DURATION_FIELD = "PCAP.GATE_DURATION.Value"
 SAMPLES_FIELD = "PCAP.SAMPLES.Value"
 
 
-class NeedMoreData(Exception):
+class NeedMoreDataError(Exception):
     """Raised if the `Buffer` isn't full enough to return the requested bytes"""
 
 
-class NoContextAvailable(Exception):
+class NoContextAvailableError(Exception):
     """Raised if there were no contexts available for this connection.
     This may result from calling `ControlConnection.receive_bytes()` without calling
     `ControlConnection.send()`, or if there were unmatched sends/receives"""
@@ -76,27 +76,27 @@ class Buffer:
 
     def read_bytes(self, num: int) -> bytearray:
         """Read and pop num bytes from the beginning of the buffer, raising
-        `NeedMoreData` if the buffer isn't full enough to do so"""
+        `NeedMoreDataError` if the buffer isn't full enough to do so"""
         if num > len(self._buf):
-            raise NeedMoreData()
+            raise NeedMoreDataError()
         else:
             return self._extract_frame(num)
 
     def peek_bytes(self, num: int) -> bytearray:
         """Read but do not pop num bytes from the beginning of the buffer,
-        raising `NeedMoreData` if the buffer isn't full enough to do so"""
+        raising `NeedMoreDataError` if the buffer isn't full enough to do so"""
         if num > len(self._buf):
-            raise NeedMoreData()
+            raise NeedMoreDataError()
         else:
             return self._buf[:num]
 
     def read_line(self):
         """Read and pop a newline terminated line (without terminator)
-        from the beginning of the buffer, raising `NeedMoreData` if the
+        from the beginning of the buffer, raising `NeedMoreDataError` if the
         buffer isn't full enough to do so"""
         idx = self._buf.find(b"\n")
         if idx < 0:
-            raise NeedMoreData()
+            raise NeedMoreDataError()
         else:
             return self._extract_frame(idx, num_to_discard=1)
 
@@ -106,7 +106,7 @@ class Buffer:
     def __next__(self) -> bytes:
         try:
             return self.read_line()
-        except NeedMoreData as err:
+        except NeedMoreDataError as err:
             raise StopIteration() from err
 
 
@@ -117,11 +117,11 @@ class _ExchangeContext:
     #: The command that produced it
     command: Command
     #: If this was the last in the list, the generator to call next
-    generator: Optional[ExchangeGenerator[Any]] = None
+    generator: ExchangeGenerator[Any] | None = None
 
-    def exception(self, e: Exception) -> CommandException:
+    def exception(self, e: Exception) -> CommandError:
         msg = f"{self.command} raised error:\n{type(e).__name__}: {e}"
-        return CommandException(msg).with_traceback(e.__traceback__)
+        return CommandError(msg).with_traceback(e.__traceback__)
 
 
 class ControlConnection:
@@ -152,7 +152,7 @@ class ControlConnection:
     def _update_contexts(self, lines: list[str], is_multiline=False) -> bytes:
         to_send = b""
         if len(self._contexts) == 0:
-            raise NoContextAvailable()
+            raise NoContextAvailableError()
         context = self._contexts.popleft()
         # Update the exchange with what we've got
         context.exchange.received = lines
@@ -266,7 +266,7 @@ class DataConnection:
         # Header text from PandA with field info
         self._header = ""
         # The next parsing handler that should be called if there is data in buffer
-        self._next_handler: Optional[Callable[[], Optional[Iterator[Data]]]] = None
+        self._next_handler: Callable[[], Iterator[Data] | None] | None = None
         # numpy dtype of produced FrameData
         self._frame_dtype = None
         # frame data that has been received but not flushed yet
@@ -410,7 +410,7 @@ class DataConnection:
                 if ret:
                     # This is an iterator of Data objects
                     yield from ret
-            except NeedMoreData:
+            except NeedMoreDataError:
                 break
 
     def flush(self) -> Iterator[FrameData]:

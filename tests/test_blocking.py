@@ -1,7 +1,7 @@
 import pytest
 
 from pandablocks.blocking import BlockingClient
-from pandablocks.commands import CommandException, Get, Put
+from pandablocks.commands import CommandError, Get, Put
 
 
 def test_blocking_get(dummy_server_in_thread):
@@ -15,7 +15,7 @@ def test_blocking_get(dummy_server_in_thread):
 def test_blocking_bad_put_raises(dummy_server_in_thread):
     dummy_server_in_thread.send.append("ERR no such field")
     with BlockingClient("localhost") as client:
-        with pytest.raises(CommandException) as cm:
+        with pytest.raises(CommandError) as cm:
             client.send(Put("PCAP.thing", 1), timeout=1)
         assert (
             str(cm.value) == "Put(field='PCAP.thing', value=1) raised error:\n"

@@ -1,8 +1,8 @@
 import logging
 import queue
 import threading
-from collections.abc import Iterator
-from typing import Any, Callable, Optional
+from collections.abc import Callable, Iterator
+from typing import Any, Optional
 
 import h5py
 import numpy as np
@@ -18,7 +18,7 @@ __all__ = [
     "Pipeline",
     "HDFWriter",
     "FrameProcessor",
-    "HDFDataOverrunException",
+    "HDFDataOverrunError",
     "create_pipeline",
     "create_default_pipeline",
     "stop_pipeline",
@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 
-class HDFDataOverrunException(Exception):
+class HDFDataOverrunError(Exception):
     """Raised if `DATA_OVERRUN` occurs while receiving data for HDF file"""
 
 
@@ -100,7 +100,7 @@ class HDFWriter(Pipeline):
     ):
         super().__init__()
         self.file_names = file_names
-        self.hdf_file: Optional[h5py.File] = None
+        self.hdf_file: h5py.File | None = None
         self.datasets: list[h5py.Dataset] = []
         self.capture_record_hdf_names = capture_record_hdf_names
         self.what_to_do = {
@@ -153,7 +153,7 @@ class HDFWriter(Pipeline):
         )
 
     def write_frame(self, data: list[np.ndarray]):
-        for dataset, column in zip(self.datasets, data):
+        for dataset, column in zip(self.datasets, data, strict=True):
             # Append to the end, flush when done
             written = dataset.shape[0]
             dataset.resize((written + column.shape[0],))
@@ -278,7 +278,7 @@ async def write_hdf_files(
         arm: Whether to arm PCAP at the start, and after each successful acquisition
 
     Raises:
-        HDFDataOverrunException: if there is a data overrun.
+        HDFDataOverrunError: if there is a data overrun.
     """
     counter = 0
 
@@ -301,7 +301,7 @@ async def write_hdf_files(
                 # Told to arm at the beginning, and after each acquisition ends
                 await client.send(Arm())
         if end_data and end_data.reason == EndReason.DATA_OVERRUN:
-            raise HDFDataOverrunException(
+            raise HDFDataOverrunError(
                 "Data overrun - streaming aborted! Last frame may be corrupt."
             )
     finally:

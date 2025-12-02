@@ -6,7 +6,7 @@ import pytest
 from pandablocks.commands import (
     Append,
     ChangeGroup,
-    CommandException,
+    CommandError,
     Get,
     GetBlockInfo,
     GetChanges,
@@ -22,7 +22,7 @@ from pandablocks.commands import (
 from pandablocks.connections import (
     ControlConnection,
     DataConnection,
-    NoContextAvailable,
+    NoContextAvailableError,
 )
 from pandablocks.responses import (
     BitMuxFieldInfo,
@@ -83,7 +83,7 @@ def test_get_line_error_when_multiline():
     assert get_responses(conn, b"!ACTIVE 5 bit_out\n.\n") == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "GetLine(field='PCAP.ACTIVE') raised error:\n"
                 "AssertionError: 'PCAP.ACTIVE?' -> '!ACTIVE 5 bit_out\\n.'"
             ),
@@ -98,7 +98,7 @@ def test_get_line_error_no_ok():
     assert get_responses(conn, b"NOT OK\n") == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "GetLine(field='PCAP.ACTIVE') raised error:\n"
                 "AssertionError: 'PCAP.ACTIVE?' -> 'NOT OK'"
             ),
@@ -123,7 +123,7 @@ def test_get_multiline_error_when_single_line():
     assert get_responses(conn, b"1\n") == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "GetMultiline(field='PCAP.*') raised error:\n"
                 "AssertionError: 'PCAP.*?' -> '1'"
             ),
@@ -138,10 +138,10 @@ def test_connect_put_single_line():
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
 
 
-class ACommandException(Exception):
+class ACommandError(Exception):
     # Compare equal to a CommandException with the same message
     def __eq__(self, other):
-        return isinstance(other, CommandException) and other.args == self.args
+        return isinstance(other, CommandError) and other.args == self.args
 
 
 def test_put_fails_with_single_line_exception():
@@ -151,7 +151,7 @@ def test_put_fails_with_single_line_exception():
     assert get_responses(conn, b"ERR No such field\n") == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "Put(field='PCAP.blah', value='something') raised error:\n"
                 "AssertionError: 'PCAP.blah=something' -> 'ERR No such field'"
             ),
@@ -166,7 +166,7 @@ def test_put_fails_with_multiline_exception():
     assert get_responses(conn, b"!This is bad\n!Very bad\n!Don't do this\n.\n") == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "Put(field='PCAP.blah', value='something') raised error:\n"
                 "AssertionError: 'PCAP.blah=something' -> "
                 '"!This is bad\\n!Very bad\\n!Don\'t do this\\n."'
@@ -274,7 +274,7 @@ def test_get_block_info_error():
     assert get_responses(conn) == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "GetBlockInfo(skip_description=False) raised error:\n"
                 "AssertionError: '*BLOCKS?' -> 'ERR Cannot read blocks'"
             ),
@@ -299,7 +299,7 @@ def test_get_block_info_desc_err():
     assert get_responses(conn) == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "GetBlockInfo(skip_description=False) raised error:\n"
                 "AssertionError: '*DESC.PCAP?' -> 'ERR could not get description'"
             ),
@@ -425,7 +425,7 @@ def test_get_fields_non_existant_block():
     assert get_responses(conn) == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "GetFieldInfo(block='FOO', extended_metadata=True) raised error:\n"
                 "AssertionError: 'FOO.*?' -> 'ERR No such block'"
             ),
@@ -988,7 +988,7 @@ def test_get_pcap_bits_labels():
     """Simple working testcase for GetPcapBitsLabels"""
 
     # PandA's return data when it receives "PCAP.*?"
-    PCAP_RETURN = [
+    pcap_return = [
         "!BITS2 12 ext_out bits",
         "!SHIFT_SUM 4 param uint",
         "!BITS0 10 ext_out bits",
@@ -996,10 +996,10 @@ def test_get_pcap_bits_labels():
     ]
 
     # PandA's return data when it receives "PCAP.BITS2.BITS?"
-    BITS2_RETURN = ["!PCOMP2.OUT", "!PGEN1.ACTIVE", "!PGEN2.ACTIVE", "!PULSE1.OUT", "."]
+    bits2_return = ["!PCOMP2.OUT", "!PGEN1.ACTIVE", "!PGEN2.ACTIVE", "!PULSE1.OUT", "."]
 
     # PandA's return data when it receives "PCAP.BITS0.BITS?"
-    BITS0_RETURN = [
+    bits0_return = [
         "!SFP3_SYNC_IN.BIT8",
         "!SFP3_SYNC_IN.BIT9",
         "!SFP3_SYNC_IN.BIT10",
@@ -1011,18 +1011,18 @@ def test_get_pcap_bits_labels():
     assert conn.send(cmd) == b"PCAP.*?\n"
 
     # First yield, requesting response for PCAP.*?
-    response_bytes = "\n".join(PCAP_RETURN).encode() + b"\n"
+    response_bytes = "\n".join(pcap_return).encode() + b"\n"
     assert conn.receive_bytes(response_bytes) == b"PCAP.BITS2.BITS?\nPCAP.BITS0.BITS?\n"
 
     # First of the .BITS? yields
-    response_bytes = "\n".join(BITS2_RETURN).encode() + b"\n"
+    response_bytes = "\n".join(bits2_return).encode() + b"\n"
     assert (
         conn.receive_bytes(response_bytes) == b""
     )  # No data returned as there's still one outstanding request
 
     # Second of the .BITS? yields - as this is the last response we can call
     # get_responses to also get the overall result
-    response_bytes = "\n".join(BITS0_RETURN).encode() + b"\n"
+    response_bytes = "\n".join(bits0_return).encode() + b"\n"
 
     assert not get_responses(conn)
     assert get_responses(conn, response_bytes) == [
@@ -1049,7 +1049,7 @@ def test_get_pcap_bits_labels_no_bits_fields():
     """Test we get no response when no BITS fields are returned by the PandA"""
 
     # PandA's return data when it receives "PCAP.*?"
-    PCAP_RETURN = [
+    pcap_return = [
         "!SHIFT_SUM 4 param uint",
         "!ACTIVE 5 bit_out",
         "!ENABLE 0 bit_mux",
@@ -1060,7 +1060,7 @@ def test_get_pcap_bits_labels_no_bits_fields():
     assert conn.send(cmd) == b"PCAP.*?\n"
 
     # As there are no BITS fields in the PCAP return, expect no response
-    response_bytes = "\n".join(PCAP_RETURN).encode() + b"\n"
+    response_bytes = "\n".join(pcap_return).encode() + b"\n"
     assert conn.receive_bytes(response_bytes) == b""
 
 
@@ -1069,7 +1069,7 @@ def test_expected_exception_when_receive_without_send():
     expected exception"""
 
     conn = ControlConnection()
-    with pytest.raises(NoContextAvailable):
+    with pytest.raises(NoContextAvailableError):
         conn.receive_bytes(b"abc\n")
 
 

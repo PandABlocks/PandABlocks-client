@@ -1,5 +1,4 @@
 from string import digits
-from typing import Optional
 
 from .blocking import BlockingClient
 from .commands import FieldInfo, GetBlockInfo, GetFieldInfo, Raw, is_multiline_command
@@ -52,7 +51,7 @@ class BlockCompleter:
             [GetFieldInfo(block, extended_metadata=False) for block in blocks],
             timeout=TIMEOUT,
         )
-        return dict(zip(blocks, fields))
+        return dict(zip(blocks, fields, strict=True))
 
     def _with_suffixes(self, block: str, numbers: bool) -> list[str]:
         block_info = self._blocks[block]
@@ -81,7 +80,7 @@ class BlockCompleter:
                     matches.append(prefix + bnf)
         return matches
 
-    def __call__(self, text: str, state: int) -> Optional[str]:
+    def __call__(self, text: str, state: int) -> str | None:
         """Return the next possible completion for 'text'.
         This is called successively with state == 0, 1, 2, ... until it
         returns None.  The completion should begin with 'text'.

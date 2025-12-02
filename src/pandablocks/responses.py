@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 import numpy as np
 
@@ -43,7 +42,7 @@ class BlockInfo:
         description: The description for this block"""
 
     number: int = 0
-    description: Optional[str] = None
+    description: str | None = None
 
 
 @dataclass
@@ -63,8 +62,8 @@ class FieldInfo:
     """
 
     type: str
-    subtype: Optional[str]
-    description: Optional[str]
+    subtype: str | None
+    description: str | None
 
 
 @dataclass
@@ -138,8 +137,8 @@ class TableFieldDetails:
     subtype: str
     bit_low: int
     bit_high: int
-    description: Optional[str] = None
-    labels: Optional[list[str]] = None
+    description: str | None = None
+    labels: list[str] | None = None
 
 
 @dataclass
@@ -237,9 +236,9 @@ class FieldCapture:
     name: str
     type: np.dtype
     capture: str
-    scale: Optional[float] = field(default=None)
-    offset: Optional[float] = field(default=None)
-    units: Optional[str] = field(default=None)
+    scale: float | None = field(default=None)
+    offset: float | None = field(default=None)
+    units: str | None = field(default=None)
 
     def __post_init__(self):
         sou = (self.scale, self.offset, self.units)
@@ -290,9 +289,9 @@ class StartData(Data):
     process: str
     format: str
     sample_bytes: int
-    arm_time: Optional[str]
-    start_time: Optional[str]
-    hw_time_offset_ns: Optional[int]
+    arm_time: str | None
+    start_time: str | None
+    hw_time_offset_ns: int | None
 
 
 @dataclass

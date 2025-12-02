@@ -347,7 +347,7 @@ def test_table_packing_pack(
     assert table_field_info.row_words
     unpacked = table_to_words(table_1_np_arrays, table_field_info)
 
-    for actual, expected in zip(unpacked, table_data_1):
+    for actual, expected in zip(unpacked, table_data_1, strict=True):
         assert actual == expected
 
 
