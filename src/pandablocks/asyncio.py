@@ -3,6 +3,7 @@ import logging
 from asyncio.streams import StreamReader, StreamWriter
 from collections.abc import AsyncGenerator, Iterable
 from contextlib import suppress
+from typing import Optional
 
 from .commands import Command, T
 from .connections import ControlConnection, DataConnection
@@ -13,8 +14,8 @@ __all__ = ["AsyncioClient"]
 
 
 class _StreamHelper:
-    _reader: StreamReader | None = None
-    _writer: StreamWriter | None = None
+    _reader: Optional[StreamReader] = None
+    _writer: Optional[StreamWriter] = None
 
     @property
     def reader(self) -> StreamReader:
@@ -26,7 +27,7 @@ class _StreamHelper:
         assert self._writer, "connect() not called yet"
         return self._writer
 
-    async def write_and_drain(self, data: bytes, timeout: float | None = None):
+    async def write_and_drain(self, data: bytes, timeout: Optional[float] = None):
         writer = self.writer
         writer.write(data)
 
@@ -66,7 +67,7 @@ class AsyncioClient:
     def __init__(self, host: str):
         self._host = host
         self._ctrl_connection = ControlConnection()
-        self._ctrl_task: asyncio.Task | None = None
+        self._ctrl_task: Optional[asyncio.Task] = None
         self._ctrl_queues: dict[int, asyncio.Queue] = {}
         self._ctrl_stream = _StreamHelper()
 
@@ -123,7 +124,7 @@ class AsyncioClient:
             except Exception:
                 logging.exception(f"Error handling '{received.decode()}'")
 
-    async def send(self, command: Command[T], timeout: float | None = None) -> T:
+    async def send(self, command: Command[T], timeout: Optional[float] = None) -> T:
         """Send a command to control port of the PandA, returning its response.
 
         Args:
@@ -143,8 +144,8 @@ class AsyncioClient:
     async def data(
         self,
         scaled: bool = True,
-        flush_period: float | None = None,
-        frame_timeout: float | None = None,
+        flush_period: Optional[float] = None,
+        frame_timeout: Optional[float] = None,
     ) -> AsyncGenerator[Data, None]:
         """Connect to data port and yield data frames
 

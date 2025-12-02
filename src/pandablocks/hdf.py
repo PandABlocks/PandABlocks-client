@@ -100,7 +100,7 @@ class HDFWriter(Pipeline):
     ):
         super().__init__()
         self.file_names = file_names
-        self.hdf_file: h5py.File | None = None
+        self.hdf_file: Optional[h5py.File] = None
         self.datasets: list[h5py.Dataset] = []
         self.capture_record_hdf_names = capture_record_hdf_names
         self.what_to_do = {

@@ -1,18 +1,18 @@
 from collections.abc import Iterable
-from typing import cast
+from typing import Union, cast
 
 import numpy as np
 import numpy.typing as npt
 
 from pandablocks.responses import TableFieldInfo
 
-UnpackedArray = (
-    npt.NDArray[np.uint8]
-    | npt.NDArray[np.uint16]
-    | npt.NDArray[np.int32]
-    | npt.NDArray[np.uint32]
-    | list[str]
-)
+UnpackedArray = Union[
+    npt.NDArray[np.uint8],
+    npt.NDArray[np.uint16],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.uint32],
+    list[str],
+]
 
 
 def words_to_table(

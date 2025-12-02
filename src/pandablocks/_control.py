@@ -1,4 +1,5 @@
 from string import digits
+from typing import Optional
 
 from .blocking import BlockingClient
 from .commands import FieldInfo, GetBlockInfo, GetFieldInfo, Raw, is_multiline_command
@@ -80,7 +81,7 @@ class BlockCompleter:
                     matches.append(prefix + bnf)
         return matches
 
-    def __call__(self, text: str, state: int) -> str | None:
+    def __call__(self, text: str, state: int) -> Optional[str]:
         """Return the next possible completion for 'text'.
         This is called successively with state == 0, 1, 2, ... until it
         returns None.  The completion should begin with 'text'.

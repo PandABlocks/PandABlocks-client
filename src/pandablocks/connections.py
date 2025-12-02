@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 from collections import deque
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 
@@ -117,7 +117,7 @@ class _ExchangeContext:
     #: The command that produced it
     command: Command
     #: If this was the last in the list, the generator to call next
-    generator: ExchangeGenerator[Any] | None = None
+    generator: Optional[ExchangeGenerator[Any]] = None
 
     def exception(self, e: Exception) -> CommandError:
         msg = f"{self.command} raised error:\n{type(e).__name__}: {e}"
@@ -266,7 +266,7 @@ class DataConnection:
         # Header text from PandA with field info
         self._header = ""
         # The next parsing handler that should be called if there is data in buffer
-        self._next_handler: Callable[[], Iterator[Data] | None] | None = None
+        self._next_handler: Optional[Callable[[], Optional[Iterator[Data]]]] = None
         # numpy dtype of produced FrameData
         self._frame_dtype = None
         # frame data that has been received but not flushed yet

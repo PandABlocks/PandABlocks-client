@@ -3,12 +3,7 @@ import re
 from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import (
-    Any,
-    Generic,
-    TypeVar,
-    overload,
-)
+from typing import Any, Generic, Optional, TypeVar, Union, overload
 
 from ._exchange import Exchange, ExchangeGenerator
 from .responses import (
@@ -180,7 +175,7 @@ class Raw(Command[list[str]]):
 
 
 @dataclass
-class Get(Command[str | list[str]]):
+class Get(Command[Union[str, list[str]]]):
     """Get the value of a field or star command.
 
     If the form of the expected return is known, consider using `GetLine`
@@ -198,7 +193,7 @@ class Get(Command[str | list[str]]):
 
     field: str
 
-    def execute(self) -> ExchangeGenerator[str | list[str]]:
+    def execute(self) -> ExchangeGenerator[Union[str, list[str]]]:
         ex = Exchange(f"{self.field}?")
         yield ex
         if ex.is_multiline:
@@ -267,7 +262,7 @@ class Put(Command[None]):
     """
 
     field: str
-    value: str | list[str] = ""
+    value: Union[str, list[str]] = ""
 
     def execute(self) -> ExchangeGenerator[None]:
         if isinstance(self.value, list):
@@ -370,7 +365,7 @@ class GetBlockInfo(Command[dict[str, BlockInfo]]):
 # The type of the generators used for creating the Get commands for each field
 # and setting the returned data into the FieldInfo structure
 _FieldGeneratorType = Generator[
-    Exchange | list[Exchange],
+    Union[Exchange, list[Exchange]],
     None,
     tuple[str, FieldInfo],
 ]
@@ -403,9 +398,9 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
     extended_metadata: bool = True
 
     _commands_map: dict[
-        tuple[str, str | None],
+        tuple[str, Optional[str]],
         Callable[
-            [str, str, str | None],
+            [str, str, Optional[str]],
             _FieldGeneratorType,
         ],
     ] = field(init=False, repr=False, default_factory=dict)
@@ -456,7 +451,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return GetLine(f"*DESC.{self.block}.{field_name}")
 
     def _uint(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, maximum = yield from _execute_commands(
             self._get_desc(field_name),
@@ -467,7 +462,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _scalar(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, units, scale, offset = yield from _execute_commands(
             self._get_desc(field_name),
@@ -483,7 +478,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _subtype_time(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, units_labels = yield from _execute_commands(
             self._get_desc(field_name),
@@ -495,7 +490,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _enum(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, labels = yield from _execute_commands(
             self._get_desc(field_name),
@@ -507,7 +502,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _time(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, units = yield from _execute_commands(
             self._get_desc(field_name),
@@ -519,7 +514,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _bit_out(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, capture_word, offset = yield from _execute_commands(
             self._get_desc(field_name),
@@ -534,7 +529,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _bit_mux(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, max_delay, labels = yield from _execute_commands(
             self._get_desc(field_name),
@@ -549,7 +544,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _pos_mux(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, labels = yield from _execute_commands(
             self._get_desc(field_name),
@@ -560,7 +555,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _table(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         # Ignore the ROW_WORDS attribute as it's new and won't be present on all PandAs,
         # and there's no easy way to try it and catch an error while also running other
@@ -633,7 +628,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _pos_out(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, capture_labels = yield from _execute_commands(
             self._get_desc(field_name),
@@ -644,7 +639,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _ext_out(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, capture_labels = yield from _execute_commands(
             self._get_desc(field_name),
@@ -655,7 +650,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _ext_out_bits(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         desc, bits, capture_labels = yield from _execute_commands(
             self._get_desc(field_name),
@@ -668,7 +663,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _no_attributes(
-        self, field_name: str, field_type: str, field_subtype: str | None
+        self, field_name: str, field_type: str, field_subtype: Optional[str]
     ) -> _FieldGeneratorType:
         """Calling this method indicates type-subtype pair is known and
         has no attributes, so only a description needs to be retrieved"""
@@ -686,7 +681,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
             field_name, index, type_subtype = line.split(maxsplit=2)
 
             field_type: str
-            subtype: str | None
+            subtype: Optional[str]
             # Append "None" to list below so there are always at least 2 elements
             # so we can always unpack into subtype, even if no split occurs.
             field_type, subtype, *_ = [*type_subtype.split(maxsplit=1), None]
