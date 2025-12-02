@@ -18,7 +18,7 @@ dependencies = ["numpy", "click"]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 
 [project.optional-dependencies]
 h5py = ["h5py", "matplotlib"]
