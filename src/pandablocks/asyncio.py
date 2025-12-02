@@ -38,7 +38,7 @@ class _StreamHelper:
         if len(pending):
             for task in pending:
                 task.cancel()
-            raise TimeoutError("Timeout writing data")
+            raise asyncio.TimeoutError("Timeout writing data")
 
     async def connect(self, host: str, port: int):
         self._reader, self._writer = await asyncio.open_connection(host, port)
@@ -162,7 +162,7 @@ class AsyncioClient:
         queue: asyncio.Queue[Iterable[Data]] = asyncio.Queue()
 
         def raise_timeouterror():
-            raise TimeoutError(f"No data received for {frame_timeout}s")
+            raise asyncio.TimeoutError(f"No data received for {frame_timeout}s")
             yield
 
         async def periodic_flush():
@@ -179,7 +179,7 @@ class AsyncioClient:
             while True:
                 try:
                     recv = await asyncio.wait_for(reader.read(4096), frame_timeout)
-                except TimeoutError:
+                except asyncio.TimeoutError:
                     queue.put_nowait(raise_timeouterror())
                     break
                 else:
