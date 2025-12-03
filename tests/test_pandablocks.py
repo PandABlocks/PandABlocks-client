@@ -118,7 +118,7 @@ def test_identify_raises_error_if_invalid_id():
     ) == [
         (
             cmd,
-            ACommandException(
+            ACommandError(
                 "Identify() raised error:\n"
                 "AssertionError: Recieved unexpected response as PandA identification: "
                 "[PandA NOT_SW: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1]. "
