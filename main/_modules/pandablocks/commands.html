@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks.commands &#8212; PandABlocks-client 0.10.4.dev4+g1869b43b4 documentation</title>
+    <title>pandablocks.commands &#8212; PandABlocks-client 0.10.4.dev5+g4b099ba06 documentation</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script src="../../_static/documentation_options.js?v=cf6af2bf"></script>
+    <script src="../../_static/documentation_options.js?v=a167ebf4"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -468,6 +468,7 @@
     <span class="n">ExtOutBitsFieldInfo</span><span class="p">,</span>
     <span class="n">ExtOutFieldInfo</span><span class="p">,</span>
     <span class="n">FieldInfo</span><span class="p">,</span>
+    <span class="n">Identification</span><span class="p">,</span>
     <span class="n">PosMuxFieldInfo</span><span class="p">,</span>
     <span class="n">PosOutFieldInfo</span><span class="p">,</span>
     <span class="n">ScalarFieldInfo</span><span class="p">,</span>
@@ -1428,6 +1429,20 @@
             <span class="k">if</span> <span class="n">ret</span> <span class="o">!=</span> <span class="p">[</span><span class="s2">&quot;OK&quot;</span><span class="p">]:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;command </span><span class="si">{</span><span class="n">command</span><span class="o">.</span><span class="n">inp</span><span class="si">}</span><span class="s2"> failed with </span><span class="si">{</span><span class="n">ret</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Identify</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExchangeGenerator</span><span class="p">[</span><span class="n">Identification</span><span class="p">]:</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Exchange</span><span class="p">(</span><span class="s2">&quot;*IDN?&quot;</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">ex</span>
+        <span class="n">expected_response</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^PandA SW: (.*) FPGA: (.*) rootfs: (.*)&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">expected_response</span><span class="p">,</span> <span class="n">ex</span><span class="o">.</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Recieved unexpected response as PandA identification: [</span><span class="si">{</span><span class="n">ex</span><span class="o">.</span><span class="n">line</span><span class="si">}</span><span class="s2">]. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Expected response in format: </span><span class="si">{</span><span class="n">expected_response</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Identification</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">result</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">result</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
 </pre></div>
 
                 </article>

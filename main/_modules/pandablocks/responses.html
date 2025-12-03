@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks.responses &#8212; PandABlocks-client 0.10.4.dev4+g1869b43b4 documentation</title>
+    <title>pandablocks.responses &#8212; PandABlocks-client 0.10.4.dev5+g4b099ba06 documentation</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script src="../../_static/documentation_options.js?v=cf6af2bf"></script>
+    <script src="../../_static/documentation_options.js?v=a167ebf4"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -443,7 +443,8 @@
                 <article class="bd-article">
                   
   <h1>Source code for pandablocks.responses</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
@@ -477,6 +478,9 @@
 <span class="p">]</span>
 
 <span class="c1"># Control</span>
+
+<span class="c1"># https://regex101.com/r/LZ71Ns/1</span>
+<span class="n">API_EXTRACT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^(\d+).(\d+)&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="BlockInfo">
@@ -856,6 +860,31 @@
     <span class="n">samples</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">reason</span><span class="p">:</span> <span class="n">EndReason</span></div>
 
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Identification</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Versions of components as exposed by TCP server:</span>
+<span class="sd">    https://pandablocks.github.io/PandABlocks-server/master/commands.html</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        software: Version of the TCP server (PandABlocks-server)</span>
+<span class="sd">        fpga: Version of the FPGA firmware, build number, supporting</span>
+<span class="sd">        firmware (PandABlocks-FPGA)</span>
+<span class="sd">        rootfs: Version of the root filesystem (PandABlocks-rootfs)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">software</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">fpga</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">rootfs</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">software_api</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">API_EXTRACT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">software</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">match</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;PandA SW: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">software</span><span class="si">}</span><span class="s2"> does not match expected pattern </span><span class="si">{</span><span class="n">API_EXTRACT</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">major</span><span class="p">,</span> <span class="n">minor</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">major</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">minor</span><span class="p">))</span>
 </pre></div>
 
                 </article>
