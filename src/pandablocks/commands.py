@@ -36,7 +36,7 @@ from .responses import (
 # Define the public API of this module
 __all__ = [
     "Command",
-    "CommandException",
+    "CommandError",
     "Raw",
     "Get",
     "GetLine",
@@ -80,7 +80,7 @@ class Command(Generic[T]):
         raise NotImplementedError(self)
 
 
-class CommandException(Exception):
+class CommandError(Exception):
     """Raised if a `Command` receives a mal-formed response"""
 
 

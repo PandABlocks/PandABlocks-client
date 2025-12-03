@@ -4,7 +4,7 @@ import copy
 import pytest
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import CommandException, Get, Put
+from pandablocks.commands import CommandError, Get, Put
 
 from .conftest import DummyServer
 
@@ -25,7 +25,7 @@ async def test_asyncio_get(dummy_server_async):
 async def test_asyncio_bad_put_raises(dummy_server_async):
     dummy_server_async.send.append("ERR no such field")
     async with AsyncioClient("localhost") as client:
-        with pytest.raises(CommandException) as cm:
+        with pytest.raises(CommandError) as cm:
             await asyncio.wait_for(client.send(Put("PCAP.thing", 1)), timeout=1)
         assert (
             str(cm.value) == "Put(field='PCAP.thing', value=1) raised error:\n"

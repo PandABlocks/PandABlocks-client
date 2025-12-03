@@ -9,7 +9,7 @@ from pandablocks.responses import EndData, EndReason, FieldCapture, FrameData, S
 
 
 def test_pipeline_returns_number_written(tmp_path):
-    NUMBER_OF_FRAMES_WRITTEN = 10000
+    number_of_frames_written = 10000
 
     num_written_queue = queue.Queue()
 
@@ -49,14 +49,14 @@ def test_pipeline_returns_number_written(tmp_path):
         pipeline[0].queue.put_nowait(
             FrameData(
                 np.array(
-                    NUMBER_OF_FRAMES_WRITTEN * [(1,)],
+                    number_of_frames_written * [(1,)],
                     dtype=[("COUNTER1.OUT.Value", "<f8")],
                 )
             )
         )
         pipeline[0].queue.put_nowait(EndData(5, EndReason.DISARMED))
 
-        assert num_written_queue.get() == NUMBER_OF_FRAMES_WRITTEN
+        assert num_written_queue.get() == number_of_frames_written
     finally:
         stop_pipeline(pipeline)
 
