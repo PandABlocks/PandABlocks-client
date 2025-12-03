@@ -365,5 +365,9 @@ class Identification:
     rootfs: str
 
     def software_api(self) -> tuple[int, int]:
+        match = API_EXTRACT.match(self.software)
+        assert match, (
+            f"PandA SW: {self.software} does not match expected pattern {API_EXTRACT}"
+        )
         major, minor = API_EXTRACT.match(self.software).groups()
         return (int(major), int(minor))
