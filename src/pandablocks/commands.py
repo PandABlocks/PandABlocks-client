@@ -37,6 +37,7 @@ from .responses import (
 __all__ = [
     "Command",
     "CommandError",
+    "CommandException",
     "Raw",
     "Get",
     "GetLine",
@@ -82,6 +83,10 @@ class Command(Generic[T]):
 
 class CommandError(Exception):
     """Raised if a `Command` receives a mal-formed response"""
+
+
+# back compat alias
+CommandException = CommandError
 
 
 # `execute_commands()` actually returns a list with length equal to the number
