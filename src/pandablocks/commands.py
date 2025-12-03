@@ -36,6 +36,7 @@ from .responses import (
 # Define the public API of this module
 __all__ = [
     "Command",
+    "CommandError",
     "CommandException",
     "Raw",
     "Get",
@@ -80,8 +81,12 @@ class Command(Generic[T]):
         raise NotImplementedError(self)
 
 
-class CommandException(Exception):
+class CommandError(Exception):
     """Raised if a `Command` receives a mal-formed response"""
+
+
+# back compat alias
+CommandException = CommandError
 
 
 # `execute_commands()` actually returns a list with length equal to the number

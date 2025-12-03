@@ -7,7 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from pandablocks import cli
-from pandablocks.hdf import GATE_DURATION_FIELD, SAMPLES_FIELD, HDFDataOverrunException
+from pandablocks.hdf import GATE_DURATION_FIELD, SAMPLES_FIELD, HDFDataOverrunError
 from tests.conftest import (
     STATE_RESPONSES,
     STATE_SAVEFILE,
@@ -62,7 +62,7 @@ def test_writing_overrun_hdf(
         cli.cli, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
     )
     assert result.exit_code == 1
-    assert isinstance(result.exception, HDFDataOverrunException)
+    assert isinstance(result.exception, HDFDataOverrunError)
     hdf_file = h5py.File(tmp_path / "1.h5", "r")
     assert_all_data_in_hdf_file(hdf_file, "PCAP.GATE_DURATION.Value")
 

@@ -18,7 +18,7 @@ __all__ = [
     "Pipeline",
     "HDFWriter",
     "FrameProcessor",
-    "HDFDataOverrunException",
+    "HDFDataOverrunError",
     "create_pipeline",
     "create_default_pipeline",
     "stop_pipeline",
@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 
-class HDFDataOverrunException(Exception):
+class HDFDataOverrunError(Exception):
     """Raised if `DATA_OVERRUN` occurs while receiving data for HDF file"""
 
 
@@ -278,7 +278,7 @@ async def write_hdf_files(
         arm: Whether to arm PCAP at the start, and after each successful acquisition
 
     Raises:
-        HDFDataOverrunException: if there is a data overrun.
+        HDFDataOverrunError: if there is a data overrun.
     """
     counter = 0
 
@@ -301,7 +301,7 @@ async def write_hdf_files(
                 # Told to arm at the beginning, and after each acquisition ends
                 await client.send(Arm())
         if end_data and end_data.reason == EndReason.DATA_OVERRUN:
-            raise HDFDataOverrunException(
+            raise HDFDataOverrunError(
                 "Data overrun - streaming aborted! Last frame may be corrupt."
             )
     finally:
