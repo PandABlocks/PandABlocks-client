@@ -23,6 +23,7 @@ from .responses import (
     ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
     FieldInfo,
+    Identification,
     PosMuxFieldInfo,
     PosOutFieldInfo,
     ScalarFieldInfo,
@@ -932,3 +933,17 @@ class SetState(Command[None]):
         for command, ret in zip(commands, returns):
             if ret != ["OK"]:
                 logging.warning(f"command {command.inp} failed with {ret}")
+
+
+@dataclass
+class Identify(Command):
+    def execute(self) -> ExchangeGenerator[Identification]:
+        ex = Exchange("*IDN?")
+        yield ex
+        expected_response = r"^PandA SW: (.*) FPGA: (.*) rootfs: (.*)"
+        result = re.search(expected_response, ex.line)
+        assert result, (
+            f"Recieved unexpected response as PandA identification: [{ex.line}]. "
+            f"Expected response in format: {expected_response}"
+        )
+        return Identification(result.group(1), result.group(2), result.group(3))

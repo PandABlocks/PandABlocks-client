@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -32,6 +33,9 @@ __all__ = [
 ]
 
 # Control
+
+# https://regex101.com/r/LZ71Ns/1
+API_EXTRACT = re.compile(r"^(\d+).(\d+)")
 
 
 @dataclass
@@ -342,3 +346,28 @@ class EndData(Data):
 
     samples: int
     reason: EndReason
+
+
+@dataclass
+class Identification:
+    """Versions of components as exposed by TCP server:
+    https://pandablocks.github.io/PandABlocks-server/master/commands.html
+
+    Attributes:
+        software: Version of the TCP server (PandABlocks-server)
+        fpga: Version of the FPGA firmware, build number, supporting
+        firmware (PandABlocks-FPGA)
+        rootfs: Version of the root filesystem (PandABlocks-rootfs)
+    """
+
+    software: str
+    fpga: str
+    rootfs: str
+
+    def software_api(self) -> tuple[int, int]:
+        match = API_EXTRACT.match(self.software)
+        assert match, (
+            f"PandA SW: {self.software} does not match expected pattern {API_EXTRACT}"
+        )
+        major, minor = match.groups()
+        return (int(major), int(minor))
