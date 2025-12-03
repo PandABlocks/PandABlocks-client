@@ -194,6 +194,7 @@ class AsyncioClient:
                     yield data
         finally:
             fut.cancel()
+            await asyncio.gather(fut, return_exceptions=True)
             await stream.close()
             with suppress(asyncio.CancelledError):
                 await fut

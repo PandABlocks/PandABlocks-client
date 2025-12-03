@@ -346,21 +346,7 @@ class DummyServer:
             self.handle_data, "127.0.0.1", 8889
         )
 
-    async def shutdown(self):
-        """
-        Stop accepting new connections but DO NOT close active connection writers.
-        This preserves backpressure behavior for tests expecting drain() to block.
-        """
-        self._ctrl_server.close()
-        self._data_server.close()
-
-        await self._ctrl_server.wait_closed()
-        await self._data_server.wait_closed()
-
     async def close(self):
-        """
-        Full teardown.
-        """
         # close any existing connections so handler tasks can exit
         for c in list(self._connections):
             c.close()
@@ -371,7 +357,11 @@ class DummyServer:
             self._connections.discard(c)
 
         # shutdown the server
-        await self.shutdown()
+        self._ctrl_server.close()
+        self._data_server.close()
+
+        await self._ctrl_server.wait_closed()
+        await self._data_server.wait_closed()
 
 
 @pytest_asyncio.fixture
