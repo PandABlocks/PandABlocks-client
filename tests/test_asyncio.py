@@ -164,7 +164,7 @@ async def test_asyncio_client_fails_when_cannot_drain(dummy_server_async: DummyS
 
     client = AsyncioClient("localhost")
     await client.connect()
-    await dummy_server_async.close()
+    await dummy_server_async.shutdown()
     with pytest.raises(asyncio.TimeoutError):
         await client._ctrl_stream.write_and_drain(large_data, timeout=TIMEOUT)
 

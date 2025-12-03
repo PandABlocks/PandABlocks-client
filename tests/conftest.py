@@ -291,12 +291,16 @@ class DummyServer:
         # Add to this to give the data port something to send
         self.data: Iterable[bytes] = []
 
+        # Track active connections
+        self._connections: set[asyncio.StreamWriter] = set()
+
         if self.debug and os.path.isfile(self._debug_file):
             os.remove(self._debug_file)
 
     async def handle_ctrl(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
+        self._connections.add(writer)
         buf = Buffer()
         is_multiline = False
 
@@ -325,6 +329,8 @@ class DummyServer:
     async def handle_data(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
+        self._connections.add(writer)
+
         # oneshot data writer
         await reader.read(4096)
         for data in self.data:
@@ -340,11 +346,32 @@ class DummyServer:
             self.handle_data, "127.0.0.1", 8889
         )
 
-    async def close(self):
+    async def shutdown(self):
+        """
+        Stop accepting new connections but DO NOT close active connection writers.
+        This preserves backpressure behavior for tests expecting drain() to block.
+        """
         self._ctrl_server.close()
         self._data_server.close()
+
         await self._ctrl_server.wait_closed()
         await self._data_server.wait_closed()
+
+    async def close(self):
+        """
+        Full teardown.
+        """
+        # close any existing connections so handler tasks can exit
+        for c in list(self._connections):
+            c.close()
+            try:
+                await c.wait_closed()
+            except ConnectionError:
+                pass
+            self._connections.discard(c)
+
+        # shutdown the server
+        await self.shutdown()
 
 
 @pytest_asyncio.fixture
