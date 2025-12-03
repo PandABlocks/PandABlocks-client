@@ -31,7 +31,6 @@ dev = [
     "mock",
     "types-mock",
     "atomicwrites",
-    "typed-ast",
     "copier",
     "mypy",
     "myst-parser",
