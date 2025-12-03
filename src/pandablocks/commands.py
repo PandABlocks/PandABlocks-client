@@ -940,7 +940,7 @@ class Identify(Command):
     def execute(self) -> ExchangeGenerator[Identification]:
         ex = Exchange("*IDN?")
         yield ex
-        expected_response = r"^SW: (.*) FPGA: (.*) rootfs: (.*)"
+        expected_response = r"^PandA SW: (.*) FPGA: (.*) rootfs: (.*)"
         result = re.search(expected_response, ex.line)
         assert result, (
             f"Recieved unexpected response as PandA identification: [{ex.line}]. "

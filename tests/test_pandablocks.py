@@ -95,7 +95,7 @@ def test_identify():
     assert (
         get_responses(
             conn,
-            b"OK =PandA A: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1\n",
+            b"OK =PandA SW: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1\n",
         )
         == expected_result
     )
@@ -122,7 +122,7 @@ def test_identify_raises_error_if_invalid_id():
                 "Identify() raised error:\n"
                 "AssertionError: Recieved unexpected response as PandA identification: "
                 "[PandA NOT_SW: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1]. "
-                "Expected response in format: ^SW: (.*) FPGA: (.*) rootfs: (.*)"
+                "Expected response in format: ^PandA SW: (.*) FPGA: (.*) rootfs: (.*)"
             ),
         )
     ]
