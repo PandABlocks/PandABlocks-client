@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks.hdf &#8212; PandABlocks-client 0.10.4.dev3+g838763663 documentation</title>
+    <title>pandablocks.hdf &#8212; PandABlocks-client 0.10.4.dev4+g1869b43b4 documentation</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script src="../../_static/documentation_options.js?v=01804d82"></script>
+    <script src="../../_static/documentation_options.js?v=cf6af2bf"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -463,7 +463,7 @@
     <span class="s2">&quot;Pipeline&quot;</span><span class="p">,</span>
     <span class="s2">&quot;HDFWriter&quot;</span><span class="p">,</span>
     <span class="s2">&quot;FrameProcessor&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;HDFDataOverrunException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;HDFDataOverrunError&quot;</span><span class="p">,</span>
     <span class="s2">&quot;create_pipeline&quot;</span><span class="p">,</span>
     <span class="s2">&quot;create_default_pipeline&quot;</span><span class="p">,</span>
     <span class="s2">&quot;stop_pipeline&quot;</span><span class="p">,</span>
@@ -471,9 +471,9 @@
 <span class="p">]</span>
 
 
-<div class="viewcode-block" id="HDFDataOverrunException">
-<a class="viewcode-back" href="../../reference/api.html#pandablocks.hdf.HDFDataOverrunException">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">HDFDataOverrunException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="HDFDataOverrunError">
+<a class="viewcode-back" href="../../reference/api.html#pandablocks.hdf.HDFDataOverrunError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HDFDataOverrunError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised if `DATA_OVERRUN` occurs while receiving data for HDF file&quot;&quot;&quot;</span></div>
 
 
@@ -749,7 +749,7 @@
 <span class="sd">        arm: Whether to arm PCAP at the start, and after each successful acquisition</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        HDFDataOverrunException: if there is a data overrun.</span>
+<span class="sd">        HDFDataOverrunError: if there is a data overrun.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -772,7 +772,7 @@
                 <span class="c1"># Told to arm at the beginning, and after each acquisition ends</span>
                 <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">Arm</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">end_data</span> <span class="ow">and</span> <span class="n">end_data</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="n">EndReason</span><span class="o">.</span><span class="n">DATA_OVERRUN</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">HDFDataOverrunException</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">HDFDataOverrunError</span><span class="p">(</span>
                 <span class="s2">&quot;Data overrun - streaming aborted! Last frame may be corrupt.&quot;</span>
             <span class="p">)</span>
     <span class="k">finally</span><span class="p">:</span>

@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API Explanation &#8212; PandABlocks-client 0.10.4.dev3+g838763663 documentation</title>
+    <title>API Explanation &#8212; PandABlocks-client 0.10.4.dev4+g1869b43b4 documentation</title>
   
   
   
@@ -42,7 +42,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script src="../_static/documentation_options.js?v=01804d82"></script>
+    <script src="../_static/documentation_options.js?v=cf6af2bf"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -491,9 +491,15 @@ specific classes.</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt class="sig sig-object py" id="pandablocks.commands.CommandException">
-<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.commands.</span></span><span class="sig-name descname"><span class="pre">CommandException</span></span><a class="reference internal" href="../_modules/pandablocks/commands.html#CommandException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.commands.CommandException" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pandablocks.commands.CommandError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.commands.</span></span><span class="sig-name descname"><span class="pre">CommandError</span></span><a class="reference internal" href="../_modules/pandablocks/commands.html#CommandError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.commands.CommandError" title="Link to this definition">#</a></dt>
 <dd><p>Raised if a <a class="reference internal" href="#pandablocks.commands.Command" title="pandablocks.commands.Command"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Command</span></code></a> receives a mal-formed response</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pandablocks.commands.CommandException">
+<span class="sig-prename descclassname"><span class="pre">pandablocks.commands.</span></span><span class="sig-name descname"><span class="pre">CommandException</span></span><a class="headerlink" href="#pandablocks.commands.CommandException" title="Link to this definition">#</a></dt>
+<dd><p>alias of <a class="reference internal" href="#pandablocks.commands.CommandError" title="pandablocks.commands.CommandError"><code class="xref py py-class docutils literal notranslate"><span class="pre">CommandError</span></code></a></p>
 </dd></dl>
 
 <dl class="py class">
@@ -1302,14 +1308,14 @@ can be accessed with these column names. For example:</p>
 <p><a class="reference internal" href="../explanations/sans-io.html#sans-io"><span class="std std-ref">Sans-IO</span></a> connections for both the Control and Data ports
 of PandA TCP server.</p>
 <dl class="py exception">
-<dt class="sig sig-object py" id="pandablocks.connections.NeedMoreData">
-<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.connections.</span></span><span class="sig-name descname"><span class="pre">NeedMoreData</span></span><a class="reference internal" href="../_modules/pandablocks/connections.html#NeedMoreData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.connections.NeedMoreData" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pandablocks.connections.NeedMoreDataError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.connections.</span></span><span class="sig-name descname"><span class="pre">NeedMoreDataError</span></span><a class="reference internal" href="../_modules/pandablocks/connections.html#NeedMoreDataError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.connections.NeedMoreDataError" title="Link to this definition">#</a></dt>
 <dd><p>Raised if the <a class="reference internal" href="#pandablocks.connections.Buffer" title="pandablocks.connections.Buffer"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Buffer</span></code></a> isn’t full enough to return the requested bytes</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt class="sig sig-object py" id="pandablocks.connections.NoContextAvailable">
-<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.connections.</span></span><span class="sig-name descname"><span class="pre">NoContextAvailable</span></span><a class="reference internal" href="../_modules/pandablocks/connections.html#NoContextAvailable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.connections.NoContextAvailable" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pandablocks.connections.NoContextAvailableError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.connections.</span></span><span class="sig-name descname"><span class="pre">NoContextAvailableError</span></span><a class="reference internal" href="../_modules/pandablocks/connections.html#NoContextAvailableError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.connections.NoContextAvailableError" title="Link to this definition">#</a></dt>
 <dd><p>Raised if there were no contexts available for this connection.
 This may result from calling <a class="reference internal" href="#pandablocks.connections.ControlConnection.receive_bytes" title="pandablocks.connections.ControlConnection.receive_bytes"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">ControlConnection.receive_bytes()</span></code></a> without calling
 <a class="reference internal" href="#pandablocks.connections.ControlConnection.send" title="pandablocks.connections.ControlConnection.send"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">ControlConnection.send()</span></code></a>, or if there were unmatched sends/receives</p>
@@ -1322,31 +1328,31 @@ This may result from calling <a class="reference internal" href="#pandablocks.co
 For example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">buf</span> <span class="o">=</span> <span class="n">Buffer</span><span class="p">()</span>
 <span class="n">buf</span> <span class="o">+=</span> <span class="n">bytes_from_server</span>
-<span class="n">line</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">read_line</span><span class="p">()</span>  <span class="c1"># raises NeedMoreData if no line</span>
+<span class="n">line</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">read_line</span><span class="p">()</span>  <span class="c1"># raises NeedMoreDataError if no line</span>
 <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">buf</span><span class="p">:</span>
     <span class="k">pass</span>
-<span class="nb">bytes</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>  <span class="c1"># raises NeedMoreData if not enough bytes</span>
+<span class="nb">bytes</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>  <span class="c1"># raises NeedMoreDataError if not enough bytes</span>
 </pre></div>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="pandablocks.connections.Buffer.read_bytes">
 <span class="sig-name descname"><span class="pre">read_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><span class="pre">bytearray</span></a></span></span><a class="reference internal" href="../_modules/pandablocks/connections.html#Buffer.read_bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.connections.Buffer.read_bytes" title="Link to this definition">#</a></dt>
 <dd><p>Read and pop num bytes from the beginning of the buffer, raising
-<a class="reference internal" href="#pandablocks.connections.NeedMoreData" title="pandablocks.connections.NeedMoreData"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreData</span></code></a> if the buffer isn’t full enough to do so</p>
+<a class="reference internal" href="#pandablocks.connections.NeedMoreDataError" title="pandablocks.connections.NeedMoreDataError"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreDataError</span></code></a> if the buffer isn’t full enough to do so</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pandablocks.connections.Buffer.peek_bytes">
 <span class="sig-name descname"><span class="pre">peek_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><span class="pre">bytearray</span></a></span></span><a class="reference internal" href="../_modules/pandablocks/connections.html#Buffer.peek_bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.connections.Buffer.peek_bytes" title="Link to this definition">#</a></dt>
 <dd><p>Read but do not pop num bytes from the beginning of the buffer,
-raising <a class="reference internal" href="#pandablocks.connections.NeedMoreData" title="pandablocks.connections.NeedMoreData"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreData</span></code></a> if the buffer isn’t full enough to do so</p>
+raising <a class="reference internal" href="#pandablocks.connections.NeedMoreDataError" title="pandablocks.connections.NeedMoreDataError"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreDataError</span></code></a> if the buffer isn’t full enough to do so</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pandablocks.connections.Buffer.read_line">
 <span class="sig-name descname"><span class="pre">read_line</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandablocks/connections.html#Buffer.read_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.connections.Buffer.read_line" title="Link to this definition">#</a></dt>
 <dd><p>Read and pop a newline terminated line (without terminator)
-from the beginning of the buffer, raising <a class="reference internal" href="#pandablocks.connections.NeedMoreData" title="pandablocks.connections.NeedMoreData"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreData</span></code></a> if the
+from the beginning of the buffer, raising <a class="reference internal" href="#pandablocks.connections.NeedMoreDataError" title="pandablocks.connections.NeedMoreDataError"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">NeedMoreDataError</span></code></a> if the
 buffer isn’t full enough to do so</p>
 </dd></dl>
 
@@ -1647,8 +1653,8 @@ each field. For example</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt class="sig sig-object py" id="pandablocks.hdf.HDFDataOverrunException">
-<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.hdf.</span></span><span class="sig-name descname"><span class="pre">HDFDataOverrunException</span></span><a class="reference internal" href="../_modules/pandablocks/hdf.html#HDFDataOverrunException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.hdf.HDFDataOverrunException" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pandablocks.hdf.HDFDataOverrunError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandablocks.hdf.</span></span><span class="sig-name descname"><span class="pre">HDFDataOverrunError</span></span><a class="reference internal" href="../_modules/pandablocks/hdf.html#HDFDataOverrunError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks.hdf.HDFDataOverrunError" title="Link to this definition">#</a></dt>
 <dd><p>Raised if <a class="reference internal" href="#pandablocks.responses.EndReason.DATA_OVERRUN" title="pandablocks.responses.EndReason.DATA_OVERRUN"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">DATA_OVERRUN</span></code></a> occurs while receiving data for HDF file</p>
 </dd></dl>
 
@@ -1701,7 +1707,7 @@ per file created.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#pandablocks.hdf.HDFDataOverrunException" title="pandablocks.hdf.HDFDataOverrunException"><strong>HDFDataOverrunException</strong></a> – if there is a data overrun.</p>
+<dd class="field-even"><p><a class="reference internal" href="#pandablocks.hdf.HDFDataOverrunError" title="pandablocks.hdf.HDFDataOverrunError"><strong>HDFDataOverrunError</strong></a> – if there is a data overrun.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1762,6 +1768,7 @@ per file created.</p></li>
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#commands">Commands</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.commands.Command"><code class="docutils literal notranslate"><span class="pre">Command</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.commands.CommandError"><code class="docutils literal notranslate"><span class="pre">CommandError</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.commands.CommandException"><code class="docutils literal notranslate"><span class="pre">CommandException</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.commands.Raw"><code class="docutils literal notranslate"><span class="pre">Raw</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.commands.Get"><code class="docutils literal notranslate"><span class="pre">Get</span></code></a></li>
@@ -1870,8 +1877,8 @@ per file created.</p></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#connections">Connections</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.connections.NeedMoreData"><code class="docutils literal notranslate"><span class="pre">NeedMoreData</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.connections.NoContextAvailable"><code class="docutils literal notranslate"><span class="pre">NoContextAvailable</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.connections.NeedMoreDataError"><code class="docutils literal notranslate"><span class="pre">NeedMoreDataError</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.connections.NoContextAvailableError"><code class="docutils literal notranslate"><span class="pre">NoContextAvailableError</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.connections.Buffer"><code class="docutils literal notranslate"><span class="pre">Buffer</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.connections.Buffer.read_bytes"><code class="docutils literal notranslate"><span class="pre">Buffer.read_bytes()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.connections.Buffer.peek_bytes"><code class="docutils literal notranslate"><span class="pre">Buffer.peek_bytes()</span></code></a></li>
@@ -1921,7 +1928,7 @@ per file created.</p></li>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.hdf.HDFWriter"><code class="docutils literal notranslate"><span class="pre">HDFWriter</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.hdf.FrameProcessor"><code class="docutils literal notranslate"><span class="pre">FrameProcessor</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.hdf.HDFDataOverrunException"><code class="docutils literal notranslate"><span class="pre">HDFDataOverrunException</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.hdf.HDFDataOverrunError"><code class="docutils literal notranslate"><span class="pre">HDFDataOverrunError</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.hdf.create_pipeline"><code class="docutils literal notranslate"><span class="pre">create_pipeline()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.hdf.create_default_pipeline"><code class="docutils literal notranslate"><span class="pre">create_default_pipeline()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks.hdf.stop_pipeline"><code class="docutils literal notranslate"><span class="pre">stop_pipeline()</span></code></a></li>
