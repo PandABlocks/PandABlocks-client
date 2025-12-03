@@ -23,6 +23,7 @@ from .responses import (
     ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
     FieldInfo,
+    Identification,
     PosMuxFieldInfo,
     PosOutFieldInfo,
     ScalarFieldInfo,
@@ -932,3 +933,12 @@ class SetState(Command[None]):
         for command, ret in zip(commands, returns):
             if ret != ["OK"]:
                 logging.warning(f"command {command.inp} failed with {ret}")
+
+
+@dataclass
+class Identify(Command):
+    def execute(self) -> ExchangeGenerator[Identification]:
+        ex = Exchange("*IDN?")
+        yield ex
+        result = re.search("SW: (.*) FPGA: (.*) rootfs: (.*)", ex.line)
+        return Identification(result.group(1), result.group(2), result.group(3))
