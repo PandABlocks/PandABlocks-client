@@ -95,7 +95,7 @@ def test_identify():
     assert (
         get_responses(
             conn,
-            b"OK =PandA SW: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1\n",
+            b"OK =PandA A: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1\n",
         )
         == expected_result
     )
@@ -104,6 +104,35 @@ def test_identify():
 
     assert major == 4
     assert minor == 1
+
+
+def test_identify_raises_error_if_invalid_id():
+    conn = ControlConnection()
+    cmd = Identify()
+    conn.send(cmd)
+
+    # with pytest.raises(AssertionError):
+    assert get_responses(
+        conn,
+        b"OK =PandA NOT_SW: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1\n",
+    ) == [
+        (
+            cmd,
+            ACommandException(
+                "Identify() raised error:\n"
+                "AssertionError: Recieved unexpected response as PandA identification: "
+                "[PandA NOT_SW: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1]. "
+                "Expected response in format: ^SW: (.*) FPGA: (.*) rootfs: (.*)"
+            ),
+        )
+    ]
+
+
+def test_identification_raises_error_if_no_software_match():
+    id = Identification(software="10", fpga="", rootfs="")
+
+    with pytest.raises(AssertionError, match="PandA SW: 10 does not match"):
+        id.software_api()
 
 
 def test_get_line_error_when_multiline():
