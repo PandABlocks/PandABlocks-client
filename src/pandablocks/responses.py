@@ -369,5 +369,5 @@ class Identification:
         assert match, (
             f"PandA SW: {self.software} does not match expected pattern {API_EXTRACT}"
         )
-        major, minor = API_EXTRACT.match(self.software).groups()
+        major, minor = match.groups()
         return (int(major), int(minor))
