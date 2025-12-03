@@ -15,6 +15,7 @@ from pandablocks.commands import (
     GetMultiline,
     GetPcapBitsLabels,
     GetState,
+    Identify,
     Put,
     SetState,
     is_multiline_command,
@@ -34,6 +35,7 @@ from pandablocks.responses import (
     ExtOutBitsFieldInfo,
     ExtOutFieldInfo,
     FieldInfo,
+    Identification,
     PosMuxFieldInfo,
     PosOutFieldInfo,
     ScalarFieldInfo,
@@ -74,6 +76,34 @@ def test_get_line():
     cmd = GetLine("PCAP.ACTIVE")
     assert conn.send(cmd) == b"PCAP.ACTIVE?\n"
     assert get_responses(conn, b"OK =1\n") == [(cmd, "1")]
+
+
+def test_identify():
+    conn = ControlConnection()
+    cmd = Identify()
+    assert conn.send(cmd) == b"*IDN?\n"
+
+    expected_result = [
+        (
+            cmd,
+            Identification(
+                software="4.1", fpga="4.1.0 816147d6 00000000", rootfs="PandA 4.1"
+            ),
+        )
+    ]
+
+    assert (
+        get_responses(
+            conn,
+            b"OK =PandA SW: 4.1 FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1\n",
+        )
+        == expected_result
+    )
+
+    major, minor = expected_result[0][1].software_api()
+
+    assert major == 4
+    assert minor == 1
 
 
 def test_get_line_error_when_multiline():
