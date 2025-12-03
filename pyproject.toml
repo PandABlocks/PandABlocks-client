@@ -32,7 +32,6 @@ dev = [
     "types-mock",
     "atomicwrites",
     "copier",
-    "mypy",
     "myst-parser",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
@@ -44,7 +43,6 @@ dev = [
     "sphinx-copybutton",
     "sphinx-design",
     "tox-uv",
-    "types-mock",
 ]
 
 [project.scripts]
