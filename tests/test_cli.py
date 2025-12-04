@@ -47,7 +47,7 @@ def test_writing_fast_hdf(
         samples_name,
         "PCAP.TS_START.Value",
     ]
-    assert dummy_server_in_thread.received == ["*PCAP.DISARM=", "*PCAP.ARM="]
+    assert dummy_server_in_thread.received[1:] == ["*PCAP.DISARM=", "*PCAP.ARM="]
     assert_all_data_in_hdf_file(hdf_file, samples_name)
 
 
@@ -114,7 +114,7 @@ def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
     result = runner.invoke(cli.cli, ["load", "localhost", str(path)])
     assert result.exit_code == 0, result.exc_info
 
-    assert dummy_server_in_thread.received == STATE_SAVEFILE
+    assert dummy_server_in_thread.received[1:] == STATE_SAVEFILE
 
 
 def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
@@ -127,4 +127,4 @@ def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
     result = runner.invoke(cli.cli, ["load", "localhost", "--tutorial"])
     assert result.exit_code == 0, result.exc_info
 
-    assert dummy_server_in_thread.received == commands
+    assert dummy_server_in_thread.received[1:] == commands

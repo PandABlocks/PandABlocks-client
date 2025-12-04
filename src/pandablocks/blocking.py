@@ -3,7 +3,7 @@ from collections.abc import Iterable, Iterator
 from threading import Lock
 from typing import Optional, Union, overload
 
-from .commands import Command, T
+from .commands import Command, Identify, T
 from .connections import ControlConnection, DataConnection
 from .responses import Data
 
@@ -54,6 +54,8 @@ class BlockingClient:
     def connect(self):
         """Connect to the control port, and be ready to handle commands"""
         self._ctrl_socket.connect(self._host, 8888)
+        identification = self.send(Identify(), timeout=1)
+        self._ctrl_connection.set_api(identification.software_api())
 
     def close(self):
         """Close the control connection, and wait for completion"""

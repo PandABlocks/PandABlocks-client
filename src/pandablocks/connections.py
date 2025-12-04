@@ -148,6 +148,7 @@ class ControlConnection:
         self._lines: list[str] = []
         self._contexts: deque[_ExchangeContext] = deque()
         self._responses: deque[tuple[Command, Any]] = deque()
+        self._version: tuple[int, int] = (0, 0)
 
     def _update_contexts(self, lines: list[str], is_multiline=False) -> bytes:
         to_send = b""
@@ -237,10 +238,13 @@ class ControlConnection:
         some bytes to send down the network
         """
         # If not given a partially run generator, start one here
-        generator = command.execute()
+        generator = command.execute(version=self._version)
         exchanges = next(generator)
         to_send = b"".join(self._bytes_from_exchanges(exchanges, command, generator))
         return to_send
+
+    def set_api(self, version: tuple[int, int]) -> None:
+        self._version = version
 
 
 class DataConnection:

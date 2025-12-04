@@ -283,11 +283,16 @@ class DummyServer:
     # Items are removed from the Dict when they are sent.
     expected_message_responses: dict[str, str] = {}
 
-    def __init__(self) -> None:
+    def __init__(self, software_api: tuple[int, int] = (4, 1)) -> None:
         # This will be added to whenever control port gets a message
         self.received: list[str] = []
         # Add to this to give the control port something to send back
-        self.send: deque[str] = deque()
+        self.send: deque[str] = deque(
+            [
+                f"OK =PandA SW: {software_api[0]},{software_api[0]} "
+                "FPGA: 4.1.0 816147d6 00000000 rootfs: PandA 4.1"
+            ]
+        )
         # Add to this to give the data port something to send
         self.data: Iterable[bytes] = []
 
@@ -366,10 +371,20 @@ class DummyServer:
 
 @pytest_asyncio.fixture
 async def dummy_server_async():
-    server = DummyServer()
-    await server.open()
-    yield server
-    await server.close()
+    server = None
+
+    async def _create_server(software_api: tuple[int, int] = (4, 1)):
+        nonlocal server
+        if server:
+            raise RuntimeError("only one server can run at a time.")
+        server = DummyServer(software_api=software_api)
+        await server.open()
+        return server
+
+    try:
+        yield _create_server
+    finally:
+        await server.close()
 
 
 @pytest_asyncio.fixture

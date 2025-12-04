@@ -9,7 +9,7 @@ def test_blocking_get(dummy_server_in_thread):
     with BlockingClient("localhost") as client:
         response = client.send(Get("PCAP.ACTIVE"), timeout=1)
     assert response == "something"
-    assert dummy_server_in_thread.received == ["PCAP.ACTIVE?"]
+    assert dummy_server_in_thread.received[1:] == ["PCAP.ACTIVE?"]
 
 
 def test_blocking_bad_put_raises(dummy_server_in_thread):
@@ -21,7 +21,7 @@ def test_blocking_bad_put_raises(dummy_server_in_thread):
             str(cm.value) == "Put(field='PCAP.thing', value=1) raised error:\n"
             "AssertionError: 'PCAP.thing=1' -> 'ERR no such field'"
         )
-    assert dummy_server_in_thread.received == ["PCAP.thing=1"]
+    assert dummy_server_in_thread.received[1:] == ["PCAP.thing=1"]
 
 
 def test_blocking_data(

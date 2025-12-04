@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator, Iterable
 from contextlib import suppress
 from typing import Optional
 
-from .commands import Command, T
+from .commands import Command, Identify, T
 from .connections import ControlConnection, DataConnection
 from .responses import Data
 
@@ -78,6 +78,9 @@ class AsyncioClient:
         self._ctrl_task = asyncio.create_task(
             self._ctrl_read_forever(self._ctrl_stream.reader)
         )
+
+        identification = await self.send(Identify(), timeout=1)
+        self._ctrl_connection.set_api(identification.software_api())
 
     def is_connected(self):
         """True if there is a currently active connection.
