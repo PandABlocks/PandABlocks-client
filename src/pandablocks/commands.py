@@ -303,10 +303,12 @@ class Append(Command[None]):
 
     field: str
     value: list[str]
+    last: bool = False
 
     def execute(self) -> ExchangeGenerator[None]:
         # Multiline table with blank line to terminate
-        ex = Exchange([f"{self.field}<<"] + self.value + [""])
+        write_command = f"{self.field}<<{'|' if self.last else ''}"
+        ex = Exchange([write_command] + self.value + [""])
         yield ex
         ex.check_ok()
 

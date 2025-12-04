@@ -257,10 +257,17 @@ def test_connect_put_no_value():
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
 
 
-def test_connect_append():
+@pytest.mark.parametrize(
+    "last,expected",
+    [
+        (False, b"SEQ1.TABLE<<\n1048576\n0\n1000\n1000\n\n"),
+        (True, b"SEQ1.TABLE<<|\n1048576\n0\n1000\n1000\n\n"),
+    ],
+)
+def test_connect_append(last, expected):
     conn = ControlConnection()
-    cmd = Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"])
-    assert conn.send(cmd) == b"SEQ1.TABLE<<\n1048576\n0\n1000\n1000\n\n"
+    cmd = Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"], last=last)
+    assert conn.send(cmd) == expected
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
 
 
