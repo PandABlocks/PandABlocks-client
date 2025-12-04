@@ -1,5 +1,6 @@
 from collections import deque
 from pathlib import Path
+from typing import Callable
 from unittest.mock import patch
 
 import h5py
@@ -19,7 +20,7 @@ from tests.conftest import (
 @pytest.mark.parametrize("samples_name", [GATE_DURATION_FIELD, SAMPLES_FIELD])
 def test_writing_fast_hdf(
     samples_name,
-    dummy_server_in_thread: DummyServer,
+    dummy_server_in_thread: Callable[[], DummyServer],
     raw_dump,
     raw_dump_no_duration,
     tmp_path,
@@ -53,7 +54,7 @@ def test_writing_fast_hdf(
 
 
 def test_writing_overrun_hdf(
-    dummy_server_in_thread: DummyServer, overrun_dump, tmp_path
+    dummy_server_in_thread: Callable[[], DummyServer], overrun_dump, tmp_path
 ):
     server = dummy_server_in_thread()
     # We will send DISARM and ARM, so respond with OK
@@ -81,7 +82,7 @@ class MockInput:
             raise EOFError() from err
 
 
-def test_interactive_simple(dummy_server_in_thread, capsys):
+def test_interactive_simple(dummy_server_in_thread: Callable[[], DummyServer], capsys):
     server = dummy_server_in_thread()
     mock_input = MockInput("PCAP.ACTIVE?", "SEQ1.TABLE?")
     server.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
@@ -92,7 +93,7 @@ def test_interactive_simple(dummy_server_in_thread, capsys):
         assert result.output == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"
 
 
-def test_save(dummy_server_in_thread: DummyServer, tmp_path: Path):
+def test_save(dummy_server_in_thread: Callable[[], DummyServer], tmp_path: Path):
     server = dummy_server_in_thread()
     server.send += STATE_RESPONSES
     runner = CliRunner()
@@ -106,7 +107,7 @@ def test_save(dummy_server_in_thread: DummyServer, tmp_path: Path):
     assert results == STATE_SAVEFILE
 
 
-def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
+def test_load(dummy_server_in_thread: Callable[[], DummyServer], tmp_path: Path):
     server = dummy_server_in_thread()
     server.send += ["OK"] * 10
     runner = CliRunner()
@@ -122,7 +123,9 @@ def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
     assert server.received[1:] == STATE_SAVEFILE
 
 
-def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
+def test_load_tutorial(
+    dummy_server_in_thread: Callable[[], DummyServer], tmp_path: Path
+):
     server = dummy_server_in_thread()
     server.send += ["OK"] * 10000
     runner = CliRunner()
