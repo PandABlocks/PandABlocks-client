@@ -20,6 +20,8 @@ from pandablocks.responses import (
     StartData,
 )
 
+DUMMY_SERVER_DEFAULT_SW_VERSION = (4, 1)
+
 
 def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
     data = f.read(size)
@@ -283,7 +285,9 @@ class DummyServer:
     # Items are removed from the Dict when they are sent.
     expected_message_responses: dict[str, str] = {}
 
-    def __init__(self, software_api: tuple[int, int] = (4, 1)) -> None:
+    def __init__(
+        self, software_api: tuple[int, int] = DUMMY_SERVER_DEFAULT_SW_VERSION
+    ) -> None:
         # This will be added to whenever control port gets a message
         self.received: list[str] = []
         # Add to this to give the control port something to send back
@@ -373,7 +377,9 @@ class DummyServer:
 async def dummy_server_async():
     server = None
 
-    async def _create_server(software_api: tuple[int, int] = (4, 1)):
+    async def _create_server(
+        software_api: tuple[int, int] = DUMMY_SERVER_DEFAULT_SW_VERSION,
+    ):
         nonlocal server
         if server:
             raise RuntimeError("only one server can run at a time.")
@@ -390,15 +396,29 @@ async def dummy_server_async():
 @pytest_asyncio.fixture
 def dummy_server_in_thread():
     loop = asyncio.new_event_loop()
-    server = DummyServer()
     t = threading.Thread(target=loop.run_forever)
     t.start()
-    f = asyncio.run_coroutine_threadsafe(server.open(), loop)
-    f.result()
-    yield server
-    asyncio.run_coroutine_threadsafe(server.close(), loop).result()
-    loop.call_soon_threadsafe(loop.stop())
-    t.join()
+
+    server_container = {"server": None}
+
+    def _create_server(software_api: tuple[int, int] = DUMMY_SERVER_DEFAULT_SW_VERSION):
+        if server_container["server"] is not None:
+            raise RuntimeError("only one server can run at a time.")
+        server = DummyServer(software_api=software_api)
+        server_container["server"] = server
+        # Run server.open() in the server's event loop
+        fut = asyncio.run_coroutine_threadsafe(server.open(), loop)
+        fut.result()
+        return server
+
+    try:
+        yield _create_server
+    finally:
+        server = server_container["server"]
+        if server:
+            asyncio.run_coroutine_threadsafe(server.close(), loop).result()
+        loop.call_soon_threadsafe(loop.stop)
+        t.join()
 
 
 STATE_RESPONSES = [
