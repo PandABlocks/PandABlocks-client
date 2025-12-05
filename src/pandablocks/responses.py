@@ -153,6 +153,7 @@ class TableFieldInfo(FieldInfo):
     max_length: int
     fields: dict[str, TableFieldDetails]
     row_words: int
+    has_mode: bool = False
 
 
 @dataclass
