@@ -130,9 +130,9 @@ def _execute_commands(
 
 
 def _execute_commands(
-    version: tuple[int, int],
-    *commands: Command[Any],
-) -> ExchangeGenerator[tuple[Any, ...]]:
+    version,
+    *commands,
+):
     """Call the `Command.execute` method on each of the commands to produce
     some `Exchange` generators, which are yielded back to the connection,
     then zip together the responses to those exchanges into a tuple"""
