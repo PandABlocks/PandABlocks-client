@@ -148,7 +148,11 @@ class TableFieldDetails:
 
 @dataclass
 class TableFieldInfo(FieldInfo):
-    """Extended `FieldInfo` for fields with type "table"""
+    """Extended `FieldInfo` for fields with type "table"
+
+    Attribute "has_mode" is set to True when created from `GetFieldInfo`
+    with API version >= (4, 0)
+    """
 
     max_length: int
     fields: dict[str, TableFieldDetails]
