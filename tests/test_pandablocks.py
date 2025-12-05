@@ -993,9 +993,18 @@ def test_get_fields_parameterized_type(
     ]
 
 
-def test_get_fields_type_table():
+@pytest.mark.parametrize(
+    "api_version,expected_has_mode",
+    [
+        ((3, 9), False),
+        ((4, 0), True),
+        ((4, 1), True),
+    ],
+)
+def test_get_fields_type_table(api_version, expected_has_mode):
     """Test for table field type, including descriptions and retrieving enum labels"""
     conn = ControlConnection()
+    conn.set_api(api_version)
     cmd = GetFieldInfo("SEQ")
     assert conn.send(cmd) == b"SEQ.*?\n"
 
@@ -1062,6 +1071,7 @@ def test_get_fields_type_table():
                             labels=None,
                         ),
                     },
+                    has_mode=expected_has_mode,
                 )
             },
         )
