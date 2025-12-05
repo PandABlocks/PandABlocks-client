@@ -18,6 +18,7 @@ from pandablocks.commands import (
     Identify,
     Put,
     SetState,
+    VersionError,
     is_multiline_command,
 )
 from pandablocks.connections import (
@@ -266,9 +267,26 @@ def test_connect_put_no_value():
 )
 def test_connect_append(last, expected):
     conn = ControlConnection()
+    conn.set_api((4, 0))
     cmd = Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"], last=last)
     assert conn.send(cmd) == expected
     assert get_responses(conn, b"OK\n") == [(cmd, None)]
+
+
+def test_connect_append_old_api_raises_for_unsupported_options():
+    conn = ControlConnection()
+    conn.set_api((3, 9))
+    cmd = Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"], last=True)
+    with pytest.raises(VersionError) as ve:
+        conn.send(cmd)
+    assert str(ve.value) == "option `last=True` requires API version 4.0 or above"
+
+
+def test_connect_append_old_api_does_not_raise_for_supported_options():
+    conn = ControlConnection()
+    conn.set_api((3, 9))
+    cmd = Append("SEQ1.TABLE", ["1048576", "0", "1000", "1000"], last=False)
+    conn.send(cmd)
 
 
 def test_connect_append_multi_bad_list_format():

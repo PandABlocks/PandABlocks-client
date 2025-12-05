@@ -39,6 +39,7 @@ __all__ = [
     "Command",
     "CommandError",
     "CommandException",
+    "VersionError",
     "Raw",
     "Get",
     "GetLine",
@@ -84,6 +85,10 @@ class Command(Generic[T]):
 
 class CommandError(Exception):
     """Raised if a `Command` receives a mal-formed response"""
+
+
+class VersionError(Exception):
+    """Raised if a `Command` requests options unsupported by the API version"""
 
 
 # back compat alias
@@ -320,6 +325,8 @@ class Append(Command[None]):
     last: bool = False
 
     def execute(self, version: tuple[int, int]) -> ExchangeGenerator[None]:
+        if self.last and version < (4, 0):
+            raise VersionError("option `last=True` requires API version 4.0 or above")
         # Multiline table with blank line to terminate
         write_command = f"{self.field}<<{'|' if self.last else ''}"
         ex = Exchange([write_command] + self.value + [""])
