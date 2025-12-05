@@ -701,6 +701,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
             int(max_length),
             fields_dict,
             row_words,
+            has_mode=version >= (4, 0),
         )
 
         return field_name, field_info
