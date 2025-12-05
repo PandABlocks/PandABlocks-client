@@ -5,15 +5,17 @@ from pandablocks.commands import CommandError, Get, Put
 
 
 def test_blocking_get(dummy_server_in_thread):
-    dummy_server_in_thread.send.append("OK =something")
+    server = dummy_server_in_thread()
+    server.send.append("OK =something")
     with BlockingClient("localhost") as client:
         response = client.send(Get("PCAP.ACTIVE"), timeout=1)
     assert response == "something"
-    assert dummy_server_in_thread.received == ["PCAP.ACTIVE?"]
+    assert server.received[1:] == ["PCAP.ACTIVE?"]
 
 
 def test_blocking_bad_put_raises(dummy_server_in_thread):
-    dummy_server_in_thread.send.append("ERR no such field")
+    server = dummy_server_in_thread()
+    server.send.append("ERR no such field")
     with BlockingClient("localhost") as client:
         with pytest.raises(CommandError) as cm:
             client.send(Put("PCAP.thing", 1), timeout=1)
@@ -21,7 +23,7 @@ def test_blocking_bad_put_raises(dummy_server_in_thread):
             str(cm.value) == "Put(field='PCAP.thing', value=1) raised error:\n"
             "AssertionError: 'PCAP.thing=1' -> 'ERR no such field'"
         )
-    assert dummy_server_in_thread.received == ["PCAP.thing=1"]
+    assert server.received[1:] == ["PCAP.thing=1"]
 
 
 def test_blocking_data(
@@ -29,7 +31,8 @@ def test_blocking_data(
     slow_dump,
     slow_dump_expected,
 ):
-    dummy_server_in_thread.data = slow_dump
+    server = dummy_server_in_thread()
+    server.data = slow_dump
     events = []
     with BlockingClient("localhost") as client:
         for data in client.data(frame_timeout=1):

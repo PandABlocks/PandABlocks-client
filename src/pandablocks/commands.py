@@ -76,7 +76,7 @@ def is_multiline_command(cmd: str):
 class Command(Generic[T]):
     """Abstract baseclass for all ControlConnection commands to be inherited from"""
 
-    def execute(self) -> ExchangeGenerator[T]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[T]:
         # A generator that sends lines to the PandA, gets lines back, and returns a
         # response
         raise NotImplementedError(self)
@@ -95,41 +95,53 @@ CommandException = CommandError
 # zip() because typing does not support variadic type variables.  See
 # typeshed PR #1550 for discussion.
 @overload
-def _execute_commands(c1: Command[T]) -> ExchangeGenerator[tuple[T]]: ...
+def _execute_commands(
+    version: tuple[int, int], c1: Command[T]
+) -> ExchangeGenerator[tuple[T]]: ...
 
 
 @overload
 def _execute_commands(
-    c1: Command[T], c2: Command[T2]
+    version: tuple[int, int], c1: Command[T], c2: Command[T2]
 ) -> ExchangeGenerator[tuple[T, T2]]: ...
 
 
 @overload
 def _execute_commands(
-    c1: Command[T], c2: Command[T2], c3: Command[T3]
+    version: tuple[int, int], c1: Command[T], c2: Command[T2], c3: Command[T3]
 ) -> ExchangeGenerator[tuple[T, T2, T3]]: ...
 
 
 @overload
 def _execute_commands(
-    c1: Command[T], c2: Command[T2], c3: Command[T3], c4: Command[T4]
+    version: tuple[int, int],
+    c1: Command[T],
+    c2: Command[T2],
+    c3: Command[T3],
+    c4: Command[T4],
 ) -> ExchangeGenerator[tuple[T, T2, T3, T4]]: ...
 
 
 @overload
 def _execute_commands(
+    version: tuple[int, int],
     *commands: Command[Any],
 ) -> ExchangeGenerator[tuple[Any, ...]]: ...
 
 
-def _execute_commands(*commands):
+def _execute_commands(
+    version,
+    *commands,
+):
     """Call the `Command.execute` method on each of the commands to produce
     some `Exchange` generators, which are yielded back to the connection,
     then zip together the responses to those exchanges into a tuple"""
     # If we add type annotations to this function then mypy complains:
     # Overloaded function implementation does not accept all possible arguments
     # As we want to type check this, we put the logic in _zip_with_return
-    ret = yield from _zip_with_return([command.execute() for command in commands])
+    ret = yield from _zip_with_return(
+        [command.execute(version=version) for command in commands]
+    )
     return ret
 
 
@@ -182,7 +194,7 @@ class Raw(Command[list[str]]):
 
     inp: list[str]
 
-    def execute(self) -> ExchangeGenerator[list[str]]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[list[str]]:
         ex = Exchange(self.inp)
         yield ex
         return ex.received
@@ -207,7 +219,9 @@ class Get(Command[Union[str, list[str]]]):
 
     field: str
 
-    def execute(self) -> ExchangeGenerator[Union[str, list[str]]]:
+    def execute(
+        self, version: tuple[int, int]
+    ) -> ExchangeGenerator[Union[str, list[str]]]:
         ex = Exchange(f"{self.field}?")
         yield ex
         if ex.is_multiline:
@@ -232,7 +246,7 @@ class GetLine(Command[str]):
 
     field: str
 
-    def execute(self) -> ExchangeGenerator[str]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[str]:
         ex = Exchange(f"{self.field}?")
         yield ex
         return ex.line
@@ -254,7 +268,7 @@ class GetMultiline(Command[list[str]]):
 
     field: str
 
-    def execute(self) -> ExchangeGenerator[list[str]]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[list[str]]:
         ex = Exchange(f"{self.field}?")
         yield ex
         return ex.multiline
@@ -278,7 +292,7 @@ class Put(Command[None]):
     field: str
     value: Union[str, list[str]] = ""
 
-    def execute(self) -> ExchangeGenerator[None]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[None]:
         if isinstance(self.value, list):
             # Multiline table with blank line to terminate
             ex = Exchange([f"{self.field}<"] + self.value + [""])
@@ -305,7 +319,7 @@ class Append(Command[None]):
     value: list[str]
     last: bool = False
 
-    def execute(self) -> ExchangeGenerator[None]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[None]:
         # Multiline table with blank line to terminate
         write_command = f"{self.field}<<{'|' if self.last else ''}"
         ex = Exchange([write_command] + self.value + [""])
@@ -316,7 +330,7 @@ class Append(Command[None]):
 class Arm(Command[None]):
     """Arm PCAP for an acquisition by sending ``*PCAP.ARM=``"""
 
-    def execute(self) -> ExchangeGenerator[None]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[None]:
         ex = Exchange("*PCAP.ARM=")
         yield ex
         ex.check_ok()
@@ -325,7 +339,7 @@ class Arm(Command[None]):
 class Disarm(Command[None]):
     """Disarm PCAP, stopping acquisition by sending ``*PCAP.DISARM=``"""
 
-    def execute(self) -> ExchangeGenerator[None]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[None]:
         ex = Exchange("*PCAP.DISARM=")
         yield ex
         ex.check_ok()
@@ -352,7 +366,9 @@ class GetBlockInfo(Command[dict[str, BlockInfo]]):
 
     skip_description: bool = False
 
-    def execute(self) -> ExchangeGenerator[dict[str, BlockInfo]]:
+    def execute(
+        self, version: tuple[int, int]
+    ) -> ExchangeGenerator[dict[str, BlockInfo]]:
         ex = Exchange("*BLOCKS?")
         yield ex
 
@@ -366,7 +382,7 @@ class GetBlockInfo(Command[dict[str, BlockInfo]]):
             # Must use tuple() to match type returned by _execute_commands
             description_values = tuple(None for _ in commands)
         else:
-            description_values = yield from _execute_commands(*commands)
+            description_values = yield from _execute_commands(version, *commands)
 
         block_infos = {
             block: BlockInfo(number=num, description=desc)
@@ -414,7 +430,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
     _commands_map: dict[
         tuple[str, Optional[str]],
         Callable[
-            [str, str, Optional[str]],
+            [tuple[int, int], str, str, Optional[str]],
             _FieldGeneratorType,
         ],
     ] = field(init=False, repr=False, default_factory=dict)
@@ -465,9 +481,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return GetLine(f"*DESC.{self.block}.{field_name}")
 
     def _uint(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, maximum = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.MAX"),
         )
@@ -476,9 +497,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _scalar(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, units, scale, offset = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetLine(f"{self.block}.{field_name}.UNITS"),
             GetLine(f"{self.block}.{field_name}.SCALE"),
@@ -492,9 +518,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _subtype_time(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, units_labels = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
         )
@@ -504,9 +535,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _enum(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, labels = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
         )
@@ -516,9 +552,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _time(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, units = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.UNITS"),
         )
@@ -528,9 +569,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _bit_out(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, capture_word, offset = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.CAPTURE_WORD"),
             GetLine(f"{self.block}1.{field_name}.OFFSET"),
@@ -543,9 +589,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _bit_mux(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, max_delay, labels = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.MAX_DELAY"),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
@@ -558,9 +609,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _pos_mux(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, labels = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}"),
         )
@@ -569,12 +625,17 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _table(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         # Ignore the ROW_WORDS attribute as it's new and won't be present on all PandAs,
         # and there's no easy way to try it and catch an error while also running other
         # Get commands at the same time
         table_desc, max_length, fields = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetLine(f"{self.block}1.{field_name}.MAX_LENGTH"),
             GetMultiline(f"{self.block}1.{field_name}.FIELDS"),
@@ -613,7 +674,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         # The first len(enum_field_gets) items are enum labels, type list[str]
         # The second part of the list are descriptions, type str
         labels_and_descriptions = yield from _execute_commands(
-            *enum_field_gets, *desc_gets
+            version, *enum_field_gets, *desc_gets
         )
 
         for name, labels in zip(
@@ -638,9 +699,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _pos_out(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, capture_labels = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
         )
@@ -649,9 +715,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _ext_out(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, capture_labels = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
         )
@@ -660,9 +731,14 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _ext_out_bits(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         desc, bits, capture_labels = yield from _execute_commands(
+            version,
             self._get_desc(field_name),
             GetMultiline(f"{self.block}.{field_name}.BITS"),
             GetMultiline(f"*ENUMS.{self.block}.{field_name}.CAPTURE"),
@@ -673,15 +749,21 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
         return field_name, field_info
 
     def _no_attributes(
-        self, field_name: str, field_type: str, field_subtype: Optional[str]
+        self,
+        version: tuple[int, int],
+        field_name: str,
+        field_type: str,
+        field_subtype: Optional[str],
     ) -> _FieldGeneratorType:
         """Calling this method indicates type-subtype pair is known and
         has no attributes, so only a description needs to be retrieved"""
-        desc = yield from self._get_desc(field_name).execute()
+        desc = yield from self._get_desc(field_name).execute(version=version)
 
         return field_name, FieldInfo(field_type, field_subtype, desc)
 
-    def execute(self) -> ExchangeGenerator[dict[str, FieldInfo]]:
+    def execute(
+        self, version: tuple[int, int]
+    ) -> ExchangeGenerator[dict[str, FieldInfo]]:
         ex = Exchange(f"{self.block}.*?")
         yield ex
         unsorted: dict[int, tuple[str, FieldInfo]] = {}
@@ -705,7 +787,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
                     # Construct the list of type-specific generators
                     field_generators.append(
                         self._commands_map[(field_type, subtype)](
-                            field_name, field_type, subtype
+                            version, field_name, field_type, subtype
                         )
                     )
 
@@ -717,7 +799,7 @@ class GetFieldInfo(Command[dict[str, FieldInfo]]):
                     )
                     # We can assume the new field will have a description though
                     field_generators.append(
-                        self._no_attributes(field_name, field_type, subtype)
+                        self._no_attributes(version, field_name, field_type, subtype)
                     )
 
             # Keep track of order of fields as returned by PandA. Important for later
@@ -747,7 +829,9 @@ class GetPcapBitsLabels(Command):
         GetPcapBitsLabels() -> {"BITS0" : ["TTLIN1.VAL", "TTLIN2.VAL", ...], ...}
     """
 
-    def execute(self) -> ExchangeGenerator[dict[str, list[str]]]:
+    def execute(
+        self, version: tuple[int, int]
+    ) -> ExchangeGenerator[dict[str, list[str]]]:
         ex = Exchange("PCAP.*?")
         yield ex
         bits_fields = []
@@ -821,7 +905,7 @@ class GetChanges(Command[Changes]):
     group: ChangeGroup = ChangeGroup.ALL
     get_multiline: bool = False
 
-    def execute(self) -> ExchangeGenerator[Changes]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[Changes]:
         ex = Exchange(f"*CHANGES{self.group.value}?")
         yield ex
         changes = Changes({}, [], [], {})
@@ -842,7 +926,7 @@ class GetChanges(Command[Changes]):
 
         if self.get_multiline:
             multiline_vals = yield from _execute_commands(
-                *[item[1] for item in multivalue_get_commands]
+                version, *[item[1] for item in multivalue_get_commands]
             )
 
             for field, value in zip(
@@ -873,10 +957,11 @@ class GetState(Command[list[str]]):
         ]
     """
 
-    def execute(self) -> ExchangeGenerator[list[str]]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[list[str]]:
         # TODO: explain in detail how this works
         # See: references/how-it-works
         attr, config, table, metadata = yield from _execute_commands(
+            version,
             GetChanges(ChangeGroup.ATTR),
             GetChanges(ChangeGroup.CONFIG),
             GetChanges(ChangeGroup.TABLE),
@@ -895,7 +980,7 @@ class GetState(Command[list[str]]):
             # Get metadata as string list
             multiline_keys.append(f"{field_name}<")
             commands.append(GetMultiline(f"{field_name}"))
-        multiline_values = yield from _execute_commands(*commands)
+        multiline_values = yield from _execute_commands(version, *commands)
         for k, v in zip(multiline_keys, multiline_values):
             state += [k] + v + [""]
         return state
@@ -920,7 +1005,7 @@ class SetState(Command[None]):
 
     state: list[str]
 
-    def execute(self) -> ExchangeGenerator[None]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[None]:
         commands: list[Raw] = []
         command_lines: list[str] = []
         for line in self.state:
@@ -931,7 +1016,7 @@ class SetState(Command[None]):
                 # Or blank line at the end of a multiline command
                 commands.append(Raw(command_lines))
                 command_lines = []
-        returns = yield from _execute_commands(*commands)
+        returns = yield from _execute_commands(version, *commands)
         for command, ret in zip(commands, returns):
             if ret != ["OK"]:
                 logging.warning(f"command {command.inp} failed with {ret}")
@@ -939,7 +1024,7 @@ class SetState(Command[None]):
 
 @dataclass
 class Identify(Command):
-    def execute(self) -> ExchangeGenerator[Identification]:
+    def execute(self, version: tuple[int, int]) -> ExchangeGenerator[Identification]:
         ex = Exchange("*IDN?")
         yield ex
         expected_response = r"^PandA SW: (.*) FPGA: (.*) rootfs: (.*)"

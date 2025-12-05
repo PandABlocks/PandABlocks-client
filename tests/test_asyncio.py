@@ -6,24 +6,24 @@ import pytest
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import CommandError, Get, Put
 
-from .conftest import DummyServer
-
 # Timeout in seconds
 TIMEOUT = 3
 
 
 @pytest.mark.asyncio
 async def test_asyncio_get(dummy_server_async):
-    dummy_server_async.send.append("OK =something")
+    server = await dummy_server_async()
+    server.send.append("OK =something")
     async with AsyncioClient("localhost") as client:
         response = await asyncio.wait_for(client.send(Get("PCAP.ACTIVE")), timeout=1)
     assert response == "something"
-    assert dummy_server_async.received == ["PCAP.ACTIVE?"]
+    assert server.received[1:] == ["PCAP.ACTIVE?"]
 
 
 @pytest.mark.asyncio
 async def test_asyncio_bad_put_raises(dummy_server_async):
-    dummy_server_async.send.append("ERR no such field")
+    server = await dummy_server_async()
+    server.send.append("ERR no such field")
     async with AsyncioClient("localhost") as client:
         with pytest.raises(CommandError) as cm:
             await asyncio.wait_for(client.send(Put("PCAP.thing", 1)), timeout=1)
@@ -31,7 +31,7 @@ async def test_asyncio_bad_put_raises(dummy_server_async):
             str(cm.value) == "Put(field='PCAP.thing', value=1) raised error:\n"
             "AssertionError: 'PCAP.thing=1' -> 'ERR no such field'"
         )
-    assert dummy_server_async.received == ["PCAP.thing=1"]
+    assert server.received[1:] == ["PCAP.thing=1"]
 
 
 @pytest.mark.asyncio
@@ -40,11 +40,12 @@ async def test_asyncio_bad_put_raises(dummy_server_async):
 async def test_asyncio_data(
     dummy_server_async, fast_dump, fast_dump_expected, disarmed, flush_period
 ):
+    server = await dummy_server_async()
     if not disarmed:
         # simulate getting the data without the END marker as if arm was not pressed
         fast_dump = (x.split(b"END")[0] for x in fast_dump)
         fast_dump_expected = list(fast_dump_expected)[:-1]
-    dummy_server_async.data = fast_dump
+    server.data = fast_dump
     events = []
     async with AsyncioClient("localhost") as client:
         async for data in client.data(frame_timeout=1, flush_period=flush_period):
@@ -82,7 +83,8 @@ async def test_asyncio_data_with_abs_timing(
     the binary stream and replacing the expected `StartData` attributes with
     the expected values.
     """
-    dummy_server_async.data = fast_dump_with_extra_header_params(timing_params)
+    server = await dummy_server_async()
+    server.data = fast_dump_with_extra_header_params(timing_params)
     events = []
     async with AsyncioClient("localhost") as client:
         async for data in client.data(frame_timeout=1):
@@ -100,7 +102,8 @@ async def test_asyncio_data_with_abs_timing(
 
 
 async def test_asyncio_data_timeout(dummy_server_async, fast_dump):
-    dummy_server_async.data = fast_dump
+    server = await dummy_server_async()
+    server.data = fast_dump
     async with AsyncioClient("localhost") as client:
         with pytest.raises(asyncio.TimeoutError, match="No data received for 0.1s"):
             async for _ in client.data(frame_timeout=0.1):
@@ -138,7 +141,8 @@ async def test_asyncio_empty_frame_error():
 
 
 @pytest.mark.asyncio
-async def test_asyncio_connects(dummy_server_async: DummyServer):
+async def test_asyncio_connects(dummy_server_async):
+    await dummy_server_async()
     async with AsyncioClient("localhost") as client:
         assert client.is_connected()
 
@@ -155,9 +159,10 @@ async def test_asyncio_client_uncontactable():
 
 
 @pytest.mark.asyncio
-async def test_asyncio_client_fails_when_cannot_drain(dummy_server_async: DummyServer):
+async def test_asyncio_client_fails_when_cannot_drain(dummy_server_async):
     """Test that we don't hang indefinitely when failing to drain data from the OS
     send buffer"""
+    await dummy_server_async()
 
     # Note this value is probably OS-dependant. I found it experimentally.
     large_data = b"ABC" * 100000000

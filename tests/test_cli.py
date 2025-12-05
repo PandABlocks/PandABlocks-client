@@ -1,5 +1,6 @@
 from collections import deque
 from pathlib import Path
+from typing import Callable
 from unittest.mock import patch
 
 import h5py
@@ -19,17 +20,18 @@ from tests.conftest import (
 @pytest.mark.parametrize("samples_name", [GATE_DURATION_FIELD, SAMPLES_FIELD])
 def test_writing_fast_hdf(
     samples_name,
-    dummy_server_in_thread: DummyServer,
+    dummy_server_in_thread: Callable[[], DummyServer],
     raw_dump,
     raw_dump_no_duration,
     tmp_path,
 ):
+    server = dummy_server_in_thread()
     # We will send DISARM and ARM, so respond with OK
-    dummy_server_in_thread.send += ["OK", "OK"]
+    server.send += ["OK", "OK"]
     if samples_name == GATE_DURATION_FIELD:
-        dummy_server_in_thread.data = raw_dump
+        server.data = raw_dump
     else:
-        dummy_server_in_thread.data = raw_dump_no_duration
+        server.data = raw_dump_no_duration
 
     runner = CliRunner()
     result = runner.invoke(
@@ -47,16 +49,17 @@ def test_writing_fast_hdf(
         samples_name,
         "PCAP.TS_START.Value",
     ]
-    assert dummy_server_in_thread.received == ["*PCAP.DISARM=", "*PCAP.ARM="]
+    assert server.received[1:] == ["*PCAP.DISARM=", "*PCAP.ARM="]
     assert_all_data_in_hdf_file(hdf_file, samples_name)
 
 
 def test_writing_overrun_hdf(
-    dummy_server_in_thread: DummyServer, overrun_dump, tmp_path
+    dummy_server_in_thread: Callable[[], DummyServer], overrun_dump, tmp_path
 ):
+    server = dummy_server_in_thread()
     # We will send DISARM and ARM, so respond with OK
-    dummy_server_in_thread.send += ["OK", "OK"]
-    dummy_server_in_thread.data = [overrun_dump]
+    server.send += ["OK", "OK"]
+    server.data = [overrun_dump]
     runner = CliRunner()
     result = runner.invoke(
         cli.cli, ["hdf", "localhost", str(tmp_path / "%d.h5"), "--arm"]
@@ -79,9 +82,10 @@ class MockInput:
             raise EOFError() from err
 
 
-def test_interactive_simple(dummy_server_in_thread, capsys):
+def test_interactive_simple(dummy_server_in_thread: Callable[[], DummyServer], capsys):
+    server = dummy_server_in_thread()
     mock_input = MockInput("PCAP.ACTIVE?", "SEQ1.TABLE?")
-    dummy_server_in_thread.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
+    server.send += ["OK =0", "!1\n!2\n!3\n!4\n."]
     with patch("pandablocks._control.input", side_effect=mock_input):
         runner = CliRunner()
         result = runner.invoke(cli.cli, ["control", "localhost", "--no-readline"])
@@ -89,8 +93,9 @@ def test_interactive_simple(dummy_server_in_thread, capsys):
         assert result.output == "OK =0\n!1\n!2\n!3\n!4\n.\n\n"
 
 
-def test_save(dummy_server_in_thread: DummyServer, tmp_path: Path):
-    dummy_server_in_thread.send += STATE_RESPONSES
+def test_save(dummy_server_in_thread: Callable[[], DummyServer], tmp_path: Path):
+    server = dummy_server_in_thread()
+    server.send += STATE_RESPONSES
     runner = CliRunner()
     path = tmp_path / "saved_state"
     result = runner.invoke(cli.cli, ["save", "localhost", str(path)])
@@ -102,8 +107,9 @@ def test_save(dummy_server_in_thread: DummyServer, tmp_path: Path):
     assert results == STATE_SAVEFILE
 
 
-def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
-    dummy_server_in_thread.send += ["OK"] * 10
+def test_load(dummy_server_in_thread: Callable[[], DummyServer], tmp_path: Path):
+    server = dummy_server_in_thread()
+    server.send += ["OK"] * 10
     runner = CliRunner()
     path = tmp_path / "saved_state"
 
@@ -114,11 +120,14 @@ def test_load(dummy_server_in_thread: DummyServer, tmp_path: Path):
     result = runner.invoke(cli.cli, ["load", "localhost", str(path)])
     assert result.exit_code == 0, result.exc_info
 
-    assert dummy_server_in_thread.received == STATE_SAVEFILE
+    assert server.received[1:] == STATE_SAVEFILE
 
 
-def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
-    dummy_server_in_thread.send += ["OK"] * 10000
+def test_load_tutorial(
+    dummy_server_in_thread: Callable[[], DummyServer], tmp_path: Path
+):
+    server = dummy_server_in_thread()
+    server.send += ["OK"] * 10000
     runner = CliRunner()
 
     with cli.TUTORIAL.open("r") as stream:
@@ -127,4 +136,4 @@ def test_load_tutorial(dummy_server_in_thread: DummyServer, tmp_path: Path):
     result = runner.invoke(cli.cli, ["load", "localhost", "--tutorial"])
     assert result.exit_code == 0, result.exc_info
 
-    assert dummy_server_in_thread.received == commands
+    assert server.received[1:] == commands
