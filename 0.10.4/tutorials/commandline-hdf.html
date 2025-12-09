@@ -1,0 +1,782 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Commandline Capture of HDF Files Tutorial &#8212; PandABlocks-client 0.10.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=7e173fe4"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=30646c52"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorials/commandline-hdf';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-client/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.10.4';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <link rel="icon" href="../_static/PandA-logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Interactive Control Tutorial" href="control.html" />
+    <link rel="prev" title="Tutorials" href="../tutorials.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.10.4" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/PandA-logo-for-black-background.svg" class="logo__image only-light" alt=""/>
+    <img src="../_static/PandA-logo-for-black-background.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">PandABlocks-client</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../tutorials.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../how-to.html">
+    How-to Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../explanations.html">
+    Explanations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fas fa-cube fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+      
+        <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../tutorials.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../how-to.html">
+    How-to Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../explanations.html">
+    Explanations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/PandABlocks/PandABlocks-client" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/PandABlocks-client" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fas fa-cube fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+</ul></div>
+        
+          <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Commandline Capture of HDF Files Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="control.html">Interactive Control Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="load-save.html">Commandline Load/Save Tutorial</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../tutorials.html" class="nav-link">Tutorials</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Commandline Capture of HDF Files Tutorial</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="commandline-capture-of-hdf-files-tutorial">
+<span id="commandline-hdf"></span><h1>Commandline Capture of HDF Files Tutorial<a class="headerlink" href="#commandline-capture-of-hdf-files-tutorial" title="Link to this heading">#</a></h1>
+<p>This tutorial shows how to use the commandline tool to save an HDF file from the PandA
+for each PCAP acquisition. It assumes that you have followed the <code class="docutils literal notranslate"><span class="pre">tutorial-load-save</span></code> tutorial
+to setup the PandA.</p>
+<section id="capturing-some-data">
+<h2>Capturing some data<a class="headerlink" href="#capturing-some-data" title="Link to this heading">#</a></h2>
+<p>In one terminal launch the HDF writer client, and tell it to capture 3 frames in a
+location of your choosing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pandablocks</span> <span class="n">hdf</span> <span class="o">&lt;</span><span class="n">hostname</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">num</span><span class="o">=</span><span class="mi">3</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">panda</span><span class="o">-</span><span class="n">capture</span><span class="o">-%</span><span class="n">d</span><span class="o">.</span><span class="n">h5</span>
+</pre></div>
+</div>
+<p>Where <code class="docutils literal notranslate"><span class="pre">&lt;hostname&gt;</span></code> is the hostname or ip address of your PandA. This will connect
+to the data port of the PandA and start listening for up to 3 acquisitions. It will
+then write these into files:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">panda</span><span class="o">-</span><span class="n">capture</span><span class="o">-</span><span class="mf">1.</span><span class="n">h5</span>
+<span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">panda</span><span class="o">-</span><span class="n">capture</span><span class="o">-</span><span class="mf">2.</span><span class="n">h5</span>
+<span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">panda</span><span class="o">-</span><span class="n">capture</span><span class="o">-</span><span class="mf">3.</span><span class="n">h5</span>
+</pre></div>
+</div>
+<p>In a second terminal you can launch the acquisition:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pandablocks control &lt;hostname&gt;
+&lt; *PCAP.ARM=
+OK
+</pre></div>
+</div>
+<p>This should write 1000 frames at 500Hz, printing in the first terminal window:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span><span class="p">:</span><span class="n">Opened</span> <span class="s1">&#39;/tmp/panda-capture-1.h5&#39;</span> <span class="k">with</span> <span class="mi">60</span> <span class="n">byte</span> <span class="n">samples</span> <span class="n">stored</span> <span class="ow">in</span> <span class="mi">11</span> <span class="n">datasets</span>
+<span class="n">INFO</span><span class="p">:</span><span class="n">Closed</span> <span class="s1">&#39;/tmp/panda-capture-1.h5&#39;</span> <span class="n">after</span> <span class="n">writing</span> <span class="mi">1000</span> <span class="n">samples</span><span class="o">.</span> <span class="n">End</span> <span class="n">reason</span> <span class="ow">is</span> <span class="s1">&#39;Ok&#39;</span>
+</pre></div>
+</div>
+<p>You can then do <code class="docutils literal notranslate"><span class="pre">PCAP.ARM=</span></code> twice more to make the other files.</p>
+</section>
+<section id="examining-the-data">
+<h2>Examining the data<a class="headerlink" href="#examining-the-data" title="Link to this heading">#</a></h2>
+<p>You can use your favourite HDF reader to examine the data. It is written in <code class="docutils literal notranslate"><span class="pre">swmr</span></code>
+mode so that you can read partial acquisitions before they are complete.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Reading SWMR HDF5 files while they are being written to require the use of a
+Posix compliant filesystem like a local disk or GPFS native client. NFS
+mounts are <em>not</em> Posix compliant.</p>
+</div>
+<p>In the repository <code class="docutils literal notranslate"><span class="pre">examples/plot_counter_hdf.py</span></code> is an example of reading the
+file, listing the datasets, and plotting the counters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hdf</span><span class="p">:</span>
+        <span class="c1"># Print the dataset names in the file</span>
+        <span class="n">datasets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">hdf</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span>
+        <span class="c1"># Plot the counter mean values for the 3 counters we know are captured</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">hdf</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;COUNTER</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">.OUT.Mean&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Counter </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># Add a legend and show the plot</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Running it on <code class="docutils literal notranslate"><span class="pre">/tmp/panda-capture-1.h5</span></code> will show the three counter values:</p>
+<p>(<a class="reference download internal" download="" href="../_downloads/dc1bb79c1d7b7174ee1af8866d1dff88/commandline-hdf-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>, <a class="reference download internal" download="" href="../_downloads/89d50336567b1a2b439acb87eb112581/commandline-hdf-1.png"><code class="xref download docutils literal notranslate"><span class="pre">png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/61e87182d6ca3a4a1f4e441aec8c2743/commandline-hdf-1.hires.png"><code class="xref download docutils literal notranslate"><span class="pre">hires.png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/c3bddecf4fb6222f2e2ec7db6e4e735c/commandline-hdf-1.pdf"><code class="xref download docutils literal notranslate"><span class="pre">pdf</span></code></a>)</p>
+<figure class="align-default">
+<img alt="../_images/commandline-hdf-1.png" class="plot-directive" src="../_images/commandline-hdf-1.png" />
+</figure>
+<p>You should see that they are all the same size:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ls -s --si /tmp/panda-capture-*.h5
+74k /tmp/panda-capture-1.h5
+74k /tmp/panda-capture-2.h5
+74k /tmp/panda-capture-3.h5
+</pre></div>
+</div>
+<p>If you have h5diff you can check the contents are the same:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ h5diff /tmp/panda-capture-1.h5 /tmp/panda-capture-2.h5
+$ h5diff /tmp/panda-capture-1.h5 /tmp/panda-capture-3.h5
+</pre></div>
+</div>
+</section>
+<section id="absolute-timestamps">
+<h2>Absolute timestamps<a class="headerlink" href="#absolute-timestamps" title="Link to this heading">#</a></h2>
+<p>Starting with v3.0, PandABox firmware supports absolute timestamping of
+the collected data. PandA still collects relative timestamps for
+individual data points that are saved as arrays to HDF5 file. In addition,
+the absolute timestamp for the start of the measurement is saved to HDF5
+file and can be used to convert relative timestamps to absolute timestamps</p>
+<p>The absolute timestamp is saved as a set of attributes of the root group of
+the HDF5 file. The attributes are optional and set only if the respective
+parameters were captured by PandABox and received by the IOC. The following
+attributes are used:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">arm_time</span></code> - the time when the Panda (PCAP block) was armed, saved as
+a string in the ISO 8601 UTC format. This parameter is mostly used for
+debugging.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">start_time</span></code> - the start time (PCAP block is armed and enabled) of
+the measurement in seconds since the epoch, saved as a string in the
+ISO 8601 UTC format. Uses hardware provided timestamp (e.g. PTP or MRF) if available,
+falling back to the system timestamp.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hw_time_offset_ns</span></code> - the offset in nanoseconds (<em>int64</em>) that should be added to
+to <code class="docutils literal notranslate"><span class="pre">start_time</span></code> to get back to the system timestamp. The attribute is
+present only if Panda is configured to use hardware-based absolute timestamps
+(PTP or MRF).</p></li>
+</ul>
+<p>The following code may be used to read the absolute timestamp from the HDF5 file.
+Use <code class="docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code> object if nanosecond accuracy is required (standard
+<code class="docutils literal notranslate"><span class="pre">dataframe</span></code> object is limited to microsecond precision).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">arm_time</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;arm_time&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start_time&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">hw_time_offset_ns</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hw_time_offset_ns&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Arm time: </span><span class="si">{</span><span class="n">arm_time</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start time: </span><span class="si">{</span><span class="n">start_time</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hardware time offset: </span><span class="si">{</span><span class="n">hw_time_offset_ns</span><span class="si">!r}</span><span class="s2"> ns&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">start_time</span><span class="p">:</span>
+            <span class="c1"># Compute and print the start time that includes the offset</span>
+            <span class="n">ts_start</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">start_time</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">hw_time_offset_ns</span><span class="p">:</span>
+                <span class="n">ts_start</span> <span class="o">+=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">nanoseconds</span><span class="o">=</span><span class="n">hw_time_offset_ns</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start time (system clock instead of hardware clock): </span><span class="si">{</span><span class="n">ts_start</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Expected output:</span>
+<span class="c1">#</span>
+<span class="c1"># Arm time: &#39;2024-03-05T20:27:12.607841574Z&#39;</span>
+<span class="c1"># Start time: &#39;2024-03-05T20:27:12.605729480Z&#39;</span>
+<span class="c1"># Hardware time offset: 2155797 ns</span>
+<span class="c1"># Start TS including the offset: 2024-03-05T20:27:08.605729480Z</span>
+</pre></div>
+</div>
+</section>
+<section id="collecting-more-data-faster">
+<h2>Collecting more data faster<a class="headerlink" href="#collecting-more-data-faster" title="Link to this heading">#</a></h2>
+<p>The test data is produced by a SEQ Block, configured to produce a high level
+for 1 prescaled tick, then a low level for 1 prescaled tick. The default
+setting is to produce 1000 repeats of these, with a prescale of 1ms and hence
+a period of 2ms. Each sample is 11 fields, totalling 60 bytes, which means
+that it will produce data at a modest 30kBytes/s for a total of 2s.
+We can increase this to a more taxing 30MBytes/s by reducing the
+prescaler to 1us. If we increase the prescaler to 10 million then we will
+sustain this data rate for 20s and write 600MByte files each time:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pandablocks control &lt;hostname&gt;
+&lt; SEQ1.REPEATS?
+OK =1000  # It was doing 1k samples, change to 10M
+&lt; SEQ1.REPEATS=10000000
+OK
+&lt; SEQ1.PRESCALE?
+OK =1000
+&lt; SEQ1.PRESCALE.UNITS?
+OK =us  # It was doing 1ms ticks, change to 1us
+&lt; SEQ1.PRESCALE=1
+OK
+</pre></div>
+</div>
+<p>Lets write a single file this time, telling the command to also arm the PandA:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pandablocks</span> <span class="n">hdf</span> <span class="o">&lt;</span><span class="n">hostname</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">arm</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">biggerfile</span><span class="o">-%</span><span class="n">d</span><span class="o">.</span><span class="n">h5</span>
+</pre></div>
+</div>
+<p>Twenty seconds later we will get a file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ls -s --si /tmp/biggerfile-*.h5
+602M /tmp/biggerfile-1.h5
+</pre></div>
+</div>
+<p>Which looks very similar when plotted with the code above, just a bit bigger:</p>
+<p>(<a class="reference download internal" download="" href="../_downloads/dc1bb79c1d7b7174ee1af8866d1dff88/commandline-hdf-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>, <a class="reference download internal" download="" href="../_downloads/89d50336567b1a2b439acb87eb112581/commandline-hdf-1.png"><code class="xref download docutils literal notranslate"><span class="pre">png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/61e87182d6ca3a4a1f4e441aec8c2743/commandline-hdf-1.hires.png"><code class="xref download docutils literal notranslate"><span class="pre">hires.png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/c3bddecf4fb6222f2e2ec7db6e4e735c/commandline-hdf-1.pdf"><code class="xref download docutils literal notranslate"><span class="pre">pdf</span></code></a>)</p>
+<figure class="align-default">
+<img alt="../_images/commandline-hdf-1.png" class="plot-directive" src="../_images/commandline-hdf-1.png" />
+</figure>
+</section>
+<section id="conclusion">
+<h2>Conclusion<a class="headerlink" href="#conclusion" title="Link to this heading">#</a></h2>
+<p>This tutorial has shown how to capture data to an HDF file using the commandline
+client. It is possible to use this commandline interface in production, but it is
+more likely to be integrated in an application that controls the acquisition as well
+as writing the data. This is covered in <code class="docutils literal notranslate"><span class="pre">library-hdf</span></code>. You can explore strategies
+on getting the maximum performance out of a PandA in <code class="docutils literal notranslate"><span class="pre">performance</span></code>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../tutorials.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Tutorials</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="control.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Interactive Control Tutorial</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#capturing-some-data">Capturing some data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examining-the-data">Examining the data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#absolute-timestamps">Absolute timestamps</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#collecting-more-data-faster">Collecting more data faster</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#conclusion">Conclusion</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/PandABlocks/PandABlocks-client/edit/0.10.4/docs/tutorials/commandline-hdf.md">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/tutorials/commandline-hdf.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2020, Diamond Light Source.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
